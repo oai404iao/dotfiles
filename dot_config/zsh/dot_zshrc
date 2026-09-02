@@ -1,0 +1,6 @@
+[[ -o interactive ]] || return
+
+for rc_file in "$ZDOTDIR"/rc.d/*.zsh(N); do
+    source "$rc_file"
+done
+unset rc_file

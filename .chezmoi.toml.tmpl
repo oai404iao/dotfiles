@@ -1,0 +1,31 @@
+{{- $roles := list "desktop" "laptop" "server" -}}
+{{- $role := promptChoiceOnce . "role" "Machine role" $roles "desktop" -}}
+{{- $graphical := promptBoolOnce . "graphical" "Graphical machine" true -}}
+{{- $niri := false -}}
+{{- if $graphical -}}
+{{-   $niri = promptBoolOnce . "niri" "Use niri" true -}}
+{{- end -}}
+{{- $work := promptBoolOnce . "work" "Work machine" false -}}
+
+mode = "file"
+
+[add]
+    secrets = "error"
+
+[git]
+    autoAdd = false
+    autoCommit = false
+    autoPush = false
+
+[template]
+    options = ["missingkey=error"]
+
+[rbw]
+    command = "rbw"
+
+[data]
+    role = {{ $role | quote }}
+    graphical = {{ $graphical }}
+    niri = {{ $niri }}
+    work = {{ $work }}
+    secretBackend = "rbw"

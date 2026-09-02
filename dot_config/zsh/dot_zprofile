@@ -1,0 +1,13 @@
+# Public login environment. niri-session imports this into the user session.
+
+typeset -U path PATH
+path=(
+    "$HOME/.local/bin"
+    $path
+)
+export PATH
+
+export EDITOR="nvim"
+export VISUAL="$EDITOR"
+export PAGER="less"
+export LESS="-R"

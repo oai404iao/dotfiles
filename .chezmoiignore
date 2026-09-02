@@ -1,0 +1,13 @@
+README.md
+docs/
+tests/
+key.txt
+secrets/
+
+{{- if not .graphical }}
+.config/environment.d/
+{{- end }}
+
+{{- if not (and .graphical .niri) }}
+.config/niri/
+{{- end }}
