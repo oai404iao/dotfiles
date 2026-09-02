@@ -1,9 +1,21 @@
 README.md
+AGENTS.md
 docs/
 scripts/
 tests/
 key.txt
 secrets/
+
+# Machine-local credentials, recovery data, and source state.
+.config/chezmoi/
+.config/rbw/
+.local/share/rbw/
+.local/state/rbw/
+.cache/rbw/
+.ssh/
+.gnupg/
+.local/share/chezmoi/
+.local/state/chezmoi/
 
 # Pi credentials and generated or mutable state.
 .config/pi/agent/auth.json
@@ -16,6 +28,7 @@ secrets/
 .config/pi/agent/pi-codex-minimal-tools/
 .config/pi/agent/.pi-subagent/
 .config/pi/agent/sessions/
+.local/state/pi/agent/sessions/
 .config/pi/agent/recovery-fragments/
 .config/pi/agent/extensions/pi-permission-system/config.json
 .config/pi/agent/extensions/pi-permission-system/logs/

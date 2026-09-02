@@ -2,6 +2,9 @@
 set -eu
 
 repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+# Keep isolated rendering away from the real credential backend.
+PATH="$repo_dir/tests/fixtures/pi/bin:$PATH"
+export PATH
 tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/chezmoi-check-niri.XXXXXX")
 tmp_marker="$tmp_dir/.chezmoi-check-niri"
 : >"$tmp_marker"
@@ -19,7 +22,7 @@ trap cleanup EXIT HUP INT TERM
 for output_profile in auto laptop-dual-1080p; do
     home_dir="$tmp_dir/$output_profile"
     config_file="$tmp_dir/$output_profile.toml"
-    mkdir -p "$home_dir"
+    mkdir -p "$home_dir/.config"
 
     cat > "$config_file" <<EOF
 mode = "file"
@@ -39,7 +42,7 @@ destDir = "$home_dir"
 EOF
 
     chezmoi --config "$config_file" --source "$repo_dir" apply \
-        --exclude scripts \
+        --exclude scripts "$home_dir/.config/niri" \
         >/dev/null 2>&1
     niri validate --config "$home_dir/.config/niri/config.kdl" \
         >/dev/null 2>&1
@@ -47,7 +50,7 @@ done
 
 legacy_home="$tmp_dir/legacy"
 legacy_config="$tmp_dir/legacy.toml"
-mkdir -p "$legacy_home"
+mkdir -p "$legacy_home/.config"
 cat > "$legacy_config" <<EOF
 mode = "file"
 destDir = "$legacy_home"
@@ -65,7 +68,7 @@ destDir = "$legacy_home"
 EOF
 
 chezmoi --config "$legacy_config" --source "$repo_dir" apply \
-    --exclude scripts \
+    --exclude scripts "$legacy_home/.config/niri" \
     >/dev/null 2>&1
 niri validate --config "$legacy_home/.config/niri/config.kdl" \
     >/dev/null 2>&1

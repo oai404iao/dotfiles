@@ -51,6 +51,7 @@ expected_ignored = {
     ".config/pi/agent/pi-codex-minimal-tools/",
     ".config/pi/agent/.pi-subagent/",
     ".config/pi/agent/sessions/",
+    ".local/state/pi/agent/sessions/",
     ".config/pi/agent/recovery-fragments/",
     ".config/pi/agent/extensions/pi-permission-system/config.json",
     ".config/pi/agent/extensions/pi-permission-system/logs/",
