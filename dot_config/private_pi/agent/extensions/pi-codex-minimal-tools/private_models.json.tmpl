@@ -1,0 +1,79 @@
+{
+  "$schema": {{ joinPath .chezmoi.homeDir "Dev/local/omp/pi-extensions/pi-codex-minimal-tools/models.schema.json" | toJson }},
+  "version": 1,
+  "models": [
+    {
+      "id": "openai/deepseek-v4-flash",
+      "responses": {
+        "providerShim": true,
+        "endpoint": "auto",
+        "mode": "standard",
+        "systemPromptPlacement": "instructions",
+        "transport": "sse",
+        "websocketPrewarm": false
+      },
+      "compaction": "pi",
+      "enabled": true,
+      "tools": {
+        "imageGeneration": false,
+        "webSearch": {
+          "implementation": "hosted"
+        },
+        "parallelCalls": true,
+        "applyPatch": "function"
+      }
+    },
+    {
+      "id": "openai/deepseek-v4-flash-vision-exp",
+      "responses": {
+        "providerShim": true,
+        "endpoint": "auto",
+        "mode": "standard",
+        "systemPromptPlacement": "instructions",
+        "transport": "sse",
+        "websocketPrewarm": false
+      },
+      "compaction": "pi",
+      "enabled": true,
+      "tools": {
+        "imageGeneration": false,
+        "webSearch": {
+          "implementation": "hosted"
+        },
+        "parallelCalls": true,
+        "applyPatch": "function"
+      }
+    },
+    {
+      "id": "openai/gpt-5.6-sol",
+      "enabled": true,
+      "responses": {
+        "providerShim": true,
+        "endpoint": "openai",
+        "mode": "lite",
+        "systemPromptPlacement": "developer",
+        "transport": "auto",
+        "websocketPrewarm": true,
+        "reasoningSummary": "auto"
+      },
+      "tools": {
+        "parallelCalls": false,
+        "applyPatch": "custom",
+        "webSearch": {
+          "implementation": "standalone",
+          "contentTypes": [
+            "text",
+            "image"
+          ]
+        },
+        "imageGeneration": "standalone",
+        "viewImage": false
+      },
+      "compaction": "responses",
+      "fast": {
+        "serviceTier": "priority",
+        "costMultiplier": 2
+      }
+    }
+  ]
+}

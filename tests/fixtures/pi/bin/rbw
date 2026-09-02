@@ -1,0 +1,8 @@
+#!/bin/sh
+case "$*" in
+    *"pi telegram bot token"*) password="123456:test-token" ;;
+    *"pi telegram chat id"*) password="-123456789" ;;
+    *) exit 1 ;;
+esac
+
+printf '{"id":"test","folder":null,"name":"test","data":{"username":"","password":"%s","totp":null,"uris":[]},"fields":[],"notes":null,"history":[]}\n' "$password"

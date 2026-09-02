@@ -1,0 +1,163 @@
+{
+  "providers": {
+    "deepseek": {
+      "baseUrl": "https://api.spiredive.com/v1",
+      "apiKey": "!rbw get 'pi spiredive api key'",
+      "headers": {
+        "User-Agent": "codex_cli_rs/0.146.0 (Mac OS 15.0; arm64) Kitty/0.36.0"
+      },
+      "compat": {
+        "supportsDeveloperRole": false
+      }
+    },
+    "openai": {
+      "baseUrl": "https://api.spiredive.com/v1",
+      "apiKey": "!rbw get 'pi spiredive api key'",
+      "headers": {
+        "User-Agent": "codex_cli_rs/0.146.0 (Mac OS 15.0; arm64) Kitty/0.36.0"
+      },
+      "models": [
+        {
+          "id": "gpt-5.6-sol-cyber",
+          "name": "GPT-5.6 Sol Cyber",
+          "api": "openai-responses",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": "none",
+            "minimal": null,
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh",
+            "max": "max"
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "cost": {
+            "input": 5,
+            "output": 30,
+            "cacheRead": 0.5,
+            "cacheWrite": 6.25,
+            "tiers": [
+              {
+                "inputTokensAbove": 272000,
+                "input": 10,
+                "output": 45,
+                "cacheRead": 1,
+                "cacheWrite": 12.5
+              }
+            ]
+          },
+          "contextWindow": 272000,
+          "maxTokens": 128000,
+          "compat": {
+            "supportsToolSearch": true
+          }
+        },
+        {
+          "id": "deepseek-v4-flash",
+          "name": "Deepseek v4 flash ",
+          "api": "openai-responses",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": "none",
+            "minimal": null,
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh",
+            "max": "max"
+          },
+          "input": [
+            "text"
+          ],
+          "cost": {
+            "input": 0.14,
+            "output": 0.28,
+            "cacheRead": 0.0028,
+            "cacheWrite": 0
+          },
+          "contextWindow": 544000,
+          "maxTokens": 128000,
+          "compat": {
+            "supportsToolSearch": true
+          }
+        },
+        {
+          "id": "deepseek-v4-flash-vision-exp",
+          "name": "Deepseek v4 flash vision exp",
+          "api": "openai-responses",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": "none",
+            "minimal": null,
+            "low": "low",
+            "medium": "medium",
+            "high": "high",
+            "xhigh": "xhigh",
+            "max": "max"
+          },
+          "input": [
+            "text",
+            "image"
+          ],
+          "cost": {
+            "input": 0.14,
+            "output": 0.28,
+            "cacheRead": 0.0028,
+            "cacheWrite": 0
+          },
+          "contextWindow": 544000,
+          "maxTokens": 128000,
+          "compat": {
+            "supportsToolSearch": true
+          }
+        }
+      ]
+    },
+    "zai": {
+      "baseUrl": "https://api.spiredive.com/v1",
+      "apiKey": "!rbw get 'pi spiredive api key'",
+      "headers": {
+        "User-Agent": "codex_cli_rs/0.146.0 (Mac OS 15.0; arm64) Kitty/0.36.0"
+      },
+      "api": "openai-completions",
+      "models": [
+        {
+          "id": "glm-5.2",
+          "name": "GLM-5.2 (OpenCode Go)",
+          "reasoning": true,
+          "thinkingLevelMap": {
+            "off": null,
+            "minimal": null,
+            "low": null,
+            "medium": null,
+            "high": "high",
+            "max": "max"
+          },
+          "input": [
+            "text"
+          ],
+          "contextWindow": 1000000,
+          "maxTokens": 131072,
+          "compat": {
+            "supportsStore": false,
+            "supportsDeveloperRole": false,
+            "supportsReasoningEffort": true,
+            "thinkingFormat": "openai",
+            "maxTokensField": "max_tokens"
+          }
+        }
+      ]
+    },
+    "xai": {
+      "baseUrl": "https://api.spiredive.com/v1",
+      "apiKey": "!rbw get 'pi spiredive api key'",
+      "headers": {
+        "User-Agent": "codex_cli_rs/0.146.0 (Mac OS 15.0; arm64) Kitty/0.36.0"
+      }
+    }
+  }
+}

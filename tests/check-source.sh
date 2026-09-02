@@ -41,5 +41,6 @@ then
 fi
 
 "$repo_dir/tests/check-safe-rm.sh"
+"$repo_dir/tests/check-pi.sh"
 
 printf '%s\n' "source checks passed"

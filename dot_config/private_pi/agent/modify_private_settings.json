@@ -1,0 +1,37 @@
+#!/usr/bin/env python3
+import json
+import os
+import sys
+
+raw = sys.stdin.read()
+settings = json.loads(raw) if raw.strip() else {}
+home = os.path.expanduser("~")
+
+settings.update(
+    {
+        "defaultProvider": "openai",
+        "defaultModel": "gpt-5.6-sol",
+        "defaultThinkingLevel": "max",
+        "hideThinkingBlock": True,
+        "enabledModels": [
+            "openai/gpt-5.5",
+            "openai/gpt-5.6-luna",
+            "openai/gpt-5.6-sol",
+            "openai/gpt-5.6-terra",
+            "openai/deepseek-v4-flash",
+            "openai/deepseek-v4-flash-vision-exp",
+        ],
+        "packages": [
+            "npm:@juicesharp/rpiv-ask-user-question@1.20.0",
+            "npm:@oai404iao/pi-telegram-notify@0.1.3",
+            "npm:@oai404iao/pi-keep-defaults@0.1.3",
+            "npm:@oai404iao/pi-codex-minimal-tools@1.4.0",
+            "npm:@oai404iao/pi-subagent@0.3.0",
+            os.path.join(home, "Dev/local/omp/pi-extensions/pi-tree-continue"),
+        ],
+        "theme": "dark",
+        "sessionDir": "~/.local/state/pi/agent/sessions",
+    }
+)
+
+json.dump(settings, sys.stdout, ensure_ascii=False, indent=2)
