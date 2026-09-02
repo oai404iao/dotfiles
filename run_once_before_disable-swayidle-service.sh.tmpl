@@ -1,0 +1,12 @@
+{{- if .niri }}
+#!/bin/sh
+set -eu
+
+# Niri owns swayidle through spawn-at-startup. Leave the current process
+# running, but prevent the user unit from starting a duplicate next session.
+if command -v systemctl >/dev/null 2>&1 &&
+    systemctl --user is-enabled --quiet swayidle.service
+then
+    systemctl --user disable swayidle.service
+fi
+{{- end }}

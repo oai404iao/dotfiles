@@ -17,4 +17,10 @@ find "$repo_dir" \
     -type f \( -name "*.bash" -o -name "dot_bash_profile" -o -name "dot_bashrc" \) \
     -exec bash -n {} \;
 
+if command -v chezmoi >/dev/null 2>&1 &&
+    command -v niri >/dev/null 2>&1
+then
+    "$repo_dir/tests/check-niri.sh"
+fi
+
 printf '%s\n' "source checks passed"

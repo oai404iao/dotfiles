@@ -1,0 +1,18 @@
+{{- $outputProfile := get . "niriOutputProfile" | default "auto" -}}
+{{- if eq $outputProfile "laptop-dual-1080p" }}
+output "eDP-1" {
+    mode "1920x1080@60.008"
+    scale 1.25
+    transform "normal"
+    position x=0 y=0
+}
+
+output "HDMI-A-1" {
+    mode "1920x1080@100.000"
+    scale 1
+    transform "normal"
+    position x=1536 y=0
+}
+{{- else }}
+// Outputs are selected automatically on this machine.
+{{- end }}

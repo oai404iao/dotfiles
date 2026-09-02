@@ -1,0 +1,8 @@
+// Managed by chezmoi. Included files are ordered by responsibility.
+
+include "conf.d/10-input.kdl"
+include "conf.d/20-outputs.kdl"
+include "conf.d/30-layout.kdl"
+include "conf.d/40-session.kdl"
+include "conf.d/50-rules.kdl"
+include "conf.d/60-binds.kdl"

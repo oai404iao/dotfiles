@@ -4,8 +4,13 @@
 {{- $shell := promptChoiceOnce . "shell" "Default shell" $shells "zsh" -}}
 {{- $graphical := promptBoolOnce . "graphical" "Graphical machine" true -}}
 {{- $niri := false -}}
+{{- $niriOutputProfile := "auto" -}}
 {{- if $graphical -}}
 {{-   $niri = promptBoolOnce . "niri" "Use niri" true -}}
+{{-   if $niri -}}
+{{-     $outputProfiles := list "auto" "laptop-dual-1080p" -}}
+{{-     $niriOutputProfile = promptChoiceOnce . "niriOutputProfile" "Niri output profile" $outputProfiles "auto" -}}
+{{-   end -}}
 {{- end -}}
 {{- $work := promptBoolOnce . "work" "Work machine" false -}}
 
@@ -35,5 +40,6 @@ mode = "file"
     shell = {{ $shell | quote }}
     graphical = {{ $graphical }}
     niri = {{ $niri }}
+    niriOutputProfile = {{ $niriOutputProfile | quote }}
     work = {{ $work }}
     secretBackend = "rbw"
