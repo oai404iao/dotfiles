@@ -17,6 +17,19 @@ find "$repo_dir" \
     -type f \( -name "*.bash" -o -name "dot_bash_profile" -o -name "dot_bashrc" \) \
     -exec bash -n {} \;
 
+if command -v nvim >/dev/null 2>&1; then
+    find "$repo_dir/dot_config/nvim" -type f -name "*.lua" \
+        -exec nvim --headless -u NONE -i NONE -n \
+            -c 'lua for _, path in ipairs(vim.fn.argv()) do assert(loadfile(path)) end' \
+            -c 'qa!' -- {} +
+
+    nvim --headless -u NONE -i NONE -n \
+        -c 'lua for _, path in ipairs(vim.fn.argv()) do assert(vim.json.decode(table.concat(vim.fn.readfile(path), "\n"))) end' \
+        -c 'qa!' -- \
+        "$repo_dir/dot_config/nvim/lazy-lock.json" \
+        "$repo_dir/dot_config/nvim/lazyvim.json"
+fi
+
 if command -v chezmoi >/dev/null 2>&1 &&
     command -v niri >/dev/null 2>&1
 then
