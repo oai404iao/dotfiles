@@ -10,6 +10,18 @@ export XDG_CACHE_HOME
 export XDG_DATA_HOME
 export XDG_STATE_HOME
 
+# Keep Pi configuration and mutable sessions in their XDG locations.
+: "${PI_CODING_AGENT_DIR:=$XDG_CONFIG_HOME/pi/agent}"
+: "${PI_CODING_AGENT_SESSION_DIR:=$XDG_STATE_HOME/pi/agent/sessions}"
+export PI_CODING_AGENT_DIR
+export PI_CODING_AGENT_SESSION_DIR
+
+case ":${PATH-}:" in
+    *":$PI_CODING_AGENT_DIR/bin:"*) ;;
+    *) PATH="$PI_CODING_AGENT_DIR/bin${PATH:+:$PATH}" ;;
+esac
+export PATH
+
 case ":${PATH-}:" in
     *":$HOME/.local/bin:"*) ;;
     *) PATH="$HOME/.local/bin${PATH:+:$PATH}" ;;

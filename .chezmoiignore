@@ -4,6 +4,7 @@ scripts/
 tests/
 key.txt
 secrets/
+.config/pi/
 
 {{- if ne .shell "zsh" }}
 .zshenv
@@ -18,8 +19,14 @@ secrets/
 
 {{- if not .graphical }}
 .config/environment.d/
+.config/fuzzel/
+.config/kitty/
+.config/mako/
+.config/matugen/
+.config/waypaper/
 {{- end }}
 
 {{- if not (and .graphical .niri) }}
 .config/niri/
+.config/waybar/
 {{- end }}
