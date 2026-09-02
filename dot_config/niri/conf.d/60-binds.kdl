@@ -3,7 +3,10 @@ binds {
 
     Mod+T hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
     Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
-    Super+Alt+L hotkey-overlay-title="Lock the Screen" { spawn "swaylock" "-f"; }
+    Alt+Space hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
+    Super+Alt+L hotkey-overlay-title="Lock and Turn Off Monitors" { spawn-sh "swaylock -f && sleep 0.2 && niri msg action power-off-monitors"; }
+    Mod+F2 hotkey-overlay-title="Reload Waybar" { spawn-sh "pkill -SIGUSR2 -x waybar || waybar"; }
+    Mod+Alt+V hotkey-overlay-title="Toggle CopyQ" { spawn "copyq" "toggle"; }
 
     XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"; }
     XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"; }
@@ -80,6 +83,8 @@ binds {
     Mod+WheelScrollUp cooldown-ms=150 { focus-workspace-up; }
     Mod+Ctrl+WheelScrollDown cooldown-ms=150 { move-column-to-workspace-down; }
     Mod+Ctrl+WheelScrollUp cooldown-ms=150 { move-column-to-workspace-up; }
+    MouseForward { focus-workspace-up; }
+    MouseBack { focus-workspace-down; }
 
     Mod+WheelScrollRight { focus-column-right; }
     Mod+WheelScrollLeft { focus-column-left; }
@@ -136,7 +141,7 @@ binds {
     Mod+Shift+V { switch-focus-between-floating-and-tiling; }
     Mod+W { toggle-column-tabbed-display; }
 
-    Print { screenshot; }
+    Print { spawn-sh "${XDG_CONFIG_HOME:-$HOME/.config}/niri/scripts/edit-screenshot.sh"; }
     Ctrl+Print { screenshot-screen; }
     Alt+Print { screenshot-window; }
 

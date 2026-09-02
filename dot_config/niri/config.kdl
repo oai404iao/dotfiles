@@ -6,3 +6,6 @@ include "conf.d/30-layout.kdl"
 include "conf.d/40-session.kdl"
 include "conf.d/50-rules.kdl"
 include "conf.d/60-binds.kdl"
+include "colors.kdl"
+
+prefer-no-csd
