@@ -1,0 +1,9 @@
+case $- in
+    *i*) ;;
+    *) return ;;
+esac
+
+for rc_file in "${XDG_CONFIG_HOME:-$HOME/.config}"/bash/rc.d/*.bash; do
+    [ -r "$rc_file" ] && . "$rc_file"
+done
+unset rc_file

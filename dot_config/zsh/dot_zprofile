@@ -1,13 +1,6 @@
-# Public login environment. niri-session imports this into the user session.
+# niri-session starts the selected shell as a login shell and imports its
+# environment into the user service manager.
 
-typeset -U path PATH
-path=(
-    "$HOME/.local/bin"
-    $path
-)
-export PATH
-
-export EDITOR="nvim"
-export VISUAL="$EDITOR"
-export PAGER="less"
-export LESS="-R"
+profile_file="$XDG_CONFIG_HOME/shell/profile.sh"
+[[ -r "$profile_file" ]] && source "$profile_file"
+unset profile_file

@@ -1,5 +1,7 @@
 {{- $roles := list "desktop" "laptop" "server" -}}
 {{- $role := promptChoiceOnce . "role" "Machine role" $roles "desktop" -}}
+{{- $shells := list "zsh" "bash" -}}
+{{- $shell := promptChoiceOnce . "shell" "Default shell" $shells "zsh" -}}
 {{- $graphical := promptBoolOnce . "graphical" "Graphical machine" true -}}
 {{- $niri := false -}}
 {{- if $graphical -}}
@@ -30,6 +32,7 @@ mode = "file"
 
 [data]
     role = {{ $role | quote }}
+    shell = {{ $shell | quote }}
     graphical = {{ $graphical }}
     niri = {{ $niri }}
     work = {{ $work }}

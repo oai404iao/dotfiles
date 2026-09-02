@@ -12,4 +12,9 @@ find "$repo_dir/scripts" "$repo_dir/tests" \
     -type f -name "*.sh" \
     -exec sh -n {} \;
 
+find "$repo_dir" \
+    -path "$repo_dir/.git" -prune -o \
+    -type f \( -name "*.bash" -o -name "dot_bash_profile" -o -name "dot_bashrc" \) \
+    -exec bash -n {} \;
+
 printf '%s\n' "source checks passed"

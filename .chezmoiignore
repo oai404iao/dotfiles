@@ -5,6 +5,17 @@ tests/
 key.txt
 secrets/
 
+{{- if ne .shell "zsh" }}
+.zshenv
+.config/zsh/
+{{- end }}
+
+{{- if ne .shell "bash" }}
+.bash_profile
+.bashrc
+.config/bash/
+{{- end }}
+
 {{- if not .graphical }}
 .config/environment.d/
 {{- end }}

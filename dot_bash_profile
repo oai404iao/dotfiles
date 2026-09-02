@@ -1,0 +1,7 @@
+# Public login/session environment shared with zsh.
+
+profile_file="${XDG_CONFIG_HOME:-$HOME/.config}/shell/profile.sh"
+[ -r "$profile_file" ] && . "$profile_file"
+unset profile_file
+
+[ -r "$HOME/.bashrc" ] && . "$HOME/.bashrc"
