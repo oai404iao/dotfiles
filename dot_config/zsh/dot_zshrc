@@ -1,5 +1,9 @@
 [[ -o interactive ]] || return
 
+if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
+    source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
+fi
+
 for rc_file in "$ZDOTDIR"/rc.d/*.zsh(N); do
     source "$rc_file"
 done
