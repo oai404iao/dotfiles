@@ -23,4 +23,6 @@ then
     "$repo_dir/tests/check-niri.sh"
 fi
 
+"$repo_dir/tests/check-safe-rm.sh"
+
 printf '%s\n' "source checks passed"

@@ -16,6 +16,7 @@ SAVE_DIR="$(longshot_pictures_dir)/Screenshots/longshots"
 install -d -m 700 "$SAVE_DIR"
 
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/longshot-grim.XXXXXX")"
+: >"$TMP_DIR/.longshot-tmp"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S_%N)"
 RESULT_PATH="$SAVE_DIR/longshot_$TIMESTAMP.png"
 TMP_STITCHED="$TMP_DIR/stitched.png"
@@ -23,7 +24,8 @@ KEEP_TMP=false
 RECOVERY_PATH=""
 
 cleanup() {
-    [[ "$KEEP_TMP" == true ]] || rm -rf -- "$TMP_DIR"
+    [[ "$KEEP_TMP" == true ]] ||
+        longshot_remove_tmp_dir "$TMP_DIR" "longshot-grim"
 }
 trap cleanup EXIT
 trap 'exit 130' INT

@@ -22,8 +22,8 @@ case ":${PATH-}:" in
 esac
 export PATH
 
-case ":${PATH-}:" in
-    *":$HOME/.local/bin:"*) ;;
+case "${PATH-}" in
+    "$HOME/.local/bin" | "$HOME/.local/bin":*) ;;
     *) PATH="$HOME/.local/bin${PATH:+:$PATH}" ;;
 esac
 export PATH

@@ -22,4 +22,10 @@ case ":${PATH-}:" in
 esac
 export PATH
 
+case "${PATH-}" in
+    "$HOME/.local/bin" | "$HOME/.local/bin":*) ;;
+    *) PATH="$HOME/.local/bin${PATH:+:$PATH}" ;;
+esac
+export PATH
+
 export ZDOTDIR="$XDG_CONFIG_HOME/zsh"

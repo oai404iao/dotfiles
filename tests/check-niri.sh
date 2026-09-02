@@ -2,8 +2,19 @@
 set -eu
 
 repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
-tmp_dir=$(mktemp -d)
-trap 'rm -rf "$tmp_dir"' EXIT HUP INT TERM
+tmp_dir=$(mktemp -d "${TMPDIR:-/tmp}/chezmoi-check-niri.XXXXXX")
+tmp_marker="$tmp_dir/.chezmoi-check-niri"
+: >"$tmp_marker"
+
+cleanup() {
+    if [ -f "$tmp_marker" ]; then
+        /usr/bin/rm -rf -- "$tmp_dir"
+    else
+        printf 'refusing unsafe test cleanup: %s\n' "$tmp_dir" >&2
+        return 1
+    fi
+}
+trap cleanup EXIT HUP INT TERM
 
 for output_profile in auto laptop-dual-1080p; do
     home_dir="$tmp_dir/$output_profile"

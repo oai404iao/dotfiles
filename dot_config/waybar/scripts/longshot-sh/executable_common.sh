@@ -9,6 +9,24 @@ XDG_STATE_HOME="${XDG_STATE_HOME:-$HOME/.local/state}"
 LONGSHOT_CONFIG_DIR="$XDG_CONFIG_HOME/longshot-sh"
 LONGSHOT_DATA_DIR="$XDG_DATA_HOME/longshot-sh"
 LONGSHOT_STATE_DIR="$XDG_STATE_HOME/longshot-sh"
+
+longshot_remove_tmp_dir() {
+    local path="$1" prefix="$2"
+    local tmp_root path_parent path_name
+
+    tmp_root="$(readlink -f -- "${TMPDIR:-/tmp}")" || return 1
+    path_parent="$(dirname -- "$(readlink -f -- "$path")")" || return 1
+    path_name="$(basename -- "$path")"
+
+    if [[ "$path_parent" != "$tmp_root" ||
+        "$path_name" != "$prefix".* ||
+        ! -f "$path/.longshot-tmp" ]]; then
+        printf 'refusing unsafe temporary cleanup: %s\n' "$path" >&2
+        return 1
+    fi
+
+    /usr/bin/rm -rf -- "$path"
+}
 LONGSHOT_VENV_DIR="${LONGSHOT_VENV_DIR:-$LONGSHOT_DATA_DIR/venv}"
 LONGSHOT_VENV_PYTHON="$LONGSHOT_VENV_DIR/bin/python"
 

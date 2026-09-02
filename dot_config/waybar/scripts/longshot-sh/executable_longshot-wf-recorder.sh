@@ -20,6 +20,7 @@ SAVE_DIR="$(longshot_pictures_dir)/Screenshots/longshots"
 install -d -m 700 "$SAVE_DIR"
 
 TMP_DIR="$(mktemp -d "${TMPDIR:-/tmp}/longshot-wf.XXXXXX")"
+: >"$TMP_DIR/.longshot-tmp"
 TIMESTAMP="$(date +%Y%m%d_%H%M%S_%N)"
 TMP_VIDEO="$TMP_DIR/capture.mp4"
 OUTPUT_IMG="$SAVE_DIR/longshot_$TIMESTAMP.png"
@@ -35,7 +36,7 @@ cleanup() {
         done
         kill -TERM "$REC_PID" 2>/dev/null || true
     fi
-    rm -rf -- "$TMP_DIR"
+    longshot_remove_tmp_dir "$TMP_DIR" "longshot-wf"
 }
 trap cleanup EXIT
 trap 'exit 130' INT
