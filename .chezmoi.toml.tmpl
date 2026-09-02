@@ -7,7 +7,12 @@
 {{- end -}}
 {{- $work := promptBoolOnce . "work" "Work machine" false -}}
 
+encryption = "age"
 mode = "file"
+
+[age]
+    identity = "~/.config/chezmoi/age-identity.txt"
+    recipient = "age19pgcjnn8ssmrv6q2uf23mc93qewn4qpw328765vcgvwewapvgqhswvf20c"
 
 [add]
     secrets = "error"
