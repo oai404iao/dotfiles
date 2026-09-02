@@ -17,6 +17,10 @@ find "$repo_dir" \
     -type f \( -name "*.bash" -o -name "dot_bash_profile" -o -name "dot_bashrc" \) \
     -exec bash -n {} \;
 
+git config --file "$repo_dir/dot_gitconfig" --list >/dev/null
+find "$repo_dir/dot_config/git" -type f -name "dot_gitconfig-*" \
+    -exec git config --file {} --list >/dev/null \;
+
 if command -v nvim >/dev/null 2>&1; then
     find "$repo_dir/dot_config/nvim" -type f -name "*.lua" \
         -exec nvim --headless -u NONE -i NONE -n \
