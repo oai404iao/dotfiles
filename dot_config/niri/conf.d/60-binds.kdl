@@ -1,13 +1,6 @@
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
-    Mod+T hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
-    Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
-    Alt+Space hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
-    Super+Alt+L hotkey-overlay-title="Lock and Turn Off Monitors" { spawn-sh "swaylock -f && sleep 0.2 && niri msg action power-off-monitors"; }
-    Mod+F2 hotkey-overlay-title="Reload Waybar" { spawn-sh "pkill -SIGUSR2 -x waybar || waybar"; }
-    Mod+Alt+V hotkey-overlay-title="Toggle CopyQ" { spawn "copyq" "toggle"; }
-
     XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"; }
     XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"; }
     XF86AudioMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
@@ -28,19 +21,19 @@ binds {
     Mod+Down { focus-window-down; }
     Mod+Up { focus-window-up; }
     Mod+Right { focus-column-right; }
-    Mod+H { focus-column-left; }
-    Mod+J { focus-window-down; }
-    Mod+K { focus-window-up; }
-    Mod+L { focus-column-right; }
+    Mod+H hotkey-overlay-title="<b>Vim focus</b> · column left" { focus-column-left; }
+    Mod+J hotkey-overlay-title="<b>Vim focus</b> · window below" { focus-window-down; }
+    Mod+K hotkey-overlay-title="<b>Vim focus</b> · window above" { focus-window-up; }
+    Mod+L hotkey-overlay-title="<b>Vim focus</b> · column right" { focus-column-right; }
 
     Mod+Ctrl+Left { move-column-left; }
     Mod+Ctrl+Down { move-window-down; }
     Mod+Ctrl+Up { move-window-up; }
     Mod+Ctrl+Right { move-column-right; }
-    Mod+Ctrl+H { move-column-left; }
-    Mod+Ctrl+J { move-window-down; }
-    Mod+Ctrl+K { move-window-up; }
-    Mod+Ctrl+L { move-column-right; }
+    Mod+Ctrl+H hotkey-overlay-title="<b>Vim move</b> · column left" { move-column-left; }
+    Mod+Ctrl+J hotkey-overlay-title="<b>Vim move</b> · window down in column" { move-window-down; }
+    Mod+Ctrl+K hotkey-overlay-title="<b>Vim move</b> · window up in column" { move-window-up; }
+    Mod+Ctrl+L hotkey-overlay-title="<b>Vim move</b> · column right" { move-column-right; }
 
     Mod+Home { focus-column-first; }
     Mod+End { focus-column-last; }
@@ -115,10 +108,18 @@ binds {
     Mod+Ctrl+8 { move-column-to-workspace 8; }
     Mod+Ctrl+9 { move-column-to-workspace 9; }
 
-    Mod+BracketLeft { consume-or-expel-window-left; }
-    Mod+BracketRight { consume-or-expel-window-right; }
-    Mod+Comma { consume-window-into-column; }
-    Mod+Period { expel-window-from-column; }
+    Mod+BracketLeft hotkey-overlay-title="<b>Column</b> · merge focused window into left column / split it out left" { consume-or-expel-window-left; }
+    Mod+BracketRight hotkey-overlay-title="<b>Column</b> · merge focused window into right column / split it out right" { consume-or-expel-window-right; }
+    Mod+Comma hotkey-overlay-title="<b>Column</b> · pull top window from right column to bottom" { consume-window-into-column; }
+    Mod+Period hotkey-overlay-title="<b>Column</b> · split bottom window into a new right column" { expel-window-from-column; }
+
+    // Additional custom overlay entries follow bind order; keep launchers after the learning shortcuts.
+    Mod+T hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
+    Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
+    Alt+Space hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
+    Super+Alt+L hotkey-overlay-title="Lock and Turn Off Monitors" { spawn-sh "swaylock -f && sleep 0.2 && niri msg action power-off-monitors"; }
+    Mod+F2 hotkey-overlay-title="Reload Waybar" { spawn-sh "pkill -SIGUSR2 -x waybar || waybar"; }
+    Mod+Alt+V hotkey-overlay-title="Toggle CopyQ" { spawn "copyq" "toggle"; }
 
     Mod+R { switch-preset-column-width; }
     Mod+Shift+R { switch-preset-column-width-back; }
