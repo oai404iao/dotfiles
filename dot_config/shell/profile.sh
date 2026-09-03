@@ -10,6 +10,17 @@ export XDG_CACHE_HOME
 export XDG_DATA_HOME
 export XDG_STATE_HOME
 
+# niri-session may inherit an English interactive shell, so clear category
+# overrides before it imports the Chinese login environment.
+unset LC_ALL LC_ADDRESS LC_COLLATE LC_CTYPE LC_IDENTIFICATION LC_MEASUREMENT
+unset LC_MESSAGES LC_MONETARY LC_NAME LC_NUMERIC LC_PAPER LC_TELEPHONE LC_TIME
+LANG="zh_CN.UTF-8"
+LANGUAGE="zh_CN:zh"
+LC_ALL="zh_CN.UTF-8"
+export LANG
+export LANGUAGE
+export LC_ALL
+
 # Keep Pi configuration and mutable sessions in their XDG locations.
 : "${PI_CODING_AGENT_DIR:=$XDG_CONFIG_HOME/pi/agent}"
 : "${PI_CODING_AGENT_SESSION_DIR:=$XDG_STATE_HOME/pi/agent/sessions}"

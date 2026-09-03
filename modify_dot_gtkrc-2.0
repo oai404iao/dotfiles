@@ -1,0 +1,20 @@
+#!/bin/sh
+set -eu
+
+awk '
+    /^[[:space:]]*gtk-font-name[[:space:]]*=/ {
+        if (!font_written) {
+            print "gtk-font-name=\"Adwaita Sans 11\""
+            font_written = 1
+        }
+        next
+    }
+    {
+        print
+    }
+    END {
+        if (!font_written) {
+            print "gtk-font-name=\"Adwaita Sans 11\""
+        }
+    }
+'

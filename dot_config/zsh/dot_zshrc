@@ -1,5 +1,9 @@
 [[ -o interactive ]] || return
 
+interactive_profile="$XDG_CONFIG_HOME/shell/interactive.sh"
+[[ -r "$interactive_profile" ]] && source "$interactive_profile"
+unset interactive_profile
+
 if [[ -r "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh" ]]; then
     source "${XDG_CACHE_HOME:-$HOME/.cache}/p10k-instant-prompt-${(%):-%n}.zsh"
 fi

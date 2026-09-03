@@ -24,7 +24,7 @@
   //时钟
   "clock": {
     "interval": 60,
-    "format": "󰥔 {:%H:%M}",
+    "format": "{:%H:%M}",
     "tooltip-format": "{:%Y/%m/%d %A}",
     "max-length": 25,
   },
@@ -64,6 +64,57 @@
       "(.*) - zsh": "> [$1]",
     },
   },
+  "group/desktop": {
+    "orientation": "inherit",
+    "modules": [
+      "niri/workspaces",
+      "niri/window"
+    ]
+  },
+  "group/center-left": {
+    "orientation": "inherit",
+    "modules": [
+      "custom/center-left-spacer",
+      "bluetooth",
+      "network",
+      "custom/wfrec",
+      "custom/screenshot",
+      "custom/colorpicker",
+      "power-profiles-daemon"
+    ]
+  },
+  "group/center-right": {
+    "orientation": "inherit",
+    "modules": [
+      "clock",
+      "memory",
+      "network#download",
+      "custom/network-separator",
+      "network#upload",
+      "custom/center-right-spacer"
+    ]
+  },
+  "group/system": {
+    "orientation": "inherit",
+    "modules": [
+      "tray",
+      "group/ddcutil",
+      "privacy",
+      "group/audio",
+      "battery",
+      "group/powermenu"
+    ]
+  },
+  "custom/center-left-spacer": {
+    "format": " ",
+    "tooltip": false,
+    "expand": true
+  },
+  "custom/center-right-spacer": {
+    "format": " ",
+    "tooltip": false,
+    "expand": true
+  },
   //网络和蓝牙
   "group/network-bluetooth": {
     "orientation": "inherit",
@@ -96,16 +147,23 @@
     "tooltip-format-disconnected": "Disconnected\nClick to open nmtui",
     "on-click": "kitty -e nmtui",
   },
-  "network#speed": {
+  "network#download": {
     "interval": 1,
-    "format": " {bandwidthDownBytes}  {bandwidthUpBytes}",
-    "format-wifi": " {bandwidthDownBytes}  {bandwidthUpBytes}",
-    "format-ethernet": " {bandwidthDownBytes}  {bandwidthUpBytes}",
-    "format-linked": " {bandwidthDownBytes}  {bandwidthUpBytes}",
-    "format-disconnected": "󰤮",
-    "tooltip-format": "{ifname}",
-    "tooltip-format-wifi": "{ifname}",
-    "tooltip-format-ethernet": "{ifname}",
+    "max-length": 9,
+    "format": "{bandwidthDownBytes}",
+    "format-disconnected": "--",
+    "tooltip-format": "Download: {bandwidthDownBytes}\n{ifname}",
+  },
+  "custom/network-separator": {
+    "format": "|",
+    "tooltip": false,
+  },
+  "network#upload": {
+    "interval": 1,
+    "max-length": 9,
+    "format": "{bandwidthUpBytes}",
+    "format-disconnected": "--",
+    "tooltip-format": "Upload: {bandwidthUpBytes}\n{ifname}",
   },
   "bluetooth": {
     //蓝牙关闭状态下的图标和鼠标悬浮时的提示
@@ -149,17 +207,10 @@
     "on-click": "${XDG_CONFIG_HOME:-$HOME/.config}/waybar/scripts/wf-recorder.sh toggle", // 左键：开始/停止
     "on-click-right": "${XDG_CONFIG_HOME:-$HOME/.config}/waybar/scripts/wf-recorder.sh stop"
   },
-  //CPU
-  "cpu": {
-    "format": " {usage}%",
-    "states": {
-      "warning": 70,
-      "critical": 90
-    }
-  },
   //内存
   "memory": {
-    "format": " {percentage}%",
+    "format": "M{percentage}",
+    "tooltip-format": "Memory: {percentage}%",
     "states": {
       "warning": 70,
       "critical": 90

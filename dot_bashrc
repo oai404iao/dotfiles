@@ -3,6 +3,10 @@ case $- in
     *) return ;;
 esac
 
+interactive_profile="${XDG_CONFIG_HOME:-$HOME/.config}/shell/interactive.sh"
+[ -r "$interactive_profile" ] && . "$interactive_profile"
+unset interactive_profile
+
 for rc_file in "${XDG_CONFIG_HOME:-$HOME/.config}"/bash/rc.d/*.bash; do
     [ -r "$rc_file" ] && . "$rc_file"
 done
