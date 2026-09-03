@@ -30,7 +30,7 @@
 ├── .chezmoiignore           # 条件化目标和状态排除规则
 ├── dot_config/
 │   ├── shell/, bash/, zsh/  # Shell 环境与交互模块
-│   ├── git/, nvim/          # Git 身份与 LazyVim
+│   ├── git/, nvim/          # 加密 Git 身份与 LazyVim
 │   ├── environment.d/       # locale、图形输入法与 rbw-agent socket
 │   ├── fontconfig/, gtk-*/  # 用户字体别名与 GTK 默认值
 │   ├── niri/, waybar/       # Niri 桌面会话
@@ -38,8 +38,7 @@
 │   ├── mako/, matugen/      # 通知与生成的主题配色
 │   ├── waypaper/            # 壁纸集成
 │   └── private_pi/agent/    # 使用私有权限的 Pi 声明式配置
-├── private_dot_ssh/         # SSH 配置、公钥选择器与 authorized_keys
-├── .chezmoitemplates/ssh/   # SSH 公钥的规范来源
+├── private_dot_ssh/         # 通用 SSH 策略与加密清单
 ├── dot_local/bin/           # 用户命令，包括安全 rm 包装器
 ├── scripts/                 # 仅供源码侧使用的 age identity 工具
 ├── tests/                   # 离线源码与渲染检查

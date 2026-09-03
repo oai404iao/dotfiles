@@ -37,7 +37,7 @@ credentials and mutable application state out of Git.
 ├── .chezmoiignore           # Conditional targets and state exclusions
 ├── dot_config/
 │   ├── shell/, bash/, zsh/  # Shell environment and interactive modules
-│   ├── git/, nvim/          # Git identities and LazyVim
+│   ├── git/, nvim/          # Encrypted Git identities and LazyVim
 │   ├── environment.d/       # Locale, input method, and rbw-agent socket
 │   ├── fontconfig/, gtk-*/  # User font aliases and GTK defaults
 │   ├── niri/, waybar/       # Niri desktop session
@@ -45,8 +45,7 @@ credentials and mutable application state out of Git.
 │   ├── mako/, matugen/      # Notifications and generated themes
 │   ├── waypaper/            # Wallpaper integration
 │   └── private_pi/agent/    # Private-mode declarative Pi configuration
-├── private_dot_ssh/         # SSH config, public selectors, and authorized keys
-├── .chezmoitemplates/ssh/   # Canonical SSH public keys
+├── private_dot_ssh/         # Generic SSH policy and encrypted inventory
 ├── dot_local/bin/           # User commands, including the safe rm wrapper
 ├── scripts/                 # Source-only age identity helpers
 ├── tests/                   # Offline source and rendering checks
