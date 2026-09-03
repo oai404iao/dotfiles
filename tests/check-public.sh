@@ -5,8 +5,11 @@ repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 cd "$repo_dir"
 
 python3 - <<'PY'
+import base64
+import binascii
 import pathlib
 import re
+import shutil
 import subprocess
 
 email_re = re.compile(rb"[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}")
@@ -27,6 +30,13 @@ age_key_re = re.compile(
 pem_key_re = re.compile(rb"(?mi)^-----BEGIN [^-]*PRIVATE KEY[^-]*-----\s*$")
 pgp_key_re = re.compile(rb"(?mi)^-----BEGIN PGP PRIVATE KEY BLOCK-----\s*$")
 ssh2_key_re = re.compile(rb"(?mi)^---- BEGIN SSH2 PUBLIC KEY ----\s*$")
+ssh2_private_key_re = re.compile(
+    rb"(?mi)^---- BEGIN SSH2 (?:ENCRYPTED )?PRIVATE KEY ----\s*$"
+)
+putty_key_re = re.compile(rb"(?mi)^PuTTY-User-Key-File-\d+:[ \t]*")
+pem_public_key_re = re.compile(
+    rb"(?mi)^-----BEGIN (?:RSA |DSA |EC )?PUBLIC KEY-----\s*$"
+)
 ssh_inventory_re = re.compile(
     rb"(?mi)^[ \t]*(?:HostName|User|Port|IdentityFile)[ \t]+"
 )
@@ -41,7 +51,7 @@ allowed_emails = {
 
 
 def git_bytes(*args: str) -> bytes:
-    return subprocess.check_output(("git", *args))
+    return subprocess.check_output(("git", "--no-replace-objects", *args))
 
 
 def check_email(email: bytes, context: str) -> None:
@@ -55,23 +65,72 @@ def check_email(email: bytes, context: str) -> None:
     raise SystemExit(f"non-public email in {context}")
 
 
+def valid_age_envelope(data: bytes) -> bool:
+    lines = data.splitlines()
+    if (
+        len(lines) < 4
+        or lines[0] != b"-----BEGIN AGE ENCRYPTED FILE-----"
+        or lines[-1] != b"-----END AGE ENCRYPTED FILE-----"
+        or any(
+            not re.fullmatch(rb"[A-Za-z0-9+/=]{1,64}", line)
+            for line in lines[1:-1]
+        )
+    ):
+        return False
+    try:
+        payload = base64.b64decode(b"".join(lines[1:-1]), validate=True)
+    except (ValueError, binascii.Error):
+        return False
+    header, separator, body = payload.partition(b"\n--- ")
+    if not separator or len(body) < 17:
+        return False
+    mac, separator, encrypted_body = body.partition(b"\n")
+    if (
+        not separator
+        or not re.fullmatch(rb"[A-Za-z0-9+/]{43}", mac)
+        or len(encrypted_body) < 16
+    ):
+        return False
+    header_lines = header.splitlines()
+    if (
+        not header_lines
+        or header_lines[0] != b"age-encryption.org/v1"
+        or not any(line.startswith(b"-> ") for line in header_lines[1:])
+    ):
+        return False
+    for line in header_lines[1:]:
+        if line.startswith(b"-> "):
+            if not re.fullmatch(rb"-> [\x20-\x7e]+", line):
+                return False
+        elif not re.fullmatch(rb"[A-Za-z0-9+/]+={0,2}", line):
+            return False
+    return subprocess.run(
+        ("age-inspect", "--json", "-"),
+        input=data,
+        stdout=subprocess.DEVNULL,
+        stderr=subprocess.DEVNULL,
+        check=False,
+    ).returncode == 0
+
+
 def check_blob(path: str, data: bytes, context: str) -> None:
-    if age_key_re.search(data) or pem_key_re.search(data) or pgp_key_re.search(data):
+    if (
+        age_key_re.search(data)
+        or pem_key_re.search(data)
+        or pgp_key_re.search(data)
+        or ssh2_private_key_re.search(data)
+        or putty_key_re.search(data)
+    ):
         raise SystemExit(f"private-key material in {context}: {path}")
     if path.endswith(".age"):
-        lines = data.splitlines()
-        if (
-            len(lines) < 4
-            or lines[0] != b"-----BEGIN AGE ENCRYPTED FILE-----"
-            or lines[-1] != b"-----END AGE ENCRYPTED FILE-----"
-            or any(
-                not re.fullmatch(rb"[A-Za-z0-9+/=]{1,64}", line)
-                for line in lines[1:-1]
-            )
-        ):
+        if not valid_age_envelope(data):
             raise SystemExit(f"invalid age ciphertext in {context}: {path}")
         return
-    if public_key_re.search(data) or ssh2_key_re.search(data):
+    if (
+        public_key_re.search(data)
+        or ssh2_key_re.search(data)
+        or pem_public_key_re.search(data)
+    ):
         raise SystemExit(f"plaintext SSH public key in {context}: {path}")
     for email in email_re.findall(data):
         check_email(email, f"{context} path {path}")
@@ -104,6 +163,18 @@ require_rejected(
     b"AGE-PLUGIN-" + b"FIXTURE-" + b"A" * 40 + b"\n",
 )
 require_rejected(
+    "fixture.ppk",
+    b"PuTTY-" + b"User-Key-File-1: ssh-ed25519\n",
+)
+require_rejected(
+    "fixture.ssh2",
+    b"---- BEGIN SSH2 " + b"ENCRYPTED PRIVATE KEY ----\n",
+)
+require_rejected(
+    "fixture.pem",
+    b"-----BEGIN RSA " + b"PUBLIC KEY-----\n",
+)
+require_rejected(
     "authorized_keys",
     b'restrict,command="fixture" '
     + b"ecdsa-sha2-nistp256 "
@@ -120,11 +191,37 @@ require_rejected(
     + b"A" * 64
     + b"\n-----END AGE ENCRYPTED FILE-----\nplaintext\n",
 )
+non_age_payload = base64.b64encode(b"not an age payload" * 8)
+require_rejected(
+    "fixture.age",
+    b"-----BEGIN AGE ENCRYPTED FILE-----\n"
+    + b"\n".join(
+        non_age_payload[index : index + 64]
+        for index in range(0, len(non_age_payload), 64)
+    )
+    + b"\n-----END AGE ENCRYPTED FILE-----\n",
+)
 require_rejected(
     "dot_config/git/profile",
     b'[url "ssh://git@github-fixture/"]\n'
     b"\tinsteadOf = git@github.com:\n",
 )
+require_rejected(
+    ".git-tag-object",
+    b"object " + b"0" * 40 + b"\ntype commit\ntag fixture\n\n"
+    b"-----BEGIN " + b"ENCRYPTED PRIVATE KEY-----\nfixture\n",
+)
+
+
+if git_bytes("for-each-ref", "--format=%(refname)", "refs/replace").strip():
+    raise SystemExit("Git replacement refs are forbidden during public audit")
+if shutil.which("age-inspect") is None:
+    raise SystemExit("age-inspect is required for public ciphertext validation")
+grafts_path = pathlib.Path(
+    git_bytes("rev-parse", "--git-path", "info/grafts").decode().strip()
+)
+if grafts_path.is_file() and grafts_path.read_bytes().strip():
+    raise SystemExit("Git grafts are forbidden during public audit")
 
 
 history_identities = git_bytes(
@@ -150,9 +247,15 @@ for message in git_bytes("log", "--format=%B%x00", "--all").split(b"\0"):
         age_key_re.search(message)
         or pem_key_re.search(message)
         or pgp_key_re.search(message)
+        or ssh2_private_key_re.search(message)
+        or putty_key_re.search(message)
     ):
         raise SystemExit("private-key material in Git commit message")
-    if public_key_re.search(message) or ssh2_key_re.search(message):
+    if (
+        public_key_re.search(message)
+        or ssh2_key_re.search(message)
+        or pem_public_key_re.search(message)
+    ):
         raise SystemExit("plaintext SSH public key in Git commit message")
     for email in email_re.findall(message):
         check_email(email, "Git commit message")
@@ -198,18 +301,25 @@ for raw_path in worktree_paths:
     if source.is_file():
         check_blob(path, source.read_bytes(), "working tree")
 
-for entry in git_bytes(
+seen_tags = set()
+for object_id in git_bytes(
     "for-each-ref",
-    "--format=%(objecttype)%00%(objectname)",
-    "refs/tags",
-).splitlines():
-    object_type, object_id = entry.split(b"\0", 1)
-    if object_type == b"tag":
+    "--format=%(objectname)",
+).decode().splitlines():
+    while git_bytes("cat-file", "-t", object_id).strip() == b"tag":
+        if object_id in seen_tags:
+            break
+        seen_tags.add(object_id)
+        tag = git_bytes("cat-file", "tag", object_id)
         check_blob(
-            ".git-tag-message",
-            git_bytes("cat-file", "tag", object_id.decode()),
-            "annotated tag",
+            ".git-tag-object",
+            tag,
+            "annotated tag reachable from a local ref",
         )
+        first_line = tag.partition(b"\n")[0]
+        if not re.fullmatch(rb"object [0-9a-f]{40,64}", first_line):
+            raise SystemExit("malformed annotated tag target")
+        object_id = first_line.split()[1].decode()
 PY
 
 printf '%s\n' "public-source checks passed"

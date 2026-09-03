@@ -18,8 +18,10 @@ git status --short
 files, and every commit reachable from any local ref. It rejects recognized
 private-key material, plaintext SSH public keys and inventory, unencrypted Git
 account routing, non-allowlisted email addresses, and commit identities that do
-not use an ID-based GitHub `noreply` address. `git status --short` must also be
-empty at the final gate.
+not use an ID-based GitHub `noreply` address. It disables replacement-object
+processing, rejects replacement refs or grafts, and uses `age-inspect` to parse
+every armored ciphertext. `git status --short` must also be empty at the final
+gate.
 
 The private-config checks decrypt into protected temporary directories and
 validate structure without printing values. They do not prove that replacement
