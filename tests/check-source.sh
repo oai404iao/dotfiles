@@ -6,20 +6,38 @@ repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 find "$repo_dir" \
     -path "$repo_dir/.git" -prune -o \
     -type f \( -name "*.zsh" -o -name "dot_zshenv" -o -name "dot_zprofile" -o -name "dot_zshrc" \) \
-    -exec zsh -n {} \;
+    -exec sh -c '
+        interpreter=$1
+        shift
+        for file do
+            "$interpreter" -n "$file" || exit 1
+        done
+    ' sh zsh {} +
 
 find "$repo_dir/scripts" "$repo_dir/tests" \
     -type f -name "*.sh" \
-    -exec sh -n {} \;
+    -exec sh -c '
+        for file do
+            sh -n "$file" || exit 1
+        done
+    ' sh {} +
 
 find "$repo_dir" \
     -path "$repo_dir/.git" -prune -o \
     -type f \( -name "*.bash" -o -name "dot_bash_profile" -o -name "dot_bashrc" \) \
-    -exec bash -n {} \;
+    -exec sh -c '
+        for file do
+            bash -n "$file" || exit 1
+        done
+    ' sh {} +
 
 git config --file "$repo_dir/dot_gitconfig" --list >/dev/null
 find "$repo_dir/dot_config/git" -type f -name "dot_gitconfig-*" \
-    -exec git config --file {} --list >/dev/null \;
+    -exec sh -c '
+        for file do
+            git config --file "$file" --list >/dev/null || exit 1
+        done
+    ' sh {} +
 
 if command -v nvim >/dev/null 2>&1; then
     find "$repo_dir/dot_config/nvim" -type f -name "*.lua" \
