@@ -21,6 +21,12 @@ machine a valid fallback without reverting colors after Matugen changes them:
 - `~/.config/niri/colors.kdl`
 - `~/.config/waybar/colors.css`
 
+Kitty's themes kitten copies the generated `themes/matugen.conf` to
+`current-theme.conf`, maintains its marked include block, and hot-reloads
+running Kitty instances. Waybar watches its imported `colors.css` through
+`reload_style_on_change`; Matugen does not send `SIGUSR2`, which would reset
+and rebuild the bars.
+
 Waypaper runs `~/.config/waypaper/apply-theme` without interpolating the
 wallpaper filename into a shell command. The hook reads the active image from
 `awww query --json` and invokes Matugen with an argument vector.

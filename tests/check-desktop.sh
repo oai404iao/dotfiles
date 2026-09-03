@@ -58,6 +58,7 @@ python3 - "$repo_dir" <<'PY'
 import configparser
 import pathlib
 import sys
+import tomllib
 import xml.etree.ElementTree as ET
 
 repo_dir = pathlib.Path(sys.argv[1])
@@ -146,12 +147,38 @@ if ".config/environment.d/" in ignore_lines:
 kitty = (repo_dir / "dot_config/kitty/kitty.conf.tmpl").read_text()
 if "font_family JetBrainsMono Nerd Font Mono\n" not in kitty:
     raise SystemExit("Kitty does not use the managed monospace font")
+kitty_theme_block = """# BEGIN_KITTY_THEME
+# Matugen
+include current-theme.conf
+# END_KITTY_THEME"""
+if kitty_theme_block not in kitty:
+    raise SystemExit("Kitty does not use the themes kitten marker block")
+if kitty.count("include current-theme.conf") != 1:
+    raise SystemExit("Kitty includes current-theme.conf more than once")
 
 waybar = (repo_dir / "dot_config/waybar/style.css").read_text()
 if 'font-family: "JetBrainsMono Nerd Font", "Noto Sans Mono CJK SC"' not in waybar:
     raise SystemExit("Waybar does not use the full-width Nerd Font")
 
 waybar_config = (repo_dir / "dot_config/waybar/config.jsonc").read_text()
+if '"reload_style_on_change": true' not in waybar_config:
+    raise SystemExit("Waybar does not hot-reload CSS changes")
+if '@import "colors.css";' not in waybar:
+    raise SystemExit("Waybar does not import the generated colors")
+matugen = tomllib.loads(
+    (repo_dir / "dot_config/matugen/config.toml").read_text()
+)
+matugen_waybar = matugen["templates"]["waybar"]
+if matugen_waybar["output_path"] != "~/.config/waybar/colors.css":
+    raise SystemExit("Matugen does not update Waybar's imported colors")
+if "SIGUSR2" in matugen_waybar.get("post_hook", "").upper():
+    raise SystemExit("Matugen resets Waybar instead of relying on CSS reload")
+matugen_kitty = matugen["templates"]["kitty"]
+if matugen_kitty["output_path"] != "~/.config/kitty/themes/matugen.conf":
+    raise SystemExit("Matugen does not update Kitty's selected theme")
+kitty_hook = matugen_kitty.get("post_hook", "")
+if not all(part in kitty_hook for part in ("themes", "--reload-in=all", "matugen")):
+    raise SystemExit("Matugen does not hot-reload Kitty's theme")
 left_modules = waybar_config.split('"modules-left": [', 1)[1].split("]", 1)[0]
 center_modules = waybar_config.split('"modules-center": [', 1)[1].split("]", 1)[0]
 right_modules = waybar_config.split('"modules-right": [', 1)[1].split("]", 1)[0]
