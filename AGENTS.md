@@ -37,7 +37,7 @@ Treat the repository as public and respect the ownership boundaries below.
 |                            # Transfers swayidle ownership to Niri once
 |-- scripts/                 # Source-only age identity backup/restore helpers
 |-- tests/                   # Source, Niri, SSH, safe-rm, and Pi checks
-`-- docs/                    # Desktop, deletion-safety, and Pi operating notes
+`-- docs/                    # Configuration and publication operating notes
 ```
 
 Root `dot_*` files map to home-directory files such as `~/.zshenv` and
@@ -100,6 +100,7 @@ flags over hostname checks.
 ./tests/check-pi.sh
 ./tests/check-git.sh
 ./tests/check-ssh.sh
+./tests/check-public.sh
 CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh
 
 # Patch hygiene
@@ -116,10 +117,10 @@ chezmoi diff --skip-secrets --exclude=encrypted <target>
 chezmoi apply <target>
 ```
 
-`check-source.sh` always checks shell syntax, Git config parsing, SSH,
-safe-rm, and Pi configuration. Neovim checks run when `nvim` is installed;
-Niri rendering and validation run when both `chezmoi` and `niri` are
-installed.
+`check-source.sh` always checks shell syntax, Git config parsing, all
+locally reachable public history plus pending files, SSH, safe-rm, and Pi
+configuration. Neovim checks run when `nvim` is installed; Niri rendering and
+validation run when both `chezmoi` and `niri` are installed.
 
 `check-safe-rm.sh` creates marked temporary directories, performs a real GIO
 Trash round trip, restores its test item, and cleans only captured marked
@@ -356,6 +357,16 @@ not replace trusted commit review.
 4. Use a focused Conventional Commit such as
    `docs(agents): add repository operating guide`.
 
+### Publish the Repository
+
+1. Follow `docs/publication.md`; deleting plaintext only at the tip is
+   insufficient.
+2. Run `CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh` against the rewritten
+   history.
+3. Prefer a new empty remote over changing an old private remote directly to
+   public.
+4. Verify a fresh clone before changing visibility or announcing the remote.
+
 ## Key Files Quick Reference
 
 | What | Where |
@@ -372,6 +383,7 @@ not replace trusted commit review.
 | SSH operations and migration | `docs/ssh.md` |
 | Encrypted SSH inventory | `private_dot_ssh/` |
 | SSH rendering assertions | `tests/check-ssh.sh` |
+| Publication gates | `docs/publication.md`, `tests/check-public.sh` |
 | Niri output profiles | `dot_config/niri/conf.d/20-outputs.kdl.tmpl` |
 | Safe recursive removal | `dot_local/bin/executable_rm` |
 | Age identity helpers | `scripts/backup-age-identity.sh`, `scripts/restore-age-identity.sh` |

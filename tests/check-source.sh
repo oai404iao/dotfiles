@@ -32,6 +32,7 @@ find "$repo_dir" \
     ' sh {} +
 
 "$repo_dir/tests/check-git.sh"
+"$repo_dir/tests/check-public.sh"
 
 if command -v nvim >/dev/null 2>&1; then
     find "$repo_dir/dot_config/nvim" -type f -name "*.lua" \

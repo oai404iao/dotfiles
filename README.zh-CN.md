@@ -260,6 +260,7 @@ chezmoi add ~/.config/example/config
 - [可恢复的递归删除](docs/deletion-safety.md)
 - [Pi 配置与凭据](docs/pi.md)
 - [SSH identity 与 rbw-agent](docs/ssh.md)
+- [公开仓库安全流程](docs/publication.md)
 - [编码代理操作规范](AGENTS.md)
 
 在源码仓库根目录可通过以下脚本备份或恢复 age identity：

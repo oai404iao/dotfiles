@@ -279,6 +279,7 @@ secrets belong in `.chezmoiignore` or the appropriate external secret backend.
 - [Recoverable recursive deletion](docs/deletion-safety.md)
 - [Pi configuration and credentials](docs/pi.md)
 - [SSH identities and rbw-agent](docs/ssh.md)
+- [Public repository safety](docs/publication.md)
 - [Coding-agent operating guide](AGENTS.md)
 
 Back up or restore the age identity from the source root with:
