@@ -1,3 +1,11 @@
+{{- $sshAgent := false -}}
+{{- if hasKey . "sshAgent" -}}
+{{-   $sshAgent = .sshAgent -}}
+{{- end -}}
+{{- $sshInboundIdentity := "none" -}}
+{{- if hasKey . "sshInboundIdentity" -}}
+{{-   $sshInboundIdentity = .sshInboundIdentity -}}
+{{- end -}}
 README.md
 README.zh-CN.md
 AGENTS.md
@@ -13,10 +21,40 @@ secrets/
 .local/share/rbw/
 .local/state/rbw/
 .cache/rbw/
-.ssh/
 .gnupg/
 .local/share/chezmoi/
 .local/state/chezmoi/
+
+# SSH private material, host trust, and local extensions.
+{{- if not $sshAgent }}
+.config/environment.d/20-rbw-ssh-agent.conf
+.config/shell/ssh-agent.sh
+{{- end }}
+{{- if and (not $sshAgent) (eq $sshInboundIdentity "none") }}
+.ssh/
+{{- else }}
+.ssh/id_*
+.ssh/ai-dev
+.ssh/ai_dev
+.ssh/*.key
+.ssh/*.pem
+.ssh/*.ppk
+.ssh/known_hosts*
+.ssh/authorized_keys2
+.ssh/authorized_keys.*
+.ssh/config.local
+.ssh/config.local.d/
+.ssh/config.pre-chezmoi*
+.ssh/legacy/
+{{- if not $sshAgent }}
+.ssh/config
+.ssh/config.d/
+.ssh/identities/
+{{- end }}
+{{- if eq $sshInboundIdentity "none" }}
+.ssh/authorized_keys
+{{- end }}
+{{- end }}
 
 # Pi credentials and generated or mutable state.
 .config/pi/agent/auth.json

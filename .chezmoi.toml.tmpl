@@ -13,6 +13,9 @@
 {{-   end -}}
 {{- end -}}
 {{- $work := promptBoolOnce . "work" "Work machine" false -}}
+{{- $sshAgent := promptBoolOnce . "sshAgent" "Use rbw SSH agent" (ne $role "server") -}}
+{{- $sshInboundIdentities := list "none" "private" "uni" -}}
+{{- $sshInboundIdentity := promptChoiceOnce . "sshInboundIdentity" "SSH authorized_keys identity" $sshInboundIdentities "none" -}}
 
 encryption = "age"
 mode = "file"
@@ -42,4 +45,6 @@ mode = "file"
     niri = {{ $niri }}
     niriOutputProfile = {{ $niriOutputProfile | quote }}
     work = {{ $work }}
+    sshAgent = {{ $sshAgent }}
+    sshInboundIdentity = {{ $sshInboundIdentity | quote }}
     secretBackend = "rbw"

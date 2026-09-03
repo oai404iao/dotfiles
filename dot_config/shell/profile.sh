@@ -48,3 +48,9 @@ export EDITOR
 export VISUAL
 export PAGER
 export LESS
+
+ssh_agent_profile="$XDG_CONFIG_HOME/shell/ssh-agent.sh"
+if [ -r "$ssh_agent_profile" ]; then
+    . "$ssh_agent_profile"
+fi
+unset ssh_agent_profile
