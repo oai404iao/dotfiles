@@ -1,0 +1,15 @@
+[include]
+  path = ~/.config/git/.gitconfig-identity
+
+[includeIf "gitdir:~/Dev/company/"]
+  path = ~/.config/git/.gitconfig-work
+
+[includeIf "gitdir:~/Dev/local/"]
+  path = ~/.config/git/.gitconfig-person
+
+[includeIf "gitdir:~/Dev/github/"]
+  path = ~/.config/git/.gitconfig-github
+[credential]
+	helper = libsecret
+[init]
+	defaultBranch = main

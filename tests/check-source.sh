@@ -31,13 +31,7 @@ find "$repo_dir" \
         done
     ' sh {} +
 
-git config --file "$repo_dir/dot_gitconfig" --list >/dev/null
-find "$repo_dir/dot_config/git" -type f -name "dot_gitconfig-*" \
-    -exec sh -c '
-        for file do
-            git config --file "$file" --list >/dev/null || exit 1
-        done
-    ' sh {} +
+"$repo_dir/tests/check-git.sh"
 
 if command -v nvim >/dev/null 2>&1; then
     find "$repo_dir/dot_config/nvim" -type f -name "*.lua" \
