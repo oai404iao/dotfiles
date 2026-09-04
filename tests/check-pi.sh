@@ -112,13 +112,12 @@ if actual_npm_packages != expected_npm_packages:
     raise SystemExit("Pi npm package versions are not pinned")
 
 models = json.loads((source_dir / "private_models.json").read_text())
-references = [
-    provider.get("apiKey")
-    for provider in models.get("providers", {}).values()
-]
-expected_reference = "!rbw get 'pi spiredive api key'"
-if references != [expected_reference] * 4:
-    raise SystemExit("Pi provider credentials are not using the expected rbw reference")
+providers = models.get("providers", {})
+expected_providers = {"deepseek", "openai", "zai", "xai"}
+if set(providers) != expected_providers:
+    raise SystemExit("unexpected Pi provider inventory")
+if any("apiKey" in provider for provider in providers.values()):
+    raise SystemExit("Pi provider credentials must stay in local auth.json")
 
 for forbidden in (
     "auth.json",

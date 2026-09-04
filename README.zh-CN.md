@@ -71,12 +71,19 @@ chezmoi 的源码属性是本设计的一部分：
 即使远端仓库是私有的，也要把本仓库视为公开仓库。禁止加入凭据、递归导入
 `$HOME` 或 XDG 根目录，也不要提交恢复备份。
 
-Pi 模型 provider 保存的是命令引用：
+受管 Pi 模型 provider 不保存 API 凭据。每台机器改为在已忽略的
+`auth.json` 中保存 `rbw` 命令引用：
 
 ```json
-"apiKey": "!rbw get 'pi spiredive api key'"
+{
+  "deepseek": {
+    "type": "api_key",
+    "key": "!rbw get 'pi spiredive api key'"
+  }
+}
 ```
 
+Pi 每个进程只解析一次该命令，并将结果保存在内存中。
 Telegram 扩展自身不支持解析命令，因此 chezmoi 会将 Bitwarden 中的值渲染到
 权限为 `0600` 的目标文件。不要显示未过滤的 Pi diff。`--skip-secrets`
 只会跳过秘密模板，不会遮盖目标文件里已经存在的明文凭据，也不会排除原生
@@ -154,7 +161,7 @@ Pi 还依赖以下 Bitwarden 条目：
 - `pi telegram chat id`
 
 SSH 客户端机器还需要 [docs/ssh.md](docs/ssh.md) 所描述的原生 Bitwarden
-SSH key 集合。首次配置时将解锁超时设为 15 分钟：
+SSH key 集合。首次配置时将空闲锁定超时设为 15 分钟：
 
 ```sh
 rbw config set lock_timeout 900
@@ -204,6 +211,18 @@ chezmoi apply "$HOME/.ssh"
 配置，但不会把它显示在 diff 中。后续命令会单独验证并应用 age 加密的 Git
 与 SSH 元数据；如果机器的两项 SSH 能力均关闭，则省略 SSH apply。
 
+第一次发起模型请求前，需要配置 Pi 已忽略的本机凭据。在 Pi 中分别为
+`deepseek`、`openai`、`zai` 和 `xai` 运行 `/login`；出现选择时使用 API key
+认证，并为每个 provider 输入以下命令引用：
+
+```text
+!rbw get 'pi spiredive api key'
+```
+
+在每个新 Pi 进程解析完该命令前保持 `rbw` 已解锁。结果会缓存在该进程内，
+所以之后锁定 `rbw` 不会中断它。生命周期和恢复细节见
+[docs/pi.md](docs/pi.md)。
+
 如果机器已经存在配置，应先备份，然后逐个组件接管：
 
 ```sh
@@ -240,9 +259,10 @@ chezmoi diff --skip-secrets --exclude=encrypted <sanitized-target>
 chezmoi apply <reviewed-target>
 ```
 
-应用发生变化的 Telegram 模板或发起 Pi 模型请求前，需要先解锁 `rbw`。
-通过 `rbw-agent` 使用 SSH identity 前也需要解锁。只有在可信终端中才能
-查看完整的秘密渲染 diff。
+应用发生变化的 Telegram 模板、新 Pi 进程首次解析模型 key，以及通过
+`rbw-agent` 使用 SSH identity 前，需要先解锁 `rbw`。已经初始化的 Pi
+进程会继续在内存中保留解析后的 key。只有在可信终端中才能查看完整的秘密
+渲染 diff。
 
 新增配置时应指定单个文件：
 

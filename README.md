@@ -80,12 +80,19 @@ Treat this repository as public even when its remote is private. Never add a
 credential, recursively import `$HOME` or an XDG root, or commit a recovery
 backup.
 
-Pi model providers store a command reference:
+Managed Pi model providers omit API credentials. Each machine stores an
+`rbw` command reference in its ignored `auth.json` instead:
 
 ```json
-"apiKey": "!rbw get 'pi spiredive api key'"
+{
+  "deepseek": {
+    "type": "api_key",
+    "key": "!rbw get 'pi spiredive api key'"
+  }
+}
 ```
 
+Pi resolves the command once per process and keeps the result in memory.
 The Telegram extension cannot resolve commands itself, so chezmoi renders its
 Bitwarden values into a target file with mode `0600`. Avoid displaying
 unfiltered Pi diffs. `--skip-secrets` skips secret templates; it does not
@@ -168,7 +175,7 @@ The Pi setup also expects these Bitwarden items:
 - `pi telegram chat id`
 
 SSH client machines expect the native Bitwarden SSH key set described in
-[docs/ssh.md](docs/ssh.md). Configure the 15-minute unlock timeout once:
+[docs/ssh.md](docs/ssh.md). Configure the 15-minute inactivity timeout once:
 
 ```sh
 rbw config set lock_timeout 900
@@ -222,6 +229,18 @@ a diff. The remaining commands validate and apply age-encrypted Git and SSH
 metadata separately; omit the SSH apply on a profile where both SSH
 capabilities are disabled.
 
+Configure Pi's ignored local credentials before the first model request. In
+Pi, run `/login` for `deepseek`, `openai`, `zai`, and `xai`, select API-key
+authentication when prompted, and enter this command reference for each:
+
+```text
+!rbw get 'pi spiredive api key'
+```
+
+Keep `rbw` unlocked until each new Pi process has resolved the command. The
+result is cached in that process, so locking `rbw` afterward does not interrupt
+it. See [docs/pi.md](docs/pi.md) for lifecycle and recovery details.
+
 For a machine with existing configuration, back it up and adopt one component
 at a time:
 
@@ -259,9 +278,10 @@ chezmoi diff --skip-secrets --exclude=encrypted <sanitized-target>
 chezmoi apply <reviewed-target>
 ```
 
-Unlock `rbw` before applying a changed Telegram template or making a Pi model
-request, and before using an SSH identity through `rbw-agent`. Inspect a full
-rendered secret diff only in a trusted terminal.
+Unlock `rbw` before applying a changed Telegram template, before a new Pi
+process first resolves its model key, and before using an SSH identity through
+`rbw-agent`. An already initialized Pi process keeps its resolved key in
+memory. Inspect a full rendered secret diff only in a trusted terminal.
 
 When adding configuration, use an explicit file:
 

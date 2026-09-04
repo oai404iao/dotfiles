@@ -37,15 +37,35 @@ Disabled packages and their configuration are not managed.
 
 No Pi credential is committed or exported by shell startup files.
 
-Custom model providers use Pi's native command-based key resolution:
+Managed `models.json` deliberately omits `apiKey`. Each machine stores the
+following command reference under every applicable provider in its ignored
+`auth.json`:
 
 ```json
-"apiKey": "!rbw get 'pi spiredive api key'"
+{
+  "deepseek": {
+    "type": "api_key",
+    "key": "!rbw get 'pi spiredive api key'"
+  }
+}
 ```
 
-Pi resolves that command when making a request. The key therefore does not
-enter the general login environment or get inherited automatically by shell
-tools.
+Configure `deepseek`, `openai`, `zai`, and `xai` with `/login`, selecting
+API-key authentication when Pi offers multiple methods and entering the same
+command reference for each. Do not replace the reference with the retrieved
+value.
+
+`auth.json` credentials take precedence over `models.json`. Pi resolves an
+auth-file command on first use and caches the result for the process lifetime.
+Because all four entries use the exact same command, one successful resolution
+serves all four providers in that process. The key does not enter the general
+login environment or get inherited automatically by unrelated shell tools.
+
+Keep `rbw` unlocked for the first resolution in every new Pi process, including
+independently launched subagents. Once resolution succeeds, later `rbw lock`
+or the 15-minute rbw timeout does not revoke the copy held by that process.
+Exit Pi to discard it. If the first lookup fails, unlock `rbw` and restart Pi
+because failed command results are cached as well.
 
 The Telegram extension does not support command or environment interpolation.
 chezmoi renders its private `config.json` from these Bitwarden entries:
@@ -53,7 +73,8 @@ chezmoi renders its private `config.json` from these Bitwarden entries:
 - `pi telegram bot token`
 - `pi telegram chat id`
 
-Unlock `rbw` before applying the Telegram template or making a model request:
+Unlock `rbw` before applying the Telegram template, configuring model
+credentials, or starting a Pi process that has not resolved its key:
 
 ```sh
 rbw unlock

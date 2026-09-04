@@ -184,8 +184,9 @@ in `.chezmoi.toml.tmpl` and the output template, then run `check-niri.sh`.
 - `modify_private_settings.json` is executable Python stored under a chezmoi
   modifier name. It must preserve unknown/runtime keys while replacing only
   declared keys.
-- `private_models.json` stores Pi command references such as
-  `!rbw get 'pi spiredive api key'`, never a literal key.
+- `private_models.json` omits API credentials. The ignored local `auth.json`
+  stores an `rbw` command reference for the shared model key so Pi caches it
+  for its process lifetime. Never put a literal key in managed model config.
 - Telegram config is rendered from `rbw` because the extension does not support
   command interpolation. The destination contains plaintext credentials and
   must remain mode `0600`.
@@ -330,7 +331,8 @@ not replace trusted commit review.
 ### Change Pi Providers or Extensions
 
 1. Update the declarative source, never the target's mutable files.
-2. Use an `rbw` command reference or template lookup rather than a literal.
+2. Keep model API keys out of `models.json`; use an `rbw` command reference in
+   local `auth.json`, or a template lookup when an extension requires one.
 3. Keep npm versions pinned and external local paths explicit.
 4. Update `tests/check-pi.sh` inventory and invariants.
 5. Test offline/fake-secret rendering before any expressly requested live test.
