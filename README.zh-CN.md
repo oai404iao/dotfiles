@@ -161,10 +161,11 @@ Pi 还依赖以下 Bitwarden 条目：
 - `pi telegram chat id`
 
 SSH 客户端机器还需要 [docs/ssh.md](docs/ssh.md) 所描述的原生 Bitwarden
-SSH key 集合。首次配置时将空闲锁定超时设为 15 分钟：
+SSH key 集合。使用 rbw 默认的 1 小时空闲锁定超时。已显式配置超时的机器可通过
+以下命令恢复默认值：
 
 ```sh
-rbw config set lock_timeout 900
+rbw config unset lock_timeout
 ```
 
 ### 3. 准备应用的外部依赖

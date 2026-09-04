@@ -175,10 +175,11 @@ The Pi setup also expects these Bitwarden items:
 - `pi telegram chat id`
 
 SSH client machines expect the native Bitwarden SSH key set described in
-[docs/ssh.md](docs/ssh.md). Configure the 15-minute inactivity timeout once:
+[docs/ssh.md](docs/ssh.md). Use rbw's default one-hour inactivity timeout.
+Machines with an explicit timeout can restore the default once:
 
 ```sh
-rbw config set lock_timeout 900
+rbw config unset lock_timeout
 ```
 
 ### 3. Prepare external application dependencies

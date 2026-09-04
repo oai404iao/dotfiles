@@ -103,10 +103,11 @@ selectors, and socket environment explicitly after changing the machine data.
 
 ## Agent Lifecycle
 
-Set the machine-local timeout once:
+Use rbw's default one-hour inactivity timeout. If `lock_timeout` was explicitly
+configured, restore the default once:
 
 ```sh
-rbw config set lock_timeout 900
+rbw config unset lock_timeout
 ```
 
 The managed login and graphical-session environment uses:
@@ -130,12 +131,12 @@ commands must preserve the current rbw lock state: `rbw lock` and
 `rbw stop-agent` affect other programs sharing the agent, so only the user
 decides when to run them.
 
-The 900-second value is a sliding inactivity timeout. Successful unlocks,
-secret decryptions such as `rbw get`, and SSH identity listing or signing
-restart the timer. `rbw unlocked`, `rbw sync`, and version checks do not.
-Expiry or an explicit `rbw lock` clears the in-memory vault keys but leaves the
-agent process running. This repository does not connect rbw locking to the
-desktop lock screen.
+The default 3600-second value is a sliding inactivity timeout. Successful
+unlocks, secret decryptions such as `rbw get`, and SSH identity listing or
+signing restart the timer. `rbw unlocked`, `rbw sync`, and version checks do
+not. Expiry or an explicit `rbw lock` clears the in-memory vault keys but
+leaves the agent process running. This repository does not connect rbw locking
+to the desktop lock screen.
 
 ## GitHub Accounts
 

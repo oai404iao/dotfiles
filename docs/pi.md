@@ -63,9 +63,9 @@ login environment or get inherited automatically by unrelated shell tools.
 
 Keep `rbw` unlocked for the first resolution in every new Pi process, including
 independently launched subagents. Once resolution succeeds, later `rbw lock`
-or the 15-minute rbw timeout does not revoke the copy held by that process.
-Exit Pi to discard it. If the first lookup fails, unlock `rbw` and restart Pi
-because failed command results are cached as well.
+or expiry of rbw's default one-hour timeout does not revoke the copy held by
+that process. Exit Pi to discard it. If the first lookup fails, unlock `rbw`
+and restart Pi because failed command results are cached as well.
 
 The Telegram extension does not support command or environment interpolation.
 chezmoi renders its private `config.json` from these Bitwarden entries:
