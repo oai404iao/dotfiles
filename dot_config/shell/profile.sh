@@ -10,6 +10,12 @@ export XDG_CACHE_HOME
 export XDG_DATA_HOME
 export XDG_STATE_HOME
 
+toolchains_profile="$XDG_CONFIG_HOME/shell/toolchains.sh"
+if [ -r "$toolchains_profile" ]; then
+    . "$toolchains_profile"
+fi
+unset toolchains_profile
+
 # niri-session may inherit an English interactive shell, so clear category
 # overrides before it imports the Chinese login environment.
 unset LC_ALL LC_ADDRESS LC_COLLATE LC_CTYPE LC_IDENTIFICATION LC_MEASUREMENT

@@ -10,6 +10,10 @@ export XDG_CACHE_HOME
 export XDG_DATA_HOME
 export XDG_STATE_HOME
 
+toolchains_profile="$XDG_CONFIG_HOME/shell/toolchains.sh"
+[[ -r "$toolchains_profile" ]] && source "$toolchains_profile"
+unset toolchains_profile
+
 # Keep Pi configuration and mutable sessions in their XDG locations.
 : "${PI_CODING_AGENT_DIR:=$XDG_CONFIG_HOME/pi/agent}"
 : "${PI_CODING_AGENT_SESSION_DIR:=$XDG_STATE_HOME/pi/agent/sessions}"

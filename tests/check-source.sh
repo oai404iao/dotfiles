@@ -31,6 +31,7 @@ find "$repo_dir" \
         done
     ' sh {} +
 
+"$repo_dir/tests/check-shell.sh"
 "$repo_dir/tests/check-git.sh"
 "$repo_dir/tests/check-public.sh"
 

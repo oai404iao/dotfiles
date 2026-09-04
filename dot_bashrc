@@ -1,3 +1,7 @@
+toolchains_profile="${XDG_CONFIG_HOME:-$HOME/.config}/shell/toolchains.sh"
+[ -r "$toolchains_profile" ] && . "$toolchains_profile"
+unset toolchains_profile
+
 case $- in
     *i*) ;;
     *) return ;;
