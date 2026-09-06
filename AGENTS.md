@@ -122,10 +122,11 @@ locally reachable public history plus pending files, SSH, safe-rm, and Pi
 configuration. Neovim checks run when `nvim` is installed; Niri rendering and
 validation run when both `chezmoi` and `niri` are installed.
 
-`check-safe-rm.sh` creates marked temporary directories, performs a real GIO
-Trash round trip, restores its test item, and cleans only captured marked
-paths. `check-pi.sh` renders the Telegram template with
-`tests/fixtures/pi/bin/rbw`; it must never contact the real vault.
+`check-safe-rm.sh` creates marked temporary directories, runs real GIO Trash
+operations with isolated HOME/XDG state, verifies the isolated payload and
+metadata, and cleans only captured marked paths. `check-pi.sh` renders the
+Telegram template with `tests/fixtures/pi/bin/rbw`; it must never contact the
+real vault.
 
 These checks are intended to be offline. Accessing the real vault, calling a
 paid model API, or sending a Telegram notification requires an explicit user
@@ -235,6 +236,8 @@ in `.chezmoi.toml.tmpl` and the output template, then run `check-niri.sh`.
 `dot_local/bin/executable_rm` delegates non-recursive removal to
 `/usr/bin/rm`, but recursive removal must pass full preflight and use GIO Trash.
 Do not weaken protected-root checks or add a permanent-delete fallback.
+Pass relative operands to GIO with an explicit `./` prefix so URI-shaped
+filenames retain local filesystem semantics.
 
 Repository scripts may call `/usr/bin/rm -rf` only for an intentionally
 disposable directory whose path was captured from `mktemp` and whose marker is

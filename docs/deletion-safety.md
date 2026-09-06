@@ -9,6 +9,8 @@ The wrapper behaves as follows:
 - ordinary non-recursive removal is delegated to `/usr/bin/rm`;
 - `-r`, `-R`, and `--recursive` move operands to the FreeDesktop Trash through
   `gio trash`;
+- relative operands remain local filesystem paths even when their names
+  resemble GIO URIs;
 - every operand is checked before any operand is moved;
 - `/`, the account home, conventional and current XDG roots,
   `/run/user/$UID`, Pi's config/session roots, the Trash, and their ancestors
@@ -34,6 +36,12 @@ command -v rm
 ```
 
 The expected path is `~/.local/bin/rm`.
+
+## Validation isolation
+
+The automated safe-rm check runs real GIO operations with isolated HOME and
+XDG state plus the local VFS backend. It verifies the payload and `.trashinfo`
+metadata inside that sandbox and never reads or modifies the user's Trash.
 
 ## Intentional temporary cleanup
 

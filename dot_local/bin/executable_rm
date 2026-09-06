@@ -202,6 +202,7 @@ is_same_or_ancestor() {
 }
 
 declare -a existing_operands=()
+declare -a existing_gio_operands=()
 preflight_failed=false
 
 for path in "${operands[@]}"; do
@@ -259,14 +260,22 @@ for path in "${operands[@]}"; do
     fi
 
     existing_operands+=("$path")
+    # GIO accepts URIs, so make relative filenames unambiguously local.
+    if [[ "$path" == /* ]]; then
+        existing_gio_operands+=("$path")
+    else
+        existing_gio_operands+=("./$path")
+    fi
 done
 
 $preflight_failed && exit 1
 
 trash_preflight_failed=false
-for path in "${existing_operands[@]}"; do
+for operand_index in "${!existing_operands[@]}"; do
+    path=${existing_operands[$operand_index]}
+    gio_path=${existing_gio_operands[$operand_index]}
     info=$(LC_ALL=C "$GIO" info --nofollow-symlinks \
-        --attributes=access::can-trash -- "$path" 2>/dev/null) || {
+        --attributes=access::can-trash -- "$gio_path" 2>/dev/null) || {
         printf "safe-rm: cannot verify trash support for '%s'\n" "$path" >&2
         trash_preflight_failed=true
         continue
@@ -280,7 +289,9 @@ done
 
 $trash_preflight_failed && exit 1
 
-for path in "${existing_operands[@]}"; do
+for operand_index in "${!existing_operands[@]}"; do
+    path=${existing_operands[$operand_index]}
+    gio_path=${existing_gio_operands[$operand_index]}
     if [[ ! -e "$path" && ! -L "$path" ]]; then
         $force && continue
         printf "safe-rm: '%s' disappeared before it could be trashed\n" "$path" >&2
@@ -310,16 +321,16 @@ for path in "${existing_operands[@]}"; do
         fail "path became protected before trashing: $path"
 
     info=$(LC_ALL=C "$GIO" info --nofollow-symlinks \
-        --attributes=access::can-trash -- "$path" 2>/dev/null) ||
+        --attributes=access::can-trash -- "$gio_path" 2>/dev/null) ||
         fail "cannot recheck trash support for: $path"
     [[ "$info" == *"access::can-trash: TRUE"* ]] ||
         fail "filesystem stopped supporting Trash for: $path"
 
     if $force; then
-        "$GIO" trash --force -- "$path" ||
+        "$GIO" trash --force -- "$gio_path" ||
             fail "gio failed to trash '$path'; inspect the Trash before retrying"
     else
-        "$GIO" trash -- "$path" ||
+        "$GIO" trash -- "$gio_path" ||
             fail "gio failed to trash '$path'; inspect the Trash before retrying"
     fi
 
