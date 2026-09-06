@@ -1,0 +1,35 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+state=${SAFE_RM_TEST_STATE:?SAFE_RM_TEST_STATE is required}
+[[ "$state" == /* && -f "$state/.safe-rm-test-state" ]] || {
+    printf 'safe-rm fake rm: invalid state directory\n' >&2
+    exit 97
+}
+
+counter=0
+[[ ! -f "$state/rm.counter" ]] || counter=$(<"$state/rm.counter")
+[[ "$counter" =~ ^[0-9]+$ ]] || {
+    printf 'safe-rm fake rm: invalid call counter\n' >&2
+    exit 97
+}
+counter=$((counter + 1))
+printf '%s\n' "$counter" >"$state/rm.counter"
+
+actual_dir=$(printf '%s/rm.actual/%06d' "$state" "$counter")
+/usr/bin/mkdir -p -- "$actual_dir"
+printf '%s\0' "$@" >"$actual_dir/argv.nul"
+printf '%s\0' "$@" >>"$state/rm.calls.nul"
+
+[[ -f "$state/rm.status" ]] || {
+    printf 'safe-rm fake rm: missing configured status\n' >&2
+    exit 97
+}
+status=$(<"$state/rm.status")
+[[ "$status" =~ ^[0-9]+$ && "$status" -le 255 ]] || {
+    printf 'safe-rm fake rm: invalid configured status\n' >&2
+    exit 97
+}
+[[ ! -f "$state/rm.stdout" ]] || /usr/bin/cat -- "$state/rm.stdout"
+[[ ! -f "$state/rm.stderr" ]] || /usr/bin/cat -- "$state/rm.stderr" >&2
+exit "$status"

@@ -1,340 +1,498 @@
 #!/usr/bin/env bash
-set -u
 
-readonly REAL_RM=/usr/bin/rm
-readonly GIO=/usr/bin/gio
-readonly REALPATH=/usr/bin/realpath
+safe_rm_main() (
+    set +e
+    set +o pipefail
+    set -u
+    shopt -u nocasematch
 
-fail() {
-    printf 'safe-rm: %s\n' "$*" >&2
-    exit 1
-}
+    if (($# < 4)); then
+        printf 'safe-rm: internal error: missing command path\n' >&2
+        exit 2
+    fi
 
-recursive=false
-force=false
-verbose=false
-interactive=false
-one_file_system=false
-no_preserve_root=false
-preserve_root_all=false
-options=true
-declare -a operands=()
+    local -r REAL_RM=$1
+    local -r GIO=$2
+    local -r REALPATH=$3
+    local -r STAT=$4
+    shift 4
+    local -a rm_args=("$@")
 
-for argument in "$@"; do
-    if $options; then
-        case "$argument" in
-            --)
-                options=false
-                continue
-                ;;
-            --help | --version)
-                exec "$REAL_RM" "$@"
-                ;;
-            --recursive)
-                recursive=true
-                continue
-                ;;
-            --dir)
-                continue
-                ;;
-            --force)
-                force=true
-                continue
-                ;;
-            --verbose)
-                verbose=true
-                continue
-                ;;
-            --interactive | --interactive=*)
-                interactive=true
-                continue
-                ;;
-            --one-file-system)
-                one_file_system=true
-                continue
-                ;;
-            --preserve-root)
-                continue
-                ;;
-            --preserve-root=all)
-                preserve_root_all=true
-                continue
-                ;;
-            --no-preserve-root)
-                no_preserve_root=true
-                continue
-                ;;
-            --*)
-                fail "unsupported or abbreviated option: $argument"
-                ;;
-            -?*)
-                short_options=${argument#-}
-                while [[ -n "$short_options" ]]; do
-                    option=${short_options:0:1}
-                    short_options=${short_options:1}
-                    case "$option" in
-                        r | R) recursive=true ;;
-                        d) : ;;
-                        f) force=true ;;
-                        v) verbose=true ;;
-                        i | I) interactive=true ;;
-                        *) fail "unsupported option: -$option" ;;
+    fail() {
+        printf 'safe-rm: %s\n' "$*" >&2
+        exit 1
+    }
+
+    gio_info_allows_trash() {
+        local info=$1
+        local line
+        local value=
+        local matches=0
+
+        while IFS= read -r line || [[ -n "$line" ]]; do
+            if [[ "$line" =~ ^[[:space:]]*access::can-trash:[[:space:]]*(TRUE|FALSE)[[:space:]]*$ ]]; then
+                value=${BASH_REMATCH[1]}
+                matches=$((matches + 1))
+            fi
+        done <<<"$info"
+
+        [[ "$matches" -eq 1 && "$value" == TRUE ]]
+    }
+
+    local recursive=false
+    local force=false
+    local verbose=false
+    local interaction=default
+    local one_file_system=false
+    local no_preserve_root=false
+    local preserve_root_all=false
+    local options=true
+    local posixly_correct=false
+    [[ -v POSIXLY_CORRECT ]] && posixly_correct=true
+    local argument short_options option value path
+    local -a operands=()
+
+    for argument in "${rm_args[@]}"; do
+        if $options; then
+            case "$argument" in
+                --)
+                    options=false
+                    continue
+                    ;;
+                --help | --version)
+                    exec "$REAL_RM" "${rm_args[@]}"
+                    ;;
+                --recursive)
+                    recursive=true
+                    continue
+                    ;;
+                --dir)
+                    continue
+                    ;;
+                --force)
+                    force=true
+                    interaction=never
+                    continue
+                    ;;
+                --verbose)
+                    verbose=true
+                    continue
+                    ;;
+                --interactive)
+                    force=false
+                    interaction=always
+                    continue
+                    ;;
+                --interactive=*)
+                    value=${argument#--interactive=}
+                    case "$value" in
+                        never)
+                            interaction=never
+                            ;;
+                        once | always)
+                            force=false
+                            interaction=$value
+                            ;;
+                        *)
+                            fail "unsupported interactive mode: $value"
+                            ;;
                     esac
-                done
-                continue
-                ;;
-        esac
+                    continue
+                    ;;
+                --one-file-system)
+                    one_file_system=true
+                    continue
+                    ;;
+                --preserve-root)
+                    continue
+                    ;;
+                --preserve-root=all)
+                    preserve_root_all=true
+                    continue
+                    ;;
+                --no-preserve-root)
+                    no_preserve_root=true
+                    continue
+                    ;;
+                --*)
+                    fail "unsupported or abbreviated option: $argument"
+                    ;;
+                -?*)
+                    short_options=${argument#-}
+                    while [[ -n "$short_options" ]]; do
+                        option=${short_options:0:1}
+                        short_options=${short_options:1}
+                        case "$option" in
+                            r | R) recursive=true ;;
+                            d) : ;;
+                            f)
+                                force=true
+                                interaction=never
+                                ;;
+                            v) verbose=true ;;
+                            i)
+                                force=false
+                                interaction=always
+                                ;;
+                            I)
+                                force=false
+                                interaction=once
+                                ;;
+                            *) fail "unsupported option: -$option" ;;
+                        esac
+                    done
+                    continue
+                    ;;
+            esac
+        fi
+
+        operands+=("$argument")
+        $posixly_correct && options=false
+    done
+
+    if ! $recursive; then
+        exec "$REAL_RM" "${rm_args[@]}"
     fi
-    operands+=("$argument")
-done
 
-if ! $recursive; then
-    exec "$REAL_RM" "$@"
-fi
-
-$interactive &&
-    fail "interactive recursive removal is not supported; use the trash without -i/-I"
-$one_file_system &&
-    fail "--one-file-system cannot be represented safely by a trash move"
-$no_preserve_root &&
-    fail "--no-preserve-root is forbidden"
-$preserve_root_all &&
-    fail "--preserve-root=all cannot be represented safely by a trash move"
-
-if ((${#operands[@]} == 0)); then
-    exec "$REAL_RM" "$@"
-fi
-
-[[ -x "$GIO" ]] || fail "gio is required for recoverable recursive removal"
-[[ -x "$REALPATH" ]] || fail "realpath is required for protected-path checks"
-
-for variable in HOME XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME \
-    XDG_STATE_HOME XDG_RUNTIME_DIR PI_CODING_AGENT_DIR \
-    PI_CODING_AGENT_SESSION_DIR; do
-    value=${!variable-}
-    if [[ -n "$value" && "$value" != /* ]]; then
-        fail "$variable must be an absolute path (got: $value)"
+    if ((${#operands[@]} == 0)); then
+        exec "$REAL_RM" "${rm_args[@]}"
     fi
-done
 
-uid=$(/usr/bin/id -u)
-passwd_home=$(
-    /usr/bin/getent passwd "$uid" |
-        /usr/bin/cut -d: -f6
-)
-[[ "$passwd_home" == /* ]] || fail "could not determine the account home directory"
-environment_home=${HOME:-$passwd_home}
+    [[ "$interaction" == once || "$interaction" == always ]] &&
+        fail "interactive recursive removal is not supported; use the trash without -i/-I"
+    $one_file_system &&
+        fail "--one-file-system cannot be represented safely by a trash move"
+    $no_preserve_root &&
+        fail "--no-preserve-root is forbidden"
+    $preserve_root_all &&
+        fail "--preserve-root=all cannot be represented safely by a trash move"
 
-declare -a protected_paths=(
-    /
-    /bin
-    /boot
-    /dev
-    /etc
-    /lib
-    /lib64
-    /opt
-    /proc
-    /root
-    /run
-    /sbin
-    /srv
-    /sys
-    /tmp
-    /usr
-    /var
-    "/run/user/$uid"
-)
+    [[ -x "$GIO" ]] || fail "gio is required for recoverable recursive removal"
+    [[ -x "$REALPATH" ]] || fail "realpath is required for protected-path checks"
+    [[ -x "$STAT" ]] || fail "stat is required for Trash mount checks"
+    [[ -x "$STAT" ]] || fail "stat is required for Trash mount checks"
 
-add_home_roots() {
-    local home_dir=$1
-    protected_paths+=(
-        "$home_dir"
-        "$home_dir/.config"
-        "$home_dir/.cache"
-        "$home_dir/.local/share"
-        "$home_dir/.local/state"
-        "$home_dir/.config/pi/agent"
-        "$home_dir/.local/state/pi/agent/sessions"
+    local variable
+    for variable in HOME XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME \
+        XDG_STATE_HOME XDG_RUNTIME_DIR PI_CODING_AGENT_DIR \
+        PI_CODING_AGENT_SESSION_DIR; do
+        value=${!variable-}
+        if [[ -n "$value" && "$value" != /* ]]; then
+            fail "$variable must be an absolute path (got: $value)"
+        fi
+    done
+
+    local uid passwd_home environment_home
+    uid=$(/usr/bin/id -u)
+    passwd_home=$(
+        /usr/bin/getent passwd "$uid" |
+            /usr/bin/cut -d: -f6
     )
-}
+    [[ "$passwd_home" == /* ]] || fail "could not determine the account home directory"
+    environment_home=${HOME:-$passwd_home}
 
-add_home_roots "$passwd_home"
-[[ "$environment_home" == "$passwd_home" ]] ||
-    add_home_roots "$environment_home"
+    local -a protected_paths=(
+        /
+        /bin
+        /boot
+        /dev
+        /etc
+        /lib
+        /lib64
+        /opt
+        /proc
+        /root
+        /run
+        /sbin
+        /srv
+        /sys
+        /tmp
+        /usr
+        /var
+        "/run/user/$uid"
+    )
 
-protected_paths+=(
-    "${XDG_CONFIG_HOME:-$environment_home/.config}"
-    "${XDG_CACHE_HOME:-$environment_home/.cache}"
-    "${XDG_DATA_HOME:-$environment_home/.local/share}"
-    "${XDG_STATE_HOME:-$environment_home/.local/state}"
-)
+    add_home_roots() {
+        local home_dir=$1
+        protected_paths+=(
+            "$home_dir"
+            "$home_dir/.config"
+            "$home_dir/.cache"
+            "$home_dir/.local/share"
+            "$home_dir/.local/state"
+            "$home_dir/.config/pi/agent"
+            "$home_dir/.local/state/pi/agent/sessions"
+        )
+    }
 
-[[ -z "${XDG_RUNTIME_DIR:-}" ]] ||
-    protected_paths+=("$XDG_RUNTIME_DIR")
+    add_home_roots "$passwd_home"
+    [[ "$environment_home" == "$passwd_home" ]] ||
+        add_home_roots "$environment_home"
 
-effective_config_home=${XDG_CONFIG_HOME:-$environment_home/.config}
-effective_state_home=${XDG_STATE_HOME:-$environment_home/.local/state}
-effective_pi_config=${PI_CODING_AGENT_DIR:-$effective_config_home/pi/agent}
-effective_pi_sessions=${PI_CODING_AGENT_SESSION_DIR:-$effective_state_home/pi/agent/sessions}
-protected_paths+=("$effective_pi_config" "$effective_pi_sessions")
+    protected_paths+=(
+        "${XDG_CONFIG_HOME:-$environment_home/.config}"
+        "${XDG_CACHE_HOME:-$environment_home/.cache}"
+        "${XDG_DATA_HOME:-$environment_home/.local/share}"
+        "${XDG_STATE_HOME:-$environment_home/.local/state}"
+    )
 
-trash_root="${XDG_DATA_HOME:-$environment_home/.local/share}/Trash"
-protected_paths+=("$trash_root")
+    [[ -z "${XDG_RUNTIME_DIR:-}" ]] ||
+        protected_paths+=("$XDG_RUNTIME_DIR")
 
-declare -a protected_lexical=()
-declare -a protected_canonical=()
-for path in "${protected_paths[@]}"; do
-    lexical=$("$REALPATH" -sm -- "$path") ||
-        fail "cannot normalize protected path: $path"
-    canonical=$("$REALPATH" -m -- "$path") ||
-        fail "cannot resolve protected path: $path"
-    protected_lexical+=("$lexical")
-    protected_canonical+=("$canonical")
-done
+    local effective_config_home effective_state_home
+    local effective_pi_config effective_pi_sessions
+    effective_config_home=${XDG_CONFIG_HOME:-$environment_home/.config}
+    effective_state_home=${XDG_STATE_HOME:-$environment_home/.local/state}
+    effective_pi_config=${PI_CODING_AGENT_DIR:-$effective_config_home/pi/agent}
+    effective_pi_sessions=${PI_CODING_AGENT_SESSION_DIR:-$effective_state_home/pi/agent/sessions}
+    protected_paths+=("$effective_pi_config" "$effective_pi_sessions")
 
-is_same_or_ancestor() {
-    local ancestor=$1
-    local descendant=$2
-    [[ "$ancestor" == / ||
-        "$descendant" == "$ancestor" ||
-        "$descendant" == "$ancestor/"* ]]
-}
+    local path_form_lexical path_form_canonical path_form_parent_canonical
+    normalize_path_forms() {
+        local raw_path=$1
+        local trimmed parent final_component canonical_parent
 
-declare -a existing_operands=()
-declare -a existing_gio_operands=()
-preflight_failed=false
+        trimmed=$raw_path
+        while [[ "$trimmed" != / && "$trimmed" == */ ]]; do
+            trimmed=${trimmed%/}
+        done
 
-for path in "${operands[@]}"; do
-    if [[ ! -e "$path" && ! -L "$path" ]]; then
-        if $force; then
+        path_form_lexical=$("$REALPATH" -sm -- "$raw_path") || return 1
+        path_form_canonical=$("$REALPATH" -m -- "$raw_path") || return 1
+
+        if [[ "$trimmed" == / ]]; then
+            path_form_parent_canonical=/
+            return 0
+        fi
+
+        final_component=${trimmed##*/}
+        if [[ "$trimmed" == */* ]]; then
+            parent=${trimmed%/*}
+            [[ -n "$parent" ]] || parent=/
+        else
+            parent=.
+        fi
+        canonical_parent=$("$REALPATH" -m -- "$parent") || return 1
+        if [[ "$canonical_parent" == / ]]; then
+            path_form_parent_canonical="/$final_component"
+        else
+            path_form_parent_canonical="$canonical_parent/$final_component"
+        fi
+    }
+
+    append_normalized_forms() {
+        local path=$1
+        local array_name=$2
+        local -n forms=$array_name
+
+        normalize_path_forms "$path" ||
+            fail "cannot normalize protected path: $path"
+        forms+=(
+            "$path_form_lexical"
+            "$path_form_canonical"
+            "$path_form_parent_canonical"
+        )
+    }
+
+    local -a protected_forms=()
+    for path in "${protected_paths[@]}"; do
+        append_normalized_forms "$path" protected_forms
+    done
+
+    local -a passwd_trash_forms=()
+    local -a environment_trash_forms=()
+    local -a effective_trash_forms=()
+    append_normalized_forms \
+        "$passwd_home/.local/share/Trash" passwd_trash_forms
+    append_normalized_forms \
+        "$environment_home/.local/share/Trash" environment_trash_forms
+    append_normalized_forms \
+        "${XDG_DATA_HOME:-$environment_home/.local/share}/Trash" effective_trash_forms
+
+    is_same_or_ancestor() {
+        local ancestor=$1
+        local descendant=$2
+        [[ "$ancestor" == / ||
+            "$descendant" == "$ancestor" ||
+            "$descendant" == "$ancestor/"* ]]
+    }
+
+    forms_block_protected_path() {
+        local candidate protected
+        for candidate in \
+            "$path_form_lexical" \
+            "$path_form_canonical" \
+            "$path_form_parent_canonical"; do
+            for protected in "${protected_forms[@]}"; do
+                is_same_or_ancestor "$candidate" "$protected" && return 0
+            done
+        done
+        return 1
+    }
+
+    forms_touch_trash_tree() {
+        local candidate trash
+        local -a trash_forms=(
+            "${passwd_trash_forms[@]}"
+            "${environment_trash_forms[@]}"
+            "${effective_trash_forms[@]}"
+            "${volume_trash_forms[@]}"
+        )
+        for candidate in \
+            "$path_form_lexical" \
+            "$path_form_canonical" \
+            "$path_form_parent_canonical"; do
+            for trash in "${trash_forms[@]}"; do
+                if is_same_or_ancestor "$candidate" "$trash" ||
+                    is_same_or_ancestor "$trash" "$candidate"; then
+                    return 0
+                fi
+            done
+        done
+        return 1
+    }
+
+    local -a volume_trash_forms=()
+    classify_volume_trash() {
+        local operand=$1
+        local mount_root
+
+        volume_trash_forms=()
+        mount_root=$("$STAT" --format=%m -- "$operand") || return 1
+        [[ "$mount_root" == /* ]] || return 1
+
+        # Only mount-root Trash names are special; nested project names are ordinary.
+        append_normalized_forms "$mount_root/.Trash/$uid" volume_trash_forms
+        append_normalized_forms "$mount_root/.Trash-$uid" volume_trash_forms
+    }
+
+    operand_is_blocked() {
+        forms_block_protected_path || forms_touch_trash_tree
+    }
+
+    local trimmed final_component lexical canonical parent_canonical
+    local preflight_failed=false
+    local -a existing_operands=()
+    local -a existing_gio_operands=()
+
+    for path in "${operands[@]}"; do
+        if [[ ! -e "$path" && ! -L "$path" ]]; then
+            if $force; then
+                continue
+            fi
+            printf "safe-rm: cannot remove '%s': No such file or directory\n" "$path" >&2
+            preflight_failed=true
             continue
         fi
-        printf "safe-rm: cannot remove '%s': No such file or directory\n" "$path" >&2
-        preflight_failed=true
-        continue
-    fi
 
-    trimmed=$path
-    while [[ "$trimmed" != / && "$trimmed" == */ ]]; do
-        trimmed=${trimmed%/}
-    done
-    final_component=${trimmed##*/}
-    if [[ "$final_component" == . || "$final_component" == .. ]]; then
-        printf "safe-rm: refusing to remove '%s'\n" "$path" >&2
-        preflight_failed=true
-        continue
-    fi
+        trimmed=$path
+        while [[ "$trimmed" != / && "$trimmed" == */ ]]; do
+            trimmed=${trimmed%/}
+        done
+        final_component=${trimmed##*/}
+        if [[ "$final_component" == . || "$final_component" == .. ]]; then
+            printf "safe-rm: refusing to remove '%s'\n" "$path" >&2
+            preflight_failed=true
+            continue
+        fi
 
-    lexical=$("$REALPATH" -sm -- "$path") || {
-        printf "safe-rm: cannot normalize '%s'\n" "$path" >&2
-        preflight_failed=true
-        continue
-    }
-    canonical=$("$REALPATH" -m -- "$path") || {
-        printf "safe-rm: cannot resolve '%s'\n" "$path" >&2
-        preflight_failed=true
-        continue
-    }
+        if ! normalize_path_forms "$path"; then
+            printf "safe-rm: cannot normalize '%s'\n" "$path" >&2
+            preflight_failed=true
+            continue
+        fi
+        lexical=$path_form_lexical
+        canonical=$path_form_canonical
+        parent_canonical=$path_form_parent_canonical
 
-    blocked=false
-    for index in "${!protected_lexical[@]}"; do
-        if is_same_or_ancestor "$lexical" "${protected_lexical[$index]}" ||
-            is_same_or_ancestor "$canonical" "${protected_canonical[$index]}"; then
-            blocked=true
-            break
+        if ! classify_volume_trash "$path"; then
+            printf "safe-rm: cannot determine Trash location for '%s'\n" "$path" >&2
+            preflight_failed=true
+            continue
+        fi
+        path_form_lexical=$lexical
+        path_form_canonical=$canonical
+        path_form_parent_canonical=$parent_canonical
+
+        if operand_is_blocked; then
+            printf "safe-rm: refusing recursive removal of protected path '%s'\n" "$path" >&2
+            preflight_failed=true
+            continue
+        fi
+
+        existing_operands+=("$path")
+        # GIO accepts URIs, so relative filenames must be explicitly local.
+        if [[ "$path" == /* ]]; then
+            existing_gio_operands+=("$path")
+        else
+            existing_gio_operands+=("./$path")
         fi
     done
 
-    if is_same_or_ancestor \
-        "${protected_lexical[${#protected_lexical[@]}-1]}" "$lexical" ||
-        is_same_or_ancestor \
-            "${protected_canonical[${#protected_canonical[@]}-1]}" "$canonical"; then
-        blocked=true
-    fi
+    $preflight_failed && exit 1
 
-    if $blocked; then
-        printf "safe-rm: refusing recursive removal of protected path '%s'\n" "$path" >&2
-        preflight_failed=true
-        continue
-    fi
-
-    existing_operands+=("$path")
-    # GIO accepts URIs, so make relative filenames unambiguously local.
-    if [[ "$path" == /* ]]; then
-        existing_gio_operands+=("$path")
-    else
-        existing_gio_operands+=("./$path")
-    fi
-done
-
-$preflight_failed && exit 1
-
-trash_preflight_failed=false
-for operand_index in "${!existing_operands[@]}"; do
-    path=${existing_operands[$operand_index]}
-    gio_path=${existing_gio_operands[$operand_index]}
-    info=$(LC_ALL=C "$GIO" info --nofollow-symlinks \
-        --attributes=access::can-trash -- "$gio_path" 2>/dev/null) || {
-        printf "safe-rm: cannot verify trash support for '%s'\n" "$path" >&2
-        trash_preflight_failed=true
-        continue
-    }
-    if [[ "$info" != *"access::can-trash: TRUE"* ]]; then
-        printf "safe-rm: filesystem cannot trash '%s'; nothing was removed\n" "$path" >&2
-        trash_preflight_failed=true
-        continue
-    fi
-done
-
-$trash_preflight_failed && exit 1
-
-for operand_index in "${!existing_operands[@]}"; do
-    path=${existing_operands[$operand_index]}
-    gio_path=${existing_gio_operands[$operand_index]}
-    if [[ ! -e "$path" && ! -L "$path" ]]; then
-        $force && continue
-        printf "safe-rm: '%s' disappeared before it could be trashed\n" "$path" >&2
-        exit 1
-    fi
-
-    lexical=$("$REALPATH" -sm -- "$path") ||
-        fail "cannot recheck path before trashing: $path"
-    canonical=$("$REALPATH" -m -- "$path") ||
-        fail "cannot resolve path before trashing: $path"
-
-    blocked=false
-    for index in "${!protected_lexical[@]}"; do
-        if is_same_or_ancestor "$lexical" "${protected_lexical[$index]}" ||
-            is_same_or_ancestor "$canonical" "${protected_canonical[$index]}"; then
-            blocked=true
-            break
+    local trash_preflight_failed=false
+    local operand_index gio_path info
+    for operand_index in "${!existing_operands[@]}"; do
+        path=${existing_operands[$operand_index]}
+        gio_path=${existing_gio_operands[$operand_index]}
+        info=$(LC_ALL=C "$GIO" info --nofollow-symlinks \
+            --attributes=access::can-trash -- "$gio_path" 2>/dev/null) || {
+            printf "safe-rm: cannot verify trash support for '%s'\n" "$path" >&2
+            trash_preflight_failed=true
+            continue
+        }
+        if ! gio_info_allows_trash "$info"; then
+            printf "safe-rm: filesystem cannot trash '%s'; nothing was removed\n" "$path" >&2
+            trash_preflight_failed=true
         fi
     done
-    if is_same_or_ancestor \
-        "${protected_lexical[${#protected_lexical[@]}-1]}" "$lexical" ||
-        is_same_or_ancestor \
-            "${protected_canonical[${#protected_canonical[@]}-1]}" "$canonical"; then
-        blocked=true
-    fi
-    $blocked &&
-        fail "path became protected before trashing: $path"
 
-    info=$(LC_ALL=C "$GIO" info --nofollow-symlinks \
-        --attributes=access::can-trash -- "$gio_path" 2>/dev/null) ||
-        fail "cannot recheck trash support for: $path"
-    [[ "$info" == *"access::can-trash: TRUE"* ]] ||
-        fail "filesystem stopped supporting Trash for: $path"
+    $trash_preflight_failed && exit 1
 
-    if $force; then
-        "$GIO" trash --force -- "$gio_path" ||
-            fail "gio failed to trash '$path'; inspect the Trash before retrying"
-    else
-        "$GIO" trash -- "$gio_path" ||
-            fail "gio failed to trash '$path'; inspect the Trash before retrying"
-    fi
+    for operand_index in "${!existing_operands[@]}"; do
+        path=${existing_operands[$operand_index]}
+        gio_path=${existing_gio_operands[$operand_index]}
+        if [[ ! -e "$path" && ! -L "$path" ]]; then
+            $force && continue
+            printf "safe-rm: '%s' disappeared before it could be trashed\n" "$path" >&2
+            exit 1
+        fi
 
-    $verbose && printf "trashed '%s'\n" "$path"
-done
+        normalize_path_forms "$path" ||
+            fail "cannot recheck path before trashing: $path"
+        lexical=$path_form_lexical
+        canonical=$path_form_canonical
+        parent_canonical=$path_form_parent_canonical
+        classify_volume_trash "$path" ||
+            fail "cannot determine Trash location before trashing: $path"
+        path_form_lexical=$lexical
+        path_form_canonical=$canonical
+        path_form_parent_canonical=$parent_canonical
+        operand_is_blocked &&
+            fail "path became protected before trashing: $path"
 
-exit 0
+        info=$(LC_ALL=C "$GIO" info --nofollow-symlinks \
+            --attributes=access::can-trash -- "$gio_path" 2>/dev/null) ||
+            fail "cannot recheck trash support for '$path'"
+        gio_info_allows_trash "$info" ||
+            fail "filesystem can no longer trash '$path'"
+
+        if $force; then
+            "$GIO" trash --force -- "$gio_path" ||
+                fail "gio failed to trash '$path'; inspect the Trash before retrying"
+        else
+            "$GIO" trash -- "$gio_path" ||
+                fail "gio failed to trash '$path'; inspect the Trash before retrying"
+        fi
+
+        $verbose && printf "trashed '%s'\n" "$path"
+    done
+
+    exit 0
+)
+
+if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
+    safe_rm_main \
+        /usr/bin/rm /usr/bin/gio /usr/bin/realpath /usr/bin/stat "$@"
+fi

@@ -204,8 +204,9 @@ The test suite is intended to remain offline. Pi template tests use a fake
 temporary homes and validated. SSH profiles and public selectors are checked
 with generated fake data; the explicit trusted check also validates the real
 age ciphertext without printing it or contacting the vault. The safe-rm test
-uses real GIO with isolated HOME/XDG state and verifies the resulting Trash
-payload and metadata without reading or modifying the user's Trash.
+combines deterministic fake-command failure cases with real GIO under isolated
+HOME/XDG state. It verifies the resulting Trash payload and metadata without
+reading or modifying the user's Trash.
 
 ### 5. Review and apply
 

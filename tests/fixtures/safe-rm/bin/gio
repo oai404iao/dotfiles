@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+state=${SAFE_RM_TEST_STATE:?SAFE_RM_TEST_STATE is required}
+
+protocol_error() {
+    printf 'safe-rm fake gio: %s\n' "$*" >&2
+    printf '%s\n' "$*" >>"$state/gio.protocol-errors"
+    exit 97
+}
+
+[[ "$state" == /* ]] || {
+    printf 'safe-rm fake gio: state path must be absolute\n' >&2
+    exit 97
+}
+[[ -f "$state/.safe-rm-test-state" ]] || {
+    printf 'safe-rm fake gio: invalid state directory\n' >&2
+    exit 97
+}
+
+counter=0
+[[ ! -f "$state/gio.counter" ]] || counter=$(<"$state/gio.counter")
+[[ "$counter" =~ ^[0-9]+$ ]] || protocol_error "invalid call counter"
+counter=$((counter + 1))
+printf '%s\n' "$counter" >"$state/gio.counter"
+
+actual_dir=$(printf '%s/gio.actual/%06d' "$state" "$counter")
+/usr/bin/mkdir -p -- "$actual_dir"
+printf '%s\0' "$@" >"$actual_dir/argv.nul"
+printf '%s\0' "$@" >>"$state/gio.calls.nul"
+
+plan_dir=$(printf '%s/gio.plan/%06d' "$state" "$counter")
+[[ -d "$plan_dir" ]] || protocol_error "unplanned call $counter"
+kind=$(<"$plan_dir/kind")
+expected_path=$(<"$plan_dir/path")
+result=$(<"$plan_dir/result")
+
+case "$kind" in
+    info)
+        (($# == 5)) ||
+            protocol_error "info call $counter has unexpected argument count"
+        [[ ${LC_ALL-} == C ]] ||
+            protocol_error "info call $counter did not set LC_ALL=C"
+        [[ "$1" == info &&
+            "$2" == --nofollow-symlinks &&
+            "$3" == --attributes=access::can-trash &&
+            "$4" == -- &&
+            "$5" == "$expected_path" ]] ||
+            protocol_error "info call $counter does not match its plan"
+        case "$result" in
+            TRUE)
+                printf 'attributes:\n  access::can-trash: TRUE\n'
+                ;;
+            FALSE)
+                printf 'attributes:\n  access::can-trash: FALSE\n'
+                ;;
+            spoofed-false)
+                printf 'display name: access::can-trash: TRUE\n'
+                printf 'attributes:\n  access::can-trash: FALSE\n'
+                ;;
+            wrong-case-true)
+                printf 'attributes:\n  ACCESS::CAN-TRASH: TRUE\n'
+                ;;
+            error)
+                exit 71
+                ;;
+            retarget-true)
+                retarget_path=$(<"$plan_dir/retarget-path")
+                retarget_target=$(<"$plan_dir/retarget-target")
+                sandbox=$(<"$state/sandbox")
+                sandbox_canonical=$(/usr/bin/realpath -e -- "$sandbox") ||
+                    protocol_error "cannot resolve the test sandbox"
+                retarget_parent=${retarget_path%/*}
+                retarget_parent_canonical=$(
+                    /usr/bin/realpath -e -- "$retarget_parent"
+                ) || protocol_error "cannot resolve retarget parent"
+                retarget_target_canonical=$(
+                    /usr/bin/realpath -e -- "$retarget_target"
+                ) || protocol_error "cannot resolve retarget target"
+                [[ -f "$sandbox/.safe-rm-test-root" &&
+                    ! -L "$sandbox/.safe-rm-test-root" &&
+                    "$retarget_parent_canonical" == "$sandbox_canonical/"* &&
+                    "$retarget_target_canonical" == "$sandbox_canonical/"* &&
+                    -L "$retarget_path" ]] ||
+                    protocol_error "retarget endpoints are not confined to the test sandbox"
+                /usr/bin/rm -f -- "$retarget_path" ||
+                    protocol_error "could not unlink test symlink"
+                /usr/bin/ln -s -- "$retarget_target" "$retarget_path" ||
+                    protocol_error "could not retarget test symlink"
+                printf 'attributes:\n  access::can-trash: TRUE\n'
+                ;;
+            *)
+                protocol_error "unsupported info result: $result"
+                ;;
+        esac
+        ;;
+    trash)
+        force=$(<"$plan_dir/force")
+        case "$force" in
+            true)
+                (($# == 4)) ||
+                    protocol_error "forced trash call $counter has unexpected argument count"
+                [[ "$1" == trash && "$2" == --force &&
+                    "$3" == -- && "$4" == "$expected_path" ]] ||
+                    protocol_error "forced trash call $counter does not match its plan"
+                ;;
+            false)
+                (($# == 3)) ||
+                    protocol_error "trash call $counter has unexpected argument count"
+                [[ "$1" == trash && "$2" == -- &&
+                    "$3" == "$expected_path" ]] ||
+                    protocol_error "trash call $counter does not match its plan"
+                ;;
+            *)
+                protocol_error "invalid force setting: $force"
+                ;;
+        esac
+        case "$result" in
+            ok) exit 0 ;;
+            error) exit 72 ;;
+            *) protocol_error "unsupported trash result: $result" ;;
+        esac
+        ;;
+    *)
+        protocol_error "unsupported planned call: $kind"
+        ;;
+esac

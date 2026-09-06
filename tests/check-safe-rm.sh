@@ -3,6 +3,7 @@ set -Eeuo pipefail
 
 repo_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd)"
 safe_rm="$repo_dir/dot_local/bin/executable_rm"
+"$repo_dir/tests/check-safe-rm-unit.sh"
 readonly GIO=/usr/bin/gio
 real_home=$HOME
 sandbox="$(mktemp -d "$real_home/.cache/chezmoi-safe-rm.XXXXXX")"

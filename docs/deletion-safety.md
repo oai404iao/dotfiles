@@ -13,12 +13,19 @@ The wrapper behaves as follows:
   resemble GIO URIs;
 - every operand is checked before any operand is moved;
 - `/`, the account home, conventional and current XDG roots,
-  `/run/user/$UID`, Pi's config/session roots, the Trash, and their ancestors
-  are protected;
+  `/run/user/$UID`, Pi's config/session roots, configured home Trash trees and
+  their ancestors are protected;
+- per-volume `.Trash/$UID` and `.Trash-$UID` trees and their containing mount
+  root are protected when addressed on that filesystem;
 - unknown or abbreviated options fail closed;
 - filesystems without Trash support, including the usual `/tmp` and
   `/run/user/$UID` tmpfs mounts, fail closed instead of falling back to
   permanent deletion.
+
+Recursive option parsing honors GNU `rm` ordering for `-f`, `-i`, and `-I`.
+Effective interactive removal still fails closed because a Trash move cannot
+represent those prompts safely. When `POSIXLY_CORRECT` is present, option
+parsing stops at the first operand.
 
 List and restore items with:
 
@@ -39,8 +46,9 @@ The expected path is `~/.local/bin/rm`.
 
 ## Validation isolation
 
-The automated safe-rm check runs real GIO operations with isolated HOME and
-XDG state plus the local VFS backend. It verifies the payload and `.trashinfo`
+The automated safe-rm check uses deterministic fake commands for failure and
+ordering scenarios, then runs real GIO operations with isolated HOME and XDG
+state plus the local VFS backend. It verifies the payload and `.trashinfo`
 metadata inside that sandbox and never reads or modifies the user's Trash.
 
 ## Intentional temporary cleanup

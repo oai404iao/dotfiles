@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+set -Eeuo pipefail
+
+state=${SAFE_RM_TEST_STATE:?SAFE_RM_TEST_STATE is required}
+[[ "$state" == /* && -f "$state/.safe-rm-test-state" ]] || {
+    printf 'safe-rm fake stat: invalid state directory\n' >&2
+    exit 97
+}
+
+protocol_error() {
+    printf 'safe-rm fake stat: %s\n' "$*" >&2
+    printf '%s\n' "$*" >>"$state/stat.protocol-errors"
+    exit 97
+}
+
+counter=0
+[[ ! -f "$state/stat.counter" ]] || counter=$(<"$state/stat.counter")
+[[ "$counter" =~ ^[0-9]+$ ]] || protocol_error "invalid call counter"
+counter=$((counter + 1))
+printf '%s\n' "$counter" >"$state/stat.counter"
+
+actual_dir=$(printf '%s/stat.actual/%06d' "$state" "$counter")
+/usr/bin/mkdir -p -- "$actual_dir"
+printf '%s\0' "$@" >"$actual_dir/argv.nul"
+
+plan_dir=$(printf '%s/stat.plan/%06d' "$state" "$counter")
+[[ -d "$plan_dir" ]] || protocol_error "unplanned call $counter"
+expected_path=$(<"$plan_dir/path")
+mount_root=$(<"$plan_dir/mount-root")
+result=$(<"$plan_dir/result")
+
+if (($# != 3)) ||
+    [[ "$1" != --format=%m || "$2" != -- || "$3" != "$expected_path" ]]; then
+    protocol_error "call $counter does not match its plan"
+fi
+
+case "$result" in
+    ok)
+        [[ "$mount_root" == /* ]] ||
+            protocol_error "mount root must be absolute"
+        printf '%s\n' "$mount_root"
+        ;;
+    error)
+        exit 73
+        ;;
+    relative)
+        printf '%s\n' "relative/mount"
+        ;;
+    *)
+        protocol_error "unsupported result: $result"
+        ;;
+esac
