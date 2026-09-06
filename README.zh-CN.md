@@ -128,10 +128,10 @@ Fontconfig，以及 Adwaita、Noto、Noto CJK、Noto Symbols、Noto Color Emoji
 
 ### 1. 只初始化，不立即应用
 
-私有仓库需要先配置 Git 访问，然后执行：
+先配置 GitHub SSH 访问，然后执行：
 
 ```sh
-chezmoi init <repository-url>
+chezmoi init git@github.com:oai404iao/dotfiles.git
 cd "$(chezmoi source-path)"
 ```
 

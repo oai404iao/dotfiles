@@ -142,10 +142,10 @@ corresponding Arch packages are listed in [docs/desktop.md](docs/desktop.md).
 
 ### 1. Initialize without applying
 
-Configure Git access first when the repository is private, then run:
+Configure GitHub SSH access first, then run:
 
 ```sh
-chezmoi init <repository-url>
+chezmoi init git@github.com:oai404iao/dotfiles.git
 cd "$(chezmoi source-path)"
 ```
 
