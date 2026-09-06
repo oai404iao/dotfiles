@@ -101,6 +101,21 @@ Optional Waybar actions:
 Kitty scrollback integration also expects
 `mikesmithgh/kitty-scrollback.nvim`, installed by the Neovim configuration.
 
+## Output profiles
+
+`niriOutputProfile` defaults to `auto` for unknown hardware. The
+`desktop-single-4k` profile matches the P275MV by its monitor identity rather
+than its connector name and selects 3840x2160 at 120 Hz with 1.5 scaling.
+
+For an already initialized machine, run `chezmoi edit-config`, set
+`niriOutputProfile = "desktop-single-4k"` under `[data]`, then apply only the
+reviewed output target:
+
+```sh
+chezmoi apply ~/.config/niri/conf.d/20-outputs.kdl
+niri msg action load-config-file
+```
+
 ## Validation
 
 ```sh

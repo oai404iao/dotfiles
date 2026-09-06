@@ -8,7 +8,7 @@
 {{- if $graphical -}}
 {{-   $niri = promptBoolOnce . "niri" "Use niri" true -}}
 {{-   if $niri -}}
-{{-     $outputProfiles := list "auto" "laptop-dual-1080p" -}}
+{{-     $outputProfiles := list "auto" "laptop-dual-1080p" "desktop-single-4k" -}}
 {{-     $niriOutputProfile = promptChoiceOnce . "niriOutputProfile" "Niri output profile" $outputProfiles "auto" -}}
 {{-   end -}}
 {{- end -}}

@@ -66,7 +66,7 @@ if ! awk '
     exit 1
 fi
 
-for output_profile in auto laptop-dual-1080p; do
+for output_profile in auto laptop-dual-1080p desktop-single-4k; do
     home_dir="$tmp_dir/$output_profile"
     config_file="$tmp_dir/$output_profile.toml"
     mkdir -p "$home_dir/.config"
@@ -94,6 +94,20 @@ EOF
     niri validate --config "$home_dir/.config/niri/config.kdl" \
         >/dev/null 2>&1
 done
+
+desktop_output_file="$tmp_dir/desktop-single-4k/.config/niri/conf.d/20-outputs.kdl"
+while IFS= read -r expected_line; do
+    if ! grep -Fqx "$expected_line" "$desktop_output_file"; then
+        printf 'missing desktop output setting: %s\n' "$expected_line" >&2
+        exit 1
+    fi
+done <<'EOF'
+output "Beihai Century Joint Innovation Technology Co.,Ltd P275MV 0000000000000" {
+    mode "3840x2160@120.000"
+    scale 1.5
+    transform "normal"
+    position x=0 y=0
+EOF
 
 legacy_home="$tmp_dir/legacy"
 legacy_config="$tmp_dir/legacy.toml"
