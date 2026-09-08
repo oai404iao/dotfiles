@@ -120,6 +120,25 @@ if set(providers) != expected_providers:
     raise SystemExit("unexpected Pi provider inventory")
 if any("apiKey" in provider for provider in providers.values()):
     raise SystemExit("Pi provider credentials must stay in local auth.json")
+openai = providers["openai"]
+expected_context_overrides = {
+    "gpt-5.6-luna": 350000,
+    "gpt-5.6-sol": 350000,
+    "gpt-5.6-terra": 350000,
+    "gpt-6-astra": 350000,
+}
+actual_context_overrides = {
+    model_id: override.get("contextWindow")
+    for model_id, override in openai.get("modelOverrides", {}).items()
+}
+if actual_context_overrides != expected_context_overrides:
+    raise SystemExit("unexpected GPT-5.6/GPT-6 context overrides")
+custom_openai_models = {
+    model["id"]: model
+    for model in openai.get("models", [])
+}
+if custom_openai_models["gpt-5.6-sol-cyber"].get("contextWindow") != 350000:
+    raise SystemExit("GPT-5.6 Sol Cyber context window is not 350K")
 
 for forbidden in (
     "auth.json",
@@ -162,9 +181,16 @@ if shutil.which("chezmoi"):
                 for profile in rendered["models"]
             }
             astra = profiles.get("openai/gpt-6-astra", {})
+            astra_responses = astra.get("responses", {})
+            parent_responses = profiles.get(
+                astra.get("extends"), {}
+            ).get("responses", {})
             if (
                 astra.get("extends") != "openai/gpt-5.6-sol"
-                or astra.get("responses", {}).get("reasoningSummary") != "none"
+                or astra_responses.get("reasoningSummary") != "auto"
+                or astra_responses.get(
+                    "transport", parent_responses.get("transport")
+                ) != "auto"
             ):
                 raise SystemExit("GPT-6 Astra Codex tool profile is incomplete")
 
