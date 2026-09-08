@@ -94,6 +94,8 @@ settings_result = subprocess.run(
 settings = load_json(settings_result.stdout)
 if settings.get("lastChangelogVersion") != "preserve-me" or settings.get("futureState") is not True:
     raise SystemExit("Pi settings modifier did not preserve mutable state")
+if "openai/gpt-6-astra" not in settings.get("enabledModels", []):
+    raise SystemExit("GPT-6 Astra is not enabled in Pi settings")
 package_sources = {
     package if isinstance(package, str) else package["source"]
     for package in settings["packages"]
@@ -153,7 +155,18 @@ if shutil.which("chezmoi"):
             capture_output=True,
             check=True,
         )
-        load_json(result.stdout)
+        rendered = load_json(result.stdout)
+        if relative == "extensions/pi-codex-minimal-tools/private_models.json.tmpl":
+            profiles = {
+                profile["id"]: profile
+                for profile in rendered["models"]
+            }
+            astra = profiles.get("openai/gpt-6-astra", {})
+            if (
+                astra.get("extends") != "openai/gpt-5.6-sol"
+                or astra.get("responses", {}).get("reasoningSummary") != "none"
+            ):
+                raise SystemExit("GPT-6 Astra Codex tool profile is incomplete")
 
     fake_env = os.environ.copy()
     fake_bin = repo_dir / "tests/fixtures/pi/bin"
