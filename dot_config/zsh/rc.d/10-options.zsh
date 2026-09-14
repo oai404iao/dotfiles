@@ -1,5 +1,4 @@
 setopt auto_cd
-setopt extended_glob
 setopt interactive_comments
 
 setopt hist_ignore_all_dups

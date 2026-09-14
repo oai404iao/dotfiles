@@ -137,6 +137,8 @@ done
 
 mkdir -p "$fake_data/nvm"
 cat >"$fake_data/nvm/nvm.sh" <<'EOF'
+NVM_ALIAS_LINE=stable
+NVM_ALIAS_LINE="${NVM_ALIAS_LINE%%#*}"
 NVM_TEST_LOADED=1
 export NVM_TEST_LOADED
 EOF
@@ -150,6 +152,18 @@ EOF
     . "$repo_dir/dot_config/shell/nvm.sh"
     [ "$NVM_TEST_LOADED" = 1 ]
 )
+
+env -i HOME="$fake_home" XDG_CONFIG_HOME="$fake_config" \
+    XDG_DATA_HOME="$fake_data" XDG_STATE_HOME="$fake_state" \
+    NVM_DIR="$fake_data/nvm" \
+    PATH="/usr/bin:/bin" \
+    OPTIONS="$repo_dir/dot_config/zsh/rc.d/10-options.zsh" \
+    NVM_PROFILE="$repo_dir/dot_config/shell/nvm.sh" \
+    zsh -f -c '
+        source "$OPTIONS"
+        source "$NVM_PROFILE"
+        [[ $NVM_TEST_LOADED = 1 ]]
+    '
 
 grep -qF 'shell/nvm.sh' "$repo_dir/dot_config/bash/rc.d/50-node.bash"
 grep -qF 'shell/nvm.sh' "$repo_dir/dot_config/zsh/rc.d/50-node.zsh"
