@@ -1,12 +1,9 @@
 {
-  "$schema": {{ joinPath .chezmoi.homeDir "Dev/local/omp/pi-extensions/pi-subagent/config.schema.json" | toJson }},
+  "$schema": "https://unpkg.com/@oai404iao/pi-subagent@0.4.0/config.schema.json",
   "agentScope": "user",
   "maxDepth": 3,
-  "defaultBackground": false,
-  "reportDelivery": "wakeup",
+  "runtimeMode": "foreground",
   "inheritExtensions": true,
   "maxOutputBytes": 51200,
-  "enableRunInBackground": false,
-  "openAIIdentity": true,
-  "syncBundledAgents": true
+  "openAIIdentity": true
 }

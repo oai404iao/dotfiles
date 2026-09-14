@@ -1,7 +1,7 @@
 {{- $botToken := (rbw "pi telegram bot token").data.password -}}
 {{- $chatID := (rbw "pi telegram chat id").data.password -}}
 {
-  "$schema": {{ joinPath .chezmoi.homeDir "Dev/local/omp/pi-extensions/pi-telegram-notify/config.schema.json" | toJson }},
+  "$schema": "https://unpkg.com/@oai404iao/pi-telegram-notify@0.2.0/config.schema.json",
   "enabled": true,
   "botToken": {{ $botToken | toJson }},
   "chatId": {{ $chatID | toJson }}

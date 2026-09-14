@@ -214,7 +214,7 @@ chezmoi apply "$HOME/.ssh"
 与 SSH 元数据；如果机器的两项 SSH 能力均关闭，则省略 SSH apply。
 
 第一次发起模型请求前，需要配置 Pi 已忽略的本机凭据。在 Pi 中分别为
-`deepseek`、`openai`、`zai` 和 `xai` 运行 `/login`；出现选择时使用 API key
+`deepseek`、`openai` 和 `xai` 运行 `/login`；出现选择时使用 API key
 认证，并为每个 provider 输入以下命令引用：
 
 ```text

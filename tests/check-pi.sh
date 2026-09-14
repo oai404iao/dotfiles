@@ -26,7 +26,6 @@ expected = {
     "agents/private_worker.md",
     "extensions/pi-codex-minimal-tools/private_config.json.tmpl",
     "extensions/pi-codex-minimal-tools/private_models.json.tmpl",
-    "extensions/pi-subagent/private_config.json.tmpl",
     "extensions/pi-telegram-notify/private_config.json.tmpl",
 }
 actual = {
@@ -94,18 +93,29 @@ settings_result = subprocess.run(
 settings = load_json(settings_result.stdout)
 if settings.get("lastChangelogVersion") != "preserve-me" or settings.get("futureState") is not True:
     raise SystemExit("Pi settings modifier did not preserve mutable state")
+if settings.get("defaultThinkingLevel") != "xhigh":
+    raise SystemExit("Pi default thinking level is not xhigh")
 if "openai/gpt-6-astra" not in settings.get("enabledModels", []):
     raise SystemExit("GPT-6 Astra is not enabled in Pi settings")
+enabled_models = set(settings.get("enabledModels", []))
+expected_deepseek_models = {
+    "deepseek/deepseek-v4-flash",
+    "deepseek/deepseek-v4-flash-vision-exp",
+}
+if not expected_deepseek_models <= enabled_models:
+    raise SystemExit("DeepSeek models are not enabled under the DeepSeek provider")
+if any(model.startswith("openai/deepseek-") for model in enabled_models):
+    raise SystemExit("DeepSeek models remain enabled under the OpenAI provider")
 package_sources = {
     package if isinstance(package, str) else package["source"]
     for package in settings["packages"]
 }
 expected_npm_packages = {
-    "npm:@juicesharp/rpiv-ask-user-question@1.20.0",
-    "npm:@oai404iao/pi-telegram-notify@0.1.3",
-    "npm:@oai404iao/pi-keep-defaults@0.1.3",
-    "npm:@oai404iao/pi-codex-minimal-tools@1.4.0",
-    "npm:@oai404iao/pi-subagent@0.3.0",
+    "npm:@juicesharp/rpiv-ask-user-question@2.10.1",
+    "npm:@oai404iao/pi-telegram-notify@0.2.0",
+    "npm:@oai404iao/pi-keep-defaults@0.2.0",
+    "npm:@oai404iao/pi-codex-minimal-tools@2.0.0",
+    "npm:@oai404iao/pi-subagent@0.4.0",
 }
 actual_npm_packages = {
     source for source in package_sources if source.startswith("npm:")
@@ -115,12 +125,13 @@ if actual_npm_packages != expected_npm_packages:
 
 models = json.loads((source_dir / "private_models.json").read_text())
 providers = models.get("providers", {})
-expected_providers = {"deepseek", "openai", "zai", "xai"}
+expected_providers = {"deepseek", "openai", "xai"}
 if set(providers) != expected_providers:
     raise SystemExit("unexpected Pi provider inventory")
 if any("apiKey" in provider for provider in providers.values()):
     raise SystemExit("Pi provider credentials must stay in local auth.json")
 openai = providers["openai"]
+deepseek = providers["deepseek"]
 expected_context_overrides = {
     "gpt-5.6-luna": 350000,
     "gpt-5.6-sol": 350000,
@@ -137,8 +148,24 @@ custom_openai_models = {
     model["id"]: model
     for model in openai.get("models", [])
 }
+if set(custom_openai_models) != {"gpt-5.6-sol-cyber"}:
+    raise SystemExit("unexpected custom OpenAI model inventory")
 if custom_openai_models["gpt-5.6-sol-cyber"].get("contextWindow") != 350000:
     raise SystemExit("GPT-5.6 Sol Cyber context window is not 350K")
+custom_deepseek_models = {
+    model["id"]: model
+    for model in deepseek.get("models", [])
+}
+if set(custom_deepseek_models) != {
+    "deepseek-v4-flash",
+    "deepseek-v4-flash-vision-exp",
+}:
+    raise SystemExit("unexpected custom DeepSeek model inventory")
+if any(
+    model.get("api") != "openai-responses"
+    for model in custom_deepseek_models.values()
+):
+    raise SystemExit("custom DeepSeek models do not use the Responses API")
 
 for forbidden in (
     "auth.json",
@@ -165,7 +192,6 @@ if shutil.which("chezmoi"):
         "private_subagent.json.tmpl",
         "extensions/pi-codex-minimal-tools/private_config.json.tmpl",
         "extensions/pi-codex-minimal-tools/private_models.json.tmpl",
-        "extensions/pi-subagent/private_config.json.tmpl",
     )
     for relative in templates:
         result = subprocess.run(
@@ -175,11 +201,27 @@ if shutil.which("chezmoi"):
             check=True,
         )
         rendered = load_json(result.stdout)
-        if relative == "extensions/pi-codex-minimal-tools/private_models.json.tmpl":
+        if relative == "private_subagent.json.tmpl":
+            retired_keys = {
+                "defaultBackground",
+                "enableRunInBackground",
+                "reportDelivery",
+                "syncBundledAgents",
+            }
+            if rendered.get("runtimeMode") != "foreground":
+                raise SystemExit("Pi subagent runtime is not foreground-only")
+            if retired_keys & rendered.keys():
+                raise SystemExit("Pi subagent config retains retired settings")
+        elif relative == "extensions/pi-codex-minimal-tools/private_models.json.tmpl":
             profiles = {
                 profile["id"]: profile
                 for profile in rendered["models"]
             }
+            if set(profiles) != {
+                "openai/gpt-5.6-sol",
+                "openai/gpt-6-astra",
+            }:
+                raise SystemExit("unexpected Codex tool profile inventory")
             astra = profiles.get("openai/gpt-6-astra", {})
             astra_responses = astra.get("responses", {})
             parent_responses = profiles.get(

@@ -50,15 +50,15 @@ following command reference under every applicable provider in its ignored
 }
 ```
 
-Configure `deepseek`, `openai`, `zai`, and `xai` with `/login`, selecting
+Configure `deepseek`, `openai`, and `xai` with `/login`, selecting
 API-key authentication when Pi offers multiple methods and entering the same
 command reference for each. Do not replace the reference with the retrieved
 value.
 
 `auth.json` credentials take precedence over `models.json`. Pi resolves an
 auth-file command on first use and caches the result for the process lifetime.
-Because all four entries use the exact same command, one successful resolution
-serves all four providers in that process. The key does not enter the general
+Because all three entries use the exact same command, one successful resolution
+serves all three providers in that process. The key does not enter the general
 login environment or get inherited automatically by unrelated shell tools.
 
 Keep `rbw` unlocked for the first resolution in every new Pi process, including

@@ -1,49 +1,7 @@
 {
-  "$schema": {{ joinPath .chezmoi.homeDir "Dev/local/omp/pi-extensions/pi-codex-minimal-tools/models.schema.json" | toJson }},
+  "$schema": "https://unpkg.com/@oai404iao/pi-codex-minimal-tools@2.0.0/models.schema.json",
   "version": 1,
   "models": [
-    {
-      "id": "openai/deepseek-v4-flash",
-      "responses": {
-        "providerShim": true,
-        "endpoint": "auto",
-        "mode": "standard",
-        "systemPromptPlacement": "instructions",
-        "transport": "sse",
-        "websocketPrewarm": false
-      },
-      "compaction": "pi",
-      "enabled": true,
-      "tools": {
-        "imageGeneration": false,
-        "webSearch": {
-          "implementation": "hosted"
-        },
-        "parallelCalls": true,
-        "applyPatch": "function"
-      }
-    },
-    {
-      "id": "openai/deepseek-v4-flash-vision-exp",
-      "responses": {
-        "providerShim": true,
-        "endpoint": "auto",
-        "mode": "standard",
-        "systemPromptPlacement": "instructions",
-        "transport": "sse",
-        "websocketPrewarm": false
-      },
-      "compaction": "pi",
-      "enabled": true,
-      "tools": {
-        "imageGeneration": false,
-        "webSearch": {
-          "implementation": "hosted"
-        },
-        "parallelCalls": true,
-        "applyPatch": "function"
-      }
-    },
     {
       "id": "openai/gpt-5.6-sol",
       "enabled": true,

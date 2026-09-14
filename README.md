@@ -233,7 +233,7 @@ metadata separately; omit the SSH apply on a profile where both SSH
 capabilities are disabled.
 
 Configure Pi's ignored local credentials before the first model request. In
-Pi, run `/login` for `deepseek`, `openai`, `zai`, and `xai`, select API-key
+Pi, run `/login` for `deepseek`, `openai`, and `xai`, select API-key
 authentication when prompted, and enter this command reference for each:
 
 ```text
