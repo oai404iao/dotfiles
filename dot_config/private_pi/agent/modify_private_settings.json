@@ -19,8 +19,7 @@ settings.update(
             "openai/gpt-5.6-sol",
             "openai/gpt-5.6-terra",
             "openai/gpt-6-astra",
-            "deepseek/deepseek-v4-flash",
-            "deepseek/deepseek-v4-flash-vision-exp",
+            "deepseek/deepseek-flash",
         ],
         "packages": [
             "npm:@juicesharp/rpiv-ask-user-question@2.10.1",

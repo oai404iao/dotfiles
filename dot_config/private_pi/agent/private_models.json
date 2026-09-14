@@ -7,68 +7,7 @@
       },
       "compat": {
         "supportsDeveloperRole": false
-      },
-      "models": [
-        {
-          "id": "deepseek-v4-flash",
-          "name": "Deepseek v4 flash ",
-          "api": "openai-responses",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "off": "none",
-            "minimal": null,
-            "low": "low",
-            "medium": "medium",
-            "high": "high",
-            "xhigh": "xhigh",
-            "max": "max"
-          },
-          "input": [
-            "text"
-          ],
-          "cost": {
-            "input": 0.14,
-            "output": 0.28,
-            "cacheRead": 0.0028,
-            "cacheWrite": 0
-          },
-          "contextWindow": 544000,
-          "maxTokens": 128000,
-          "compat": {
-            "supportsToolSearch": true
-          }
-        },
-        {
-          "id": "deepseek-v4-flash-vision-exp",
-          "name": "Deepseek v4 flash vision exp",
-          "api": "openai-responses",
-          "reasoning": true,
-          "thinkingLevelMap": {
-            "off": "none",
-            "minimal": null,
-            "low": "low",
-            "medium": "medium",
-            "high": "high",
-            "xhigh": "xhigh",
-            "max": "max"
-          },
-          "input": [
-            "text",
-            "image"
-          ],
-          "cost": {
-            "input": 0.14,
-            "output": 0.28,
-            "cacheRead": 0.0028,
-            "cacheWrite": 0
-          },
-          "contextWindow": 544000,
-          "maxTokens": 128000,
-          "compat": {
-            "supportsToolSearch": true
-          }
-        }
-      ]
+      }
     },
     "openai": {
       "baseUrl": "https://api.spiredive.com/v1",

@@ -20,10 +20,8 @@ expected = {
     "private_models.json",
     "private_keybindings.json",
     "private_subagent.json.tmpl",
-    "agents/private_planner.md",
-    "agents/private_scout.md",
-    "agents/private_reviewer.md",
-    "agents/private_worker.md",
+    "exact_agents/private_scout.md",
+    "exact_agents/private_reviewer.md",
     "extensions/pi-codex-minimal-tools/private_config.json.tmpl",
     "extensions/pi-codex-minimal-tools/private_models.json.tmpl",
     "extensions/pi-telegram-notify/private_config.json.tmpl",
@@ -99,13 +97,28 @@ if "openai/gpt-6-astra" not in settings.get("enabledModels", []):
     raise SystemExit("GPT-6 Astra is not enabled in Pi settings")
 enabled_models = set(settings.get("enabledModels", []))
 expected_deepseek_models = {
-    "deepseek/deepseek-v4-flash",
-    "deepseek/deepseek-v4-flash-vision-exp",
+    "deepseek/deepseek-flash",
 }
-if not expected_deepseek_models <= enabled_models:
-    raise SystemExit("DeepSeek models are not enabled under the DeepSeek provider")
+enabled_deepseek_models = {
+    model for model in enabled_models if model.startswith("deepseek/")
+}
+if enabled_deepseek_models != expected_deepseek_models:
+    raise SystemExit("unexpected enabled DeepSeek model inventory")
 if any(model.startswith("openai/deepseek-") for model in enabled_models):
     raise SystemExit("DeepSeek models remain enabled under the OpenAI provider")
+
+scout_text = (source_dir / "exact_agents/private_scout.md").read_text()
+scout_frontmatter = {
+    key.strip(): value.strip()
+    for line in scout_text.split("---", 2)[1].splitlines()
+    if ":" in line
+    for key, value in [line.split(":", 1)]
+}
+if scout_frontmatter.get("model") != "deepseek/deepseek-flash":
+    raise SystemExit("Pi scout does not use DeepSeek Flash")
+if scout_frontmatter.get("thinking") != "high":
+    raise SystemExit("Pi scout thinking level is not high")
+
 package_sources = {
     package if isinstance(package, str) else package["source"]
     for package in settings["packages"]
@@ -152,20 +165,8 @@ if set(custom_openai_models) != {"gpt-5.6-sol-cyber"}:
     raise SystemExit("unexpected custom OpenAI model inventory")
 if custom_openai_models["gpt-5.6-sol-cyber"].get("contextWindow") != 350000:
     raise SystemExit("GPT-5.6 Sol Cyber context window is not 350K")
-custom_deepseek_models = {
-    model["id"]: model
-    for model in deepseek.get("models", [])
-}
-if set(custom_deepseek_models) != {
-    "deepseek-v4-flash",
-    "deepseek-v4-flash-vision-exp",
-}:
-    raise SystemExit("unexpected custom DeepSeek model inventory")
-if any(
-    model.get("api") != "openai-responses"
-    for model in custom_deepseek_models.values()
-):
-    raise SystemExit("custom DeepSeek models do not use the Responses API")
+if "models" in deepseek:
+    raise SystemExit("DeepSeek provider must use Pi's built-in model catalog")
 
 for forbidden in (
     "auth.json",
