@@ -10,7 +10,7 @@ home = os.path.expanduser("~")
 settings.update(
     {
         "defaultProvider": "openai",
-        "defaultModel": "gpt-5.6-sol",
+        "defaultModel": "gpt-6-astra",
         "defaultThinkingLevel": "high",
         "hideThinkingBlock": True,
         "enabledModels": [
@@ -25,7 +25,7 @@ settings.update(
             "npm:@juicesharp/rpiv-ask-user-question@2.10.1",
             "npm:@oai404iao/pi-telegram-notify@0.2.0",
             "npm:@oai404iao/pi-keep-defaults@0.2.0",
-            "npm:@oai404iao/pi-codex-minimal-tools@2.0.0",
+            "npm:@oai404iao/pi-codex-minimal-tools@2.1.0",
             "npm:@oai404iao/pi-subagent@0.4.0",
             os.path.join(home, "Dev/local/omp/pi-extensions/pi-tree-continue"),
         ],

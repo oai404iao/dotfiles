@@ -93,6 +93,8 @@ if settings.get("lastChangelogVersion") != "preserve-me" or settings.get("future
     raise SystemExit("Pi settings modifier did not preserve mutable state")
 if settings.get("defaultThinkingLevel") != "high":
     raise SystemExit("Pi default thinking level is not high")
+if settings.get("defaultProvider") != "openai" or settings.get("defaultModel") != "gpt-6-astra":
+    raise SystemExit("Pi default model is not openai/gpt-6-astra")
 if "openai/gpt-6-astra" not in settings.get("enabledModels", []):
     raise SystemExit("GPT-6 Astra is not enabled in Pi settings")
 enabled_models = set(settings.get("enabledModels", []))
@@ -127,7 +129,7 @@ expected_npm_packages = {
     "npm:@juicesharp/rpiv-ask-user-question@2.10.1",
     "npm:@oai404iao/pi-telegram-notify@0.2.0",
     "npm:@oai404iao/pi-keep-defaults@0.2.0",
-    "npm:@oai404iao/pi-codex-minimal-tools@2.0.0",
+    "npm:@oai404iao/pi-codex-minimal-tools@2.1.0",
     "npm:@oai404iao/pi-subagent@0.4.0",
 }
 actual_npm_packages = {
@@ -213,6 +215,27 @@ if shutil.which("chezmoi"):
                 raise SystemExit("Pi subagent runtime is not foreground-only")
             if retired_keys & rendered.keys():
                 raise SystemExit("Pi subagent config retains retired settings")
+        elif relative == "extensions/pi-codex-minimal-tools/private_config.json.tmpl":
+            deprecated_keys = {
+                "nativeProviderTools",
+                "openaiTransport",
+                "openaiWebSocketPrewarm",
+                "compactionMode",
+                "requestProfile",
+                "apiKeyMode",
+                "webSearchEnabled",
+                "viewImage",
+                "applyPatchEnabled",
+                "additionalModelIds",
+            }
+            if deprecated_keys & rendered.keys():
+                raise SystemExit("Codex tools config retains deprecated settings")
+            if rendered.get("webSocketEnabled") is not False:
+                raise SystemExit("Codex tools WebSocket transport is enabled")
+            if rendered.get("fastMode") is not False:
+                raise SystemExit("Codex tools Fast mode is enabled by default")
+            if rendered.get("imageGeneration") is not False:
+                raise SystemExit("Codex tools image generation is enabled")
         elif relative == "extensions/pi-codex-minimal-tools/private_models.json.tmpl":
             profiles = {
                 profile["id"]: profile
