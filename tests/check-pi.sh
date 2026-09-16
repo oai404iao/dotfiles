@@ -16,6 +16,7 @@ source_dir = pathlib.Path(sys.argv[1])
 repo_dir = source_dir.parents[2]
 
 expected = {
+    "private_AGENTS.md",
     "modify_private_settings.json",
     "private_models.json",
     "private_keybindings.json",
@@ -49,6 +50,7 @@ expected_ignored = {
     ".config/pi/agent/.pi-subagent/",
     ".config/pi/agent/sessions/",
     ".local/state/pi/agent/sessions/",
+    ".local/state/agents/tmp/",
     ".config/pi/agent/recovery-fragments/",
     ".config/pi/agent/extensions/pi-permission-system/config.json",
     ".config/pi/agent/extensions/pi-permission-system/logs/",
@@ -60,6 +62,20 @@ if not expected_ignored <= ignore_lines:
     raise SystemExit(
         f"missing Pi ignore rules: {sorted(expected_ignored - ignore_lines)}"
     )
+
+instructions = (source_dir / "private_AGENTS.md").read_text()
+for required in (
+    "Avoid `/tmp`, `/var/tmp`, and bare `mktemp`",
+    '$HOME/.local/state/agents/tmp',
+    'mktemp -d "$scratch_root/task-name.XXXXXXXX"',
+    "umask 077",
+    "Leave task directories and their contents in place after use.",
+    "Do not store credentials in retained scratch files.",
+):
+    if required not in instructions:
+        raise SystemExit(f"missing global agent scratch rule: {required}")
+scratch_example = instructions.split("```sh\n", 1)[1].split("```", 1)[0]
+subprocess.run(["sh", "-n"], input=scratch_example, text=True, check=True)
 
 
 def unique_object(pairs):

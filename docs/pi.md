@@ -10,6 +10,7 @@ Pi uses XDG paths configured by the shared shell profile:
 chezmoi owns the declarative files required to reproduce the current Pi setup:
 
 - global settings and package declarations
+- global agent instructions (`AGENTS.md`)
 - custom providers and models
 - key bindings
 - bundled subagent definitions and configuration
@@ -32,6 +33,36 @@ The enabled local package still requires this checkout at its rendered path:
 - `~/Dev/local/omp/pi-extensions/pi-tree-continue`
 
 Disabled packages and their configuration are not managed.
+
+## Global agent instructions
+
+`dot_config/private_pi/agent/private_AGENTS.md` is the source of truth for
+`~/.config/pi/agent/AGENTS.md` (mode `0600`). Pi loads it from
+`PI_CODING_AGENT_DIR` alongside project context files; it does not replace
+repository-specific `AGENTS.md` files. Support currently targets Pi only.
+A local `AGENTS.override.md` in the same directory takes precedence; review
+any such override if the managed rules do not appear.
+
+The instructions reserve `~/.local/state/agents/tmp/` for agent-created scratch
+work across projects and agents. Agents create private, uniquely named task
+directories on demand and retain their contents after use, rather than using
+`/tmp` or adding cleanup traps. The root is deliberately fixed under the real
+home directory, independent of temporary XDG overrides. Its contents are ignored
+by chezmoi and must not contain credentials.
+
+This is an instruction-level policy, not a sandbox or global `TMPDIR` override.
+Existing test cleanup contracts and application-managed temporary files are
+unchanged.
+
+To deploy only these instructions, privately back up any existing target first,
+review the explicit target, then apply:
+
+```sh
+chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/AGENTS.md
+chezmoi apply ~/.config/pi/agent/AGENTS.md
+```
+
+Use `/reload` or start a new Pi session to load the updated context file.
 
 ## Credentials
 

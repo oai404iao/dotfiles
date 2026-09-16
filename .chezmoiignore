@@ -24,6 +24,9 @@ secrets/
 .local/share/chezmoi/
 .local/state/chezmoi/
 
+# Retained agent scratch work is machine-local mutable state.
+.local/state/agents/tmp/
+
 # SSH private material, host trust, and local extensions.
 {{- if not $sshAgent }}
 .config/environment.d/20-rbw-ssh-agent.conf

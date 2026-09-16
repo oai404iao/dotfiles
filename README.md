@@ -23,6 +23,8 @@ credentials and mutable application state out of Git.
 - LazyVim configuration includes a lockfile reconstructed from verified local
   plugin checkouts.
 - Pi model and Telegram credentials come from Bitwarden through `rbw`.
+- Global agent instructions are managed for Pi first, with retained per-task
+  scratch directories under `~/.local/state/agents/tmp/` instead of `/tmp`.
 - OpenSSH uses age-encrypted public selectors and host metadata while
   `rbw-agent` keeps private client keys in Bitwarden; Git identity metadata is
   encrypted as well.
