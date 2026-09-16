@@ -31,6 +31,13 @@ secrets/
 .local/share/dsh/
 .dsh/
 
+# Input schemes, dictionaries and learned words remain application-owned.
+.config/fcitx5/config
+.config/fcitx5/profile
+.config/fcitx5/conf/cached_layouts
+.local/share/fcitx5/rime/
+.config/btop/btop.log*
+
 # Skill payloads and CLI lock state are owned by npx skills.
 .agents/skills/
 .agents/.skill-lock.json
@@ -99,6 +106,8 @@ secrets/
 {{- if not .graphical }}
 .gtkrc-2.0
 .config/environment.d/im.conf
+.config/btop/
+.config/fcitx5/
 .config/fontconfig/
 .config/fuzzel/
 .config/gtk-3.0/
@@ -106,7 +115,10 @@ secrets/
 .config/kitty/
 .config/mako/
 .config/matugen/
+.config/satty/
+.config/swaylock/
 .config/waypaper/
+.local/share/fcitx5/themes/Matugen/
 {{- end }}
 
 {{- if not (and .graphical .niri) }}

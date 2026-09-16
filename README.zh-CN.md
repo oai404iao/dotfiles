@@ -16,10 +16,12 @@
   如需覆盖，请在启动环境中设置，不要写入 DSH 的 `.env` 文件。
 - 用户会话使用简体中文，交互式 Shell 则使用完整的英文 locale。
 - 比例界面使用 Adwaita Sans，终端使用 JetBrainsMono Nerd Font Mono，
-  状态栏使用其完整宽度的 Nerd Font 变体；Noto 字体提供 CJK、符号与
+  状态栏使用其 Nerd Font Propo 变体以对齐图标；Noto 字体提供 CJK、符号与
   Emoji 回退。
 - Niri 使用模块化配置和可选择的显示器配置档案。
 - 为 Matugen 与 Waypaper 提供初始状态，同时避免后续 apply 覆盖应用生成值。
+- Satty、btop、Fcitx5 候选框、swaylock-effects 与 GTK 文件管理共享桌面风格，
+  同时保留输入方案和应用状态。
 - LazyVim 配置包含根据经过验证的本地插件检出重建的锁文件。
 - Pi 模型与 Telegram 凭据通过 `rbw` 从 Bitwarden 获取。
 - 全局 agent 指令首先支持 Pi；临时文件按任务存放于

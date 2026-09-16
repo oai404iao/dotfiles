@@ -1,9 +1,15 @@
 screenshots
 clock
 indicator
-indicator-radius=200
-indicator-thickness=15
+font=Adwaita Sans
+timestr=%H:%M
+datestr=%Y-%m-%d
+indicator-radius=110
+indicator-thickness=8
 effect-blur=10x5
+effect-vignette=0.5:0.5
+color={{colors.surface.default.hex}}
+text-color={{colors.on_surface.default.hex}}
 ring-color={{colors.primary_container.default.hex}}
 key-hl-color={{colors.primary.default.hex}}
 line-color={{colors.outline.default.hex}}

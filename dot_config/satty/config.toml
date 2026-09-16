@@ -1,0 +1,11 @@
+[general]
+initial-tool = "arrow"
+copy-command = "wl-copy"
+corner-roundness = 12
+actions-on-enter = ["save-to-file", "exit"]
+actions-on-escape = ["exit"]
+
+[font]
+family = "Adwaita Sans"
+style = "Regular"
+fallback = ["Noto Sans CJK SC"]

@@ -1,0 +1,11 @@
+#!/usr/bin/python3
+import re
+import sys
+
+css = sys.stdin.read()
+css = re.sub(
+    r"""(?m)^[ \t]*@import\s+(?:url\(\s*)?["']colors\.css["']\s*\)?\s*;[ \t]*(?:\n)?""",
+    "",
+    css,
+)
+sys.stdout.write('@import "colors.css";\n' + css)

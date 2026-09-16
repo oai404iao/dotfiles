@@ -60,5 +60,6 @@ fi
 "$repo_dir/tests/check-skills.sh"
 "$repo_dir/tests/check-ssh.sh"
 "$repo_dir/tests/check-desktop.sh"
+"$repo_dir/tests/check-desktop-apps.sh"
 
 printf '%s\n' "source checks passed"

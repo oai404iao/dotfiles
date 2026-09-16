@@ -20,6 +20,11 @@ machine a valid fallback without reverting colors after Matugen changes them:
 - `~/.config/mako/colors.conf`
 - `~/.config/niri/colors.kdl`
 - `~/.config/waybar/colors.css`
+- `~/.config/btop/themes/matugen.theme`
+- `~/.local/share/fcitx5/themes/Matugen/theme.conf`
+- `~/.config/swaylock/config`
+- `~/.config/gtk-3.0/colors.css`
+- `~/.config/gtk-4.0/colors.css`
 
 Kitty's themes kitten copies the generated `themes/matugen.conf` to
 `current-theme.conf`, maintains its marked include block, and hot-reloads
@@ -44,10 +49,11 @@ stacks:
   color emoji, then Noto symbols.
 
 Strong Fontconfig aliases keep the primary Latin family stable under the
-Chinese session locale while retaining per-character fallback. GTK 3/4,
+Chinese session locale while retaining per-character fallback.
 Kitty and the generic monospace alias use JetBrainsMono Nerd Font Mono for
-predictable one-cell widths. Waybar uses the non-Mono variant so icons retain
-their natural size in its existing layout. GTK and browser UI explicitly use
+predictable one-cell widths. Waybar uses JetBrainsMono Nerd Font Propo so icon
+layout advances match their drawn widths, without shrinking icons to one cell.
+GTK and browser UI explicitly use
 Adwaita Sans instead, avoiding the observed private-use codepoint collision in
 Waybar's primary font. The GTK 2 modifier replaces only `gtk-font-name` and
 preserves the target's other legacy settings. Browsers use the GTK UI setting
@@ -64,6 +70,69 @@ sudo pacman -S --needed \
 
 A package that declares `provides = noto-fonts` can supply the base Noto
 families instead.
+
+### Waybar icon alignment
+
+The font choice follows
+[shorin-niri's Waybar style](https://github.com/SHORiN-KiWATA/shorin-niri/blob/main/dotfiles/.config/waybar/style.css).
+The plain `JetBrainsMono Nerd Font` variant can draw icons beyond their layout
+cells, shifting them relative to hover backgrounds and crowding adjacent text.
+Use the installed `Propo` family rather than compensating with spaces or
+asymmetric launcher padding. Workspace hover transitions change only colors;
+GTK theme gradients and text shadows are disabled on those buttons. Reserve
+workspace icon width on the label itself: Niri's non-expanding label would
+otherwise sit at the left of a wider button.
+
+The launcher uses upstream's `` (U+F303) Arch icon. Newer Waybar custom modules
+use `AIconLabel`, which places the module ID on a box rather than the label.
+Its child label must inherit the module's minimum width and font size;
+otherwise the global font rule resets the glyph size and the wider box leaves
+unused space on the right. Desktop checks exercise both widget structures when
+GTK 3 Python bindings and a display are available.
+
+Waybar uses logical dimensions; Niri applies each output's scale. At 150%,
+a logical offset is magnified and rounding can add a small visual difference.
+Keep relative spacing rather than adding resolution-specific pixel offsets.
+Check the selected family with `fc-match 'JetBrainsMono Nerd Font Propo'`.
+Tray and privacy icons are images, not Nerd Font glyphs; their internal margins
+depend on the supplied artwork.
+
+## Desktop applications
+
+- Satty starts with the arrow tool and uses Adwaita Sans with Chinese fallback.
+  Enter saves the edited file and exits; Escape exits without saving. The
+  screenshot helpers supply output paths and copy saved edits after Satty exits.
+  Standalone use needs `--output-filename` for Enter-to-save; the copy button
+  remains available.
+- btop selects the generated `matugen` theme through a modifier. Its other
+  preferences, including layout and update interval, remain application-owned.
+- Fcitx5 Classic UI selects Matugen, uses Adwaita Sans 11, and keeps native
+  fractional scaling without forcing DPI. Its modifier preserves candidate
+  orientation, tray preferences, and unknown keys. Input groups, Rime schemes,
+  dictionaries, and learned words remain unmanaged. Outlined monochrome menu
+  assets stay visible on both normal and selected backgrounds.
+  Matugen reloads a running Fcitx instance rather
+  than replacing the process.
+- swaylock-effects keeps the existing blurred screenshot background, with a
+  smaller indicator, thin ring, matching text colors, and a compact clock.
+  The Matugen template owns the full configuration; no grace period is enabled.
+  Blurred screenshots are not an opaque privacy screen. Lock-before-sleep and
+  lock-before-monitor-off ordering stays in Niri.
+- Nautilus remains the graphical file manager. GTK 3/4 import the generated
+  palette for applications and file choosers; modifiers preserve other CSS.
+  No folder history, bookmarks,
+  default applications, portal routing, icon theme, or dconf database is taken
+  over. Matugen no longer forces a particular GTK theme via GSettings.
+
+SwayOSD is not enabled by this configuration; volume bindings retain their
+existing WirePlumber behavior.
+
+After reviewing and backing up explicit targets, apply their declarative
+files. Existing `create_` targets are deliberately left untouched: regenerate
+their palettes through Matugen/Waypaper rather than forcing chezmoi ownership.
+Reopen GTK applications to check their styles; test a file chooser separately
+from Nautilus. Test the lock screen interactively, not as an automated check.
+Neither source checks nor theme rendering invokes the lock screen.
 
 ## Locale split
 
@@ -97,6 +166,10 @@ Optional Waybar actions:
 - grim, slurp, satty, wl-clipboard, wf-recorder
 - ddcutil, hyprpicker, pavucontrol, wlogout, blueberry
 - uv for the long-screenshot helper
+
+Desktop application styling also supports Satty, btop, Fcitx5 with
+fcitx5-rime, Nautilus, and swaylock-effects. These packages are installed
+separately; the source checks do not install or start them.
 
 Kitty scrollback integration also expects
 `mikesmithgh/kitty-scrollback.nvim`, installed by the Neovim configuration.

@@ -20,11 +20,13 @@ credentials and mutable application state out of Git.
 - User sessions use Simplified Chinese while interactive shells use a complete
   English locale.
 - Proportional UI uses Adwaita Sans, terminals use JetBrainsMono Nerd Font
-  Mono, and the status bar uses its full-width Nerd Font variant; Noto fonts
+  Mono, and the status bar uses its Nerd Font Propo variant for icon alignment; Noto fonts
   provide CJK, symbol, and emoji fallback.
 - Niri uses modular configuration and selectable output profiles.
 - Matugen and Waypaper generated state is bootstrapped without being reset on
   later applies.
+- Satty, btop, Fcitx5 candidate windows, swaylock-effects, and GTK file
+  management share the desktop style while preserving input schemes and app state.
 - LazyVim configuration includes a lockfile reconstructed from verified local
   plugin checkouts.
 - Pi model and Telegram credentials come from Bitwarden through `rbw`.

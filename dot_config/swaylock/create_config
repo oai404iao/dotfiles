@@ -1,0 +1,25 @@
+screenshots
+clock
+indicator
+font=Adwaita Sans
+timestr=%H:%M
+datestr=%Y-%m-%d
+indicator-radius=110
+indicator-thickness=8
+effect-blur=10x5
+effect-vignette=0.5:0.5
+color=1a110e
+text-color=f1dfd9
+ring-color=72361e
+key-hl-color=ffb59a
+line-color=a08d86
+inside-color=271d1a
+separator-color=72361e
+ring-ver-color=50471a
+inside-ver-color=d5c68e
+text-ver-color=393005
+line-ver-color=a08d86
+ring-wrong-color=93000a
+inside-wrong-color=ffb4ab
+text-wrong-color=690005
+line-wrong-color=a08d86

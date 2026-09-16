@@ -157,8 +157,28 @@ if kitty.count("include current-theme.conf") != 1:
     raise SystemExit("Kitty includes current-theme.conf more than once")
 
 waybar = (repo_dir / "dot_config/waybar/style.css").read_text()
-if 'font-family: "JetBrainsMono Nerd Font", "Noto Sans Mono CJK SC"' not in waybar:
-    raise SystemExit("Waybar does not use the full-width Nerd Font")
+if 'font-family: "JetBrainsMono Nerd Font Propo", "Noto Sans Mono CJK SC"' not in waybar:
+    raise SystemExit("Waybar does not use proportional icon advances")
+launcher_style = waybar.split("#custom-applauncher {", 1)[1].split("}", 1)[0]
+if "padding: 0 0.16em;" not in launcher_style:
+    raise SystemExit("the Waybar launcher has asymmetric glyph compensation")
+launcher_label_style = waybar.split("#custom-applauncher label {", 1)[1].split("}", 1)[0]
+if not all(rule in launcher_label_style for rule in (
+    "min-width: inherit;",
+    "font-size: inherit;",
+)):
+    raise SystemExit("the Waybar launcher label does not inherit its icon cell")
+workspace_style = waybar.split("#workspaces button {", 1)[1].split("}", 1)[0]
+workspace_label_style = waybar.split("#workspaces button label {", 1)[1].split("}", 1)[0]
+if "min-width: 1.1em;" not in workspace_label_style or "min-width:" in workspace_style:
+    raise SystemExit("Waybar workspace width is not reserved on the icon label")
+for expected in (
+    "background-image: none;",
+    "text-shadow: none;",
+    "transition: background-color 0.2s ease, color 0.2s ease;",
+):
+    if expected not in workspace_style:
+        raise SystemExit("Waybar workspace states inherit GTK theme effects")
 
 waybar_config = (repo_dir / "dot_config/waybar/config.jsonc").read_text()
 if '"reload_style_on_change": true' not in waybar_config:
@@ -200,6 +220,17 @@ if "_div" in waybar_config:
 
 metrics = ("memory", "network#download", "network#upload")
 waybar_modules = (repo_dir / "dot_config/waybar/modules.jsonc").read_text()
+launcher_config = waybar_modules.split('"custom/applauncher": {', 1)[1].split("}", 1)[0]
+if '"format": ""' not in launcher_config:
+    raise SystemExit("the Waybar launcher does not use the upstream Arch icon")
+for line in waybar_modules.splitlines():
+    key, separator, value = line.strip().partition(":")
+    if separator and (key == '"format"' or key.startswith('"format-')):
+        value = value.strip().rstrip(",")
+        if value.startswith('"') and value.endswith('"'):
+            text = value[1:-1]
+            if text.strip() and text != text.strip():
+                raise SystemExit("Waybar format has asymmetric whitespace")
 center_left = waybar_modules.split('"group/center-left":', 1)[1].split(
     '"group/center-right":', 1
 )[0]
@@ -247,6 +278,61 @@ if "#center-left,\n#center-right {\n    min-width: 16em;" not in waybar:
     raise SystemExit("the Waybar center wings are not equally sized")
 if "#custom-left_div" in waybar or "#custom-right_div" in waybar:
     raise SystemExit("the Waybar style still contains Powerline dividers")
+
+try:
+    import gi
+    gi.require_version("Gtk", "3.0")
+    gi.require_version("Gdk", "3.0")
+    from gi.repository import Gdk, Gtk
+except (ImportError, ValueError):
+    print("Waybar GTK geometry check skipped: GTK 3 Python bindings unavailable")
+else:
+    if not Gtk.init_check()[0]:
+        print("Waybar GTK geometry check skipped: no display")
+    else:
+        provider = Gtk.CssProvider()
+        colors = (repo_dir / "dot_config/waybar/create_colors.css").read_text()
+        provider.load_from_data(waybar.replace('@import "colors.css";', colors).encode())
+        Gtk.StyleContext.add_provider_for_screen(
+            Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
+        )
+        Gtk.Settings.get_default().set_property("gtk-enable-animations", False)
+        for wrapped in (False, True):
+            for hover in (False, True):
+                window = Gtk.OffscreenWindow()
+                window.set_name("waybar")
+                label = Gtk.Label(label="")
+                module = Gtk.Box() if wrapped else label
+                module.set_name("custom-applauncher")
+                window.add(module)
+                if wrapped:
+                    image = Gtk.Image()
+                    module.add(image)
+                    module.add(label)
+                if hover:
+                    module.set_state_flags(Gtk.StateFlags.PRELIGHT, False)
+                window.show_all()
+                if wrapped:
+                    image.hide()
+                while Gtk.events_pending():
+                    Gtk.main_iteration()
+                ink, _ = label.get_layout().get_pixel_extents()
+                x, _ = label.get_layout_offsets()
+                bounds = module.get_allocation()
+                offset = x + ink.x + ink.width / 2 - bounds.x - bounds.width / 2
+                if abs(offset) > 1:
+                    raise SystemExit(
+                        f"Waybar launcher is off-center by {offset}px "
+                        f"(wrapped={wrapped}, hover={hover})"
+                    )
+                for widget in (module, label):
+                    font = widget.get_style_context().get_property("font", Gtk.StateFlags.NORMAL)
+                    if widget is module:
+                        module_font_size = font.get_size()
+                    elif font.get_size() != module_font_size:
+                        raise SystemExit("Waybar launcher label resets the module font size")
+                window.destroy()
+        print("Waybar launcher GTK geometry passed (label and AIconLabel, normal and hover)")
 PY
 
 printf '%s\n' "desktop and locale configs passed"

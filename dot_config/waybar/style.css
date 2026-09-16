@@ -4,7 +4,7 @@
     border: none;
     border-radius: 0;
     min-height: 0;
-    font-family: "JetBrainsMono Nerd Font", "Noto Sans Mono CJK SC", "Noto Color Emoji", "Noto Sans Symbols", monospace;
+    font-family: "JetBrainsMono Nerd Font Propo", "Noto Sans Mono CJK SC", "Noto Color Emoji", "Noto Sans Symbols", monospace;
     font-size: 16.6px;
 }
 
@@ -45,13 +45,20 @@ tooltip label {
 }
 
 #workspaces button {
-    min-width: 1.1em;
     margin: 0.1em;
     padding: 0 0.4em;
     border-radius: 0.62em;
     background-color: transparent;
+    background-image: none;
     color: @outline;
     box-shadow: none;
+    text-shadow: none;
+    transition: background-color 0.2s ease, color 0.2s ease;
+}
+
+/* Niri packs the label without expansion; reserve the icon cell on the label. */
+#workspaces button label {
+    min-width: 1.1em;
 }
 
 #workspaces button:hover {
@@ -161,17 +168,22 @@ window#waybar.empty #window {
     color: @primary;
 }
 
-/* Compensate for the Arch glyph's right-heavy bearing and low visual center. */
 #custom-applauncher {
     min-width: 1.15em;
     margin: 0.22em 0.06em;
-    padding: 0 0.25em 2px 0.07em;
+    padding: 0 0.16em;
     border: 1px solid alpha(@on_primary, 0.2);
     border-radius: 999px;
     background-color: @primary;
     color: @on_primary;
     box-shadow: 0 0.14em 0.55em alpha(@primary, 0.32);
     font-size: 1.34em;
+}
+
+/* AIconLabel puts the module ID on a box whose label does not expand. */
+#custom-applauncher label {
+    min-width: inherit;
+    font-size: inherit;
 }
 
 #custom-applauncher:hover {
