@@ -30,6 +30,7 @@ secrets/
 # Skill payloads and CLI lock state are owned by npx skills.
 .agents/skills/
 .agents/.skill-lock.json
+.local/state/skills/.skill-lock.json
 
 # SSH private material, host trust, and local extensions.
 {{- if not $sshAgent }}

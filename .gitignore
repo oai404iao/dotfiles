@@ -3,5 +3,7 @@
 /secrets/
 /.agents/skills/
 /.agents/.skill-lock.json
+/.local/state/skills/.skill-lock.json
 /dot_agents/skills/
 /dot_agents/dot_skill-lock.json
+/dot_local/state/skills/dot_skill-lock.json

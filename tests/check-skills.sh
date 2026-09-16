@@ -140,14 +140,20 @@ assert sentinel.read_text() == "preserve existing content"
 assert env["TMPDIR"] == str(task) and env["DISABLE_TELEMETRY"] == "0"
 
 ignore_lines = set((repo / ".chezmoiignore").read_text().splitlines())
-assert {".agents/skills/", ".agents/.skill-lock.json", "scripts/", "tests/", "docs/"} <= ignore_lines
+assert {
+    ".agents/skills/", ".agents/.skill-lock.json",
+    ".local/state/skills/.skill-lock.json", "scripts/", "tests/", "docs/",
+} <= ignore_lines
 git_ignores = set((repo / ".gitignore").read_text().splitlines())
 assert {
     "/.agents/skills/", "/.agents/.skill-lock.json",
+    "/.local/state/skills/.skill-lock.json",
     "/dot_agents/skills/", "/dot_agents/dot_skill-lock.json",
+    "/dot_local/state/skills/dot_skill-lock.json",
 } <= git_ignores
 assert not (repo / "dot_agents/skills").exists()
 assert not (repo / "dot_agents/dot_skill-lock.json").exists()
+assert not (repo / "dot_local/state/skills/dot_skill-lock.json").exists()
 PY
 
 printf '%s\n' "skills checks passed (retained fixtures: $task_dir)"

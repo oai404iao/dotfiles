@@ -5,9 +5,15 @@ The repository manages installation intent, not skill contents:
 - `scripts/skills.json`: pinned `skills` CLI version and selected remote skills
 - `scripts/install-skills.py`: explicit manual installation via `npx skills`
 - `~/.agents/skills/`: downloaded contents, owned by the external installer
-- `~/.agents/.skill-lock.json`: machine-local CLI bookkeeping, not a manifest
+- `~/.local/state/skills/.skill-lock.json`: machine-local CLI bookkeeping, not
+  a manifest (`$XDG_STATE_HOME/skills/.skill-lock.json` when set)
+- `~/.agents/.skill-lock.json`: CLI fallback when `XDG_STATE_HOME` is unset
 
-The last two paths are ignored by chezmoi and Git. Do not `chezmoi add` skill
+Skill contents and both default lock paths are ignored by chezmoi and Git.
+The pinned CLI's [lock-path selection](https://github.com/vercel-labs/skills/blob/d667282815248da03a08a18272b5d2eef9caf77c/src/skill-lock.ts)
+prefers `XDG_STATE_HOME`; back up the active lock file before updates, and do
+not import a stale fallback lock. Custom XDG roots remain machine-local.
+Do not `chezmoi add` skill
 directories or copy their contents into this repository. Existing local skills
 and lock state are not automatically imported. Editing the manifest does not
 change installed files; removing an entry does not uninstall anything.
