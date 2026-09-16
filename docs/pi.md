@@ -34,6 +34,10 @@ The enabled local package still requires this checkout at its rendered path:
 
 Disabled packages and their configuration are not managed.
 
+Shared skills under `~/.agents/skills/` are installed separately with
+`npx skills`; only their [manifest and manual installer](skills.md) are managed
+here, not the downloaded contents or CLI lock state.
+
 ## Global agent instructions
 
 `dot_config/private_pi/agent/private_AGENTS.md` is the source of truth for

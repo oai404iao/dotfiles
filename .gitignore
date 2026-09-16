@@ -1,3 +1,7 @@
 /.worktrees/
 /key.txt
 /secrets/
+/.agents/skills/
+/.agents/.skill-lock.json
+/dot_agents/skills/
+/dot_agents/dot_skill-lock.json

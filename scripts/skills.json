@@ -1,0 +1,21 @@
+{
+  "cliVersion": "1.5.26",
+  "sources": [
+    {
+      "source": "vercel-labs/agent-browser",
+      "skills": ["agent-browser"]
+    },
+    {
+      "source": "shadcn/ui",
+      "skills": ["shadcn"]
+    },
+    {
+      "source": "oai404iao/my_skills",
+      "skills": [
+        "agents-md",
+        "frontend-design",
+        "git-branch-development-workflow"
+      ]
+    }
+  ]
+}

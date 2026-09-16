@@ -20,6 +20,8 @@
 - Pi 模型与 Telegram 凭据通过 `rbw` 从 Bitwarden 获取。
 - 全局 agent 指令首先支持 Pi；临时文件按任务存放于
   `~/.local/state/agents/tmp/`，用后保留，避免使用 `/tmp`。
+- [全局 skills](docs/skills.md) 通过清单和手动 `npx skills` 脚本安装；
+  `~/.agents/skills/` 下的下载内容不纳入本仓库。
 - OpenSSH 使用经 age 加密的公钥选择器与主机元数据，客户端私钥由
   Bitwarden 中的 `rbw-agent` 使用；Git 身份元数据同样经过加密。
 - 递归 `rm` 会转移到桌面回收站，并拒绝操作受保护的 XDG 与 Pi 根目录。

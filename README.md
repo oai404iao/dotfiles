@@ -25,6 +25,8 @@ credentials and mutable application state out of Git.
 - Pi model and Telegram credentials come from Bitwarden through `rbw`.
 - Global agent instructions are managed for Pi first, with retained per-task
   scratch directories under `~/.local/state/agents/tmp/` instead of `/tmp`.
+- [Global skills](docs/skills.md) use a manifest and manual `npx skills` installer;
+  downloaded contents under `~/.agents/skills/` stay outside this repository.
 - OpenSSH uses age-encrypted public selectors and host metadata while
   `rbw-agent` keeps private client keys in Bitwarden; Git identity metadata is
   encrypted as well.
