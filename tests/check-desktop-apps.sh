@@ -53,6 +53,32 @@ for original in ("", fixture):
         assert 'TrayFont="Sans 10"\n' in updated
         assert updated.endswith("[Future]\nFont=untouched\n")
 
+portal = "dot_config/xdg-desktop-portal/modify_niri-portals.conf"
+chooser = "org.freedesktop.impl.portal.FileChooser"
+for original in (
+    "",
+    f"# keep\n[preferred]\ndefault=gnome;gtk;\n{chooser}=gtk\n{chooser}=old\n"
+    "org.freedesktop.impl.portal.ScreenCast=gnome\n[other]\n"
+    f"{chooser}=untouched\n",
+    "[other]\nvalue=keep",
+    "[preferred]",
+):
+    updated = modify(portal, original)
+    assert modify(portal, updated) == updated
+    ini = configparser.ConfigParser(interpolation=None)
+    ini.optionxform = str
+    ini.read_string(updated)
+    assert ini["preferred"][chooser] == "gnome;gtk;"
+    if "# keep" in original:
+        assert "# keep\n" in updated
+        assert ini["preferred"]["default"] == "gnome;gtk;"
+        assert ini["preferred"]["org.freedesktop.impl.portal.ScreenCast"] == "gnome"
+        assert ini["other"][chooser] == "untouched"
+    elif "value=keep" in original:
+        assert ini["other"]["value"] == "keep"
+    else:
+        assert list(ini["preferred"]) == [chooser]
+
 satty = tomllib.loads((repo / "dot_config/satty/config.toml").read_text())
 assert satty["general"]["actions-on-enter"] == ["save-to-file", "exit"]
 assert satty["general"]["actions-on-escape"] == ["exit"]
@@ -61,6 +87,8 @@ assert satty["font"]["fallback"] == ["Noto Sans CJK SC"]
 
 ignore = (repo / ".chezmoiignore").read_text()
 graphical = ignore.split("{{- if not .graphical }}", 1)[1].split("{{- end }}", 1)[0]
+niri = ignore.split("{{- if not (and .graphical .niri) }}", 1)[1].split("{{- end }}", 1)[0]
+assert ".config/xdg-desktop-portal/niri-portals.conf" in niri.splitlines()
 for path in (
     ".config/btop/", ".config/fcitx5/", ".config/satty/", ".config/swaylock/",
     ".config/gtk-3.0/", ".config/gtk-4.0/", ".local/share/fcitx5/themes/Matugen/",
@@ -78,13 +106,26 @@ assert "post_hook" not in templates["gtk3"]
 for version in ("3.0", "4.0"):
     modifier = f"dot_config/gtk-{version}/modify_gtk.css"
     custom = '/* keep */\n@import "local.css";\nbutton { padding: 4px; }\n'
-    for original in ("", custom, '@import "colors.css";\n@import url(\'colors.css\');\n' + custom):
+    imports = '@import "colors.css";\n@import url(\'colors.css\');\n'
+    if version == "4.0":
+        imports += '@import "nautilus.css";\n@import url(\'nautilus.css\');\n'
+    for original in ("", custom, imports + custom):
         updated = modify(modifier, original)
         assert updated.startswith('@import "colors.css";\n')
         assert updated.count("colors.css") == 1
+        if version == "4.0":
+            assert updated.startswith('@import "colors.css";\n@import "nautilus.css";\n')
+            assert updated.count("nautilus.css") == 1
+        else:
+            assert "nautilus.css" not in updated
         assert modify(modifier, updated) == updated
         if original:
             assert custom in updated
+
+gtk3_settings = configparser.ConfigParser()
+gtk3_settings.read(repo / "dot_config/gtk-3.0/settings.ini")
+assert gtk3_settings["Settings"]["gtk-theme-name"] == "adw-gtk3-dark"
+assert gtk3_settings["Settings"].getboolean("gtk-application-prefer-dark-theme")
 
 fallbacks = {
     "btop": "dot_config/btop/themes/create_matugen.theme",
@@ -151,8 +192,50 @@ if shutil.which("matugen"):
     for name in fallbacks:
         check_theme(name, (task / name).read_text())
     print(f"desktop themes rendered without hooks (retained fixtures: {task})")
+
+    try:
+        import gi
+        gi.require_version("Gtk", "3.0")
+        gi.require_version("Gdk", "3.0")
+        from gi.repository import Gdk, Gtk
+    except (ImportError, ValueError):
+        print("GTK 3 effective palette check skipped: Python bindings unavailable")
+    else:
+        if not pathlib.Path("/usr/share/themes/adw-gtk3-dark/gtk-3.0/gtk.css").exists():
+            print("GTK 3 effective palette check skipped: install adw-gtk-theme")
+        elif not Gtk.init_check()[0]:
+            print("GTK 3 effective palette check skipped: no display")
+        else:
+            settings = Gtk.Settings.get_default()
+            settings.set_property("gtk-theme-name", "adw-gtk3-dark")
+            settings.set_property("gtk-application-prefer-dark-theme", True)
+            settings.set_property("gtk-enable-animations", False)
+            provider = Gtk.CssProvider()
+            provider.load_from_path(str(task / "gtk3"))
+            Gtk.StyleContext.add_provider_for_screen(
+                Gdk.Screen.get_default(), provider, Gtk.STYLE_PROVIDER_PRIORITY_USER
+            )
+            window = Gtk.OffscreenWindow()
+            view = Gtk.TreeView()
+            window.add(view)
+            window.show_all()
+            while Gtk.events_pending():
+                Gtk.main_iteration()
+            palette = dict(re.findall(r"@define-color (\w+) (#[0-9a-fA-F]{6});", (task / "gtk3").read_text()))
+            for widget, role in ((window, "window_bg_color"), (view, "view_bg_color")):
+                actual = widget.get_style_context().get_background_color(Gtk.StateFlags.NORMAL)
+                expected = Gdk.RGBA()
+                assert expected.parse(palette[role])
+                assert all(abs(a - b) < 0.005 for a, b in zip(
+                    (actual.red, actual.green, actual.blue, actual.alpha),
+                    (expected.red, expected.green, expected.blue, expected.alpha),
+                )), f"GTK 3 widget is not using {role}: {actual.to_string()}"
+            window.destroy()
+            print("GTK 3 window and file-list widgets use the rendered palette")
 else:
     print("Matugen rendering skipped: not installed")
 PY
+
+python3 "$repo_dir/tests/check-nautilus-style.py"
 
 printf '%s\n' "desktop application configs passed"

@@ -120,9 +120,18 @@ depend on the supplied artwork.
   lock-before-monitor-off ordering stays in Niri.
 - Nautilus remains the graphical file manager. GTK 3/4 import the generated
   palette for applications and file choosers; modifiers preserve other CSS.
-  No folder history, bookmarks,
-  default applications, portal routing, icon theme, or dconf database is taken
+  GTK 3 selects `adw-gtk3-dark` with dark preference enabled; this requires the
+  separately installed `adw-gtk-theme` package. A missing theme can silently
+  fall back to light Adwaita even when the desktop prefers dark mode.
+  On Niri, the FileChooser portal prefers GNOME/Nautilus with GTK as fallback;
+  other portal preferences remain untouched. No folder history, bookmarks,
+  default applications, icon theme, or dconf database is taken
   over. Matugen no longer forces a particular GTK theme via GSettings.
+  GTK 4 imports a separate `nautilus.css`: Nautilus main windows and its portal
+  file choosers share a Matugen view background at 90% opacity. Only their
+  background layers change; text, icons, context menus, and dropdown popovers
+  retain their original opacity. Other GTK applications are not targeted.
+  This is background transparency, not compositor opacity or blur.
 
 SwayOSD is not enabled by this configuration; volume bindings retain their
 existing WirePlumber behavior.
@@ -133,6 +142,40 @@ their palettes through Matugen/Waypaper rather than forcing chezmoi ownership.
 Reopen GTK applications to check their styles; test a file chooser separately
 from Nautilus. Test the lock screen interactively, not as an automated check.
 Neither source checks nor theme rendering invokes the lock screen.
+
+### GTK theme prerequisites
+
+On Arch Linux:
+
+```sh
+sudo pacman -S --needed adw-gtk-theme
+gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3-dark'
+gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
+```
+
+The GTK 3 theme consumes the generated named colors. Nautilus uses GTK 4 and
+libadwaita instead, so it does not use the GTK 3 theme package. Do not force
+`GTK_THEME` globally to make the two match.
+
+Reopen applications after installing the theme. Source checks
+verify effective GTK 3 window and list colors when the theme, GTK Python
+bindings, Matugen, and a display are available, rather than only checking that
+palette files exist.
+
+### File chooser portal
+
+On Niri, `~/.config/xdg-desktop-portal/niri-portals.conf` manages only
+`org.freedesktop.impl.portal.FileChooser=gnome;gtk;` in `[preferred]`.
+With a recent GNOME portal backend and Nautilus installed, this uses the
+Nautilus file chooser instead of GTK 3's chooser, avoiding its clipped
+file-type dropdown near screen edges. GTK remains a fallback backend;
+this does not fix GTK 3 menus embedded directly in applications.
+
+After backing up and applying that explicit target, log out and back in,
+or restart `xdg-desktop-portal.service` once file dialogs and portal-based
+screen sharing have ended. Reopen a portal-using application's file chooser
+to check it. The preference list selects an available backend; it does not
+guarantee retrying GTK if a running GNOME backend fails.
 
 ## Locale split
 
@@ -160,6 +203,8 @@ Core session:
 - fontconfig, adwaita-fonts, noto-fonts, noto-fonts-extra, noto-fonts-cjk
 - noto-fonts-emoji
 - ttf-jetbrains-mono-nerd
+- adw-gtk-theme
+- xdg-desktop-portal, xdg-desktop-portal-gnome, xdg-desktop-portal-gtk
 
 Optional Waybar actions:
 

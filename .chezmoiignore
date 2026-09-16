@@ -124,4 +124,5 @@ secrets/
 {{- if not (and .graphical .niri) }}
 .config/niri/
 .config/waybar/
+.config/xdg-desktop-portal/niri-portals.conf
 {{- end }}

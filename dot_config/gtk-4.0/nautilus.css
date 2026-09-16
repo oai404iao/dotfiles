@@ -1,0 +1,17 @@
+window.nautilus-window,
+window.nautilus-file-chooser {
+  background-color: alpha(@view_bg_color, 0.9);
+}
+
+/* Paint the background once; stacked translucent panes become opaque. */
+window.nautilus-file-chooser overlay-split-view.view,
+window.nautilus-window overlay-split-view > .sidebar-pane,
+window.nautilus-file-chooser overlay-split-view > .sidebar-pane,
+window.nautilus-window overlay-split-view > .background,
+window.nautilus-file-chooser overlay-split-view > .background,
+window.nautilus-window toolbarview > .top-bar,
+window.nautilus-file-chooser toolbarview > .top-bar,
+window.nautilus-window toolbarview > .bottom-bar,
+window.nautilus-file-chooser toolbarview > .bottom-bar {
+  background-color: transparent;
+}
