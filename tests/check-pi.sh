@@ -65,6 +65,14 @@ if not expected_ignored <= ignore_lines:
 
 instructions = (source_dir / "private_AGENTS.md").read_text()
 for required in (
+    "## Coding principles",
+    "## Tool selection",
+    "uv run python",
+    "uv run --with <package> python ...",
+    "--no-project",
+    "pnpm dlx <package>",
+    "pnpm exec <command>",
+    "Honor explicit\n  project requirements and canonical scripts;",
     "Avoid `/tmp`, `/var/tmp`, and bare `mktemp`",
     '$HOME/.local/state/agents/tmp',
     'mktemp -d "$scratch_root/task-name.XXXXXXXX"',
@@ -73,7 +81,7 @@ for required in (
     "Do not store credentials in retained scratch files.",
 ):
     if required not in instructions:
-        raise SystemExit(f"missing global agent scratch rule: {required}")
+        raise SystemExit(f"missing global agent rule: {required}")
 scratch_example = instructions.split("```sh\n", 1)[1].split("```", 1)[0]
 subprocess.run(["sh", "-n"], input=scratch_example, text=True, check=True)
 

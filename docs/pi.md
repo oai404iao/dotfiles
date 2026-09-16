@@ -47,6 +47,16 @@ repository-specific `AGENTS.md` files. Support currently targets Pi only.
 A local `AGENTS.override.md` in the same directory takes precedence; review
 any such override if the managed rules do not appear.
 
+The instructions prefer `uv` for Python (including one-off dependencies) and
+`pnpm` / `pnpm dlx` over `npm` / `npx`, while preserving explicit project
+requirements, canonical scripts, and lockfiles. Command examples follow the
+[uv script guide](https://docs.astral.sh/uv/guides/scripts/) and
+[pnpm CLI documentation](https://pnpm.io/cli/dlx).
+The coding principles adapt the instruction body of
+[`my_skills/prompts/coding-principles.md`](https://raw.githubusercontent.com/oai404iao/my_skills/refs/heads/main/prompts/coding-principles.md):
+stay within scope, make local changes, resolve minor uncertainty pragmatically,
+and verify and report outcomes honestly.
+
 The instructions reserve `~/.local/state/agents/tmp/` for agent-created scratch
 work across projects and agents. Agents create private, uniquely named task
 directories on demand and retain their contents after use, rather than using
