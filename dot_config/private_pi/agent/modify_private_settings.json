@@ -11,7 +11,7 @@ settings.update(
     {
         "defaultProvider": "openai",
         "defaultModel": "gpt-5.6-sol",
-        "defaultThinkingLevel": "xhigh",
+        "defaultThinkingLevel": "high",
         "hideThinkingBlock": True,
         "enabledModels": [
             "openai/gpt-5.5",

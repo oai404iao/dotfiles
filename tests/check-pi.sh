@@ -91,8 +91,8 @@ settings_result = subprocess.run(
 settings = load_json(settings_result.stdout)
 if settings.get("lastChangelogVersion") != "preserve-me" or settings.get("futureState") is not True:
     raise SystemExit("Pi settings modifier did not preserve mutable state")
-if settings.get("defaultThinkingLevel") != "xhigh":
-    raise SystemExit("Pi default thinking level is not xhigh")
+if settings.get("defaultThinkingLevel") != "high":
+    raise SystemExit("Pi default thinking level is not high")
 if "openai/gpt-6-astra" not in settings.get("enabledModels", []):
     raise SystemExit("GPT-6 Astra is not enabled in Pi settings")
 enabled_models = set(settings.get("enabledModels", []))

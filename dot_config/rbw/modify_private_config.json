@@ -1,0 +1,9 @@
+#!/usr/bin/env python3
+import json
+import sys
+
+raw = sys.stdin.read()
+config = json.loads(raw) if raw.strip() else {}
+config["pinentry"] = "pinentry-curses"
+
+json.dump(config, sys.stdout, ensure_ascii=False, indent=2)

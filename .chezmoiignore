@@ -17,7 +17,6 @@ secrets/
 
 # Machine-local credentials, recovery data, and source state.
 .config/chezmoi/
-.config/rbw/
 .local/share/rbw/
 .local/state/rbw/
 .cache/rbw/
