@@ -135,6 +135,36 @@ do
     esac
 done
 
+for interpreter in sh bash zsh; do
+    for home_case in default empty xdg override; do
+        env -i HOME="$fake_home" XDG_CONFIG_HOME="$fake_config" \
+            PATH="/usr/bin:/bin" ENTRYPOINT="$repo_dir/dot_config/shell/profile.sh" \
+            HOME_CASE="$home_case" TEST_ROOT="$test_root" \
+            "$interpreter" -c '
+                expected="$HOME/.local/share/dsh"
+                case "$HOME_CASE" in
+                    empty) DSH_HOME="" ;;
+                    xdg)
+                        XDG_DATA_HOME="$TEST_ROOT/custom data"
+                        expected="$XDG_DATA_HOME/dsh"
+                        ;;
+                    override)
+                        DSH_HOME="$TEST_ROOT/custom dsh"
+                        expected="$DSH_HOME"
+                        ;;
+                esac
+                . "$ENTRYPOINT"
+                [ "$DSH_HOME" = "$expected" ] || exit 1
+                sh -c '"'"'[ "$DSH_HOME" = "$1" ]'"'"' sh "$expected" || exit 1
+                . "$ENTRYPOINT"
+                [ "$DSH_HOME" = "$expected" ]
+            '
+    done
+done
+
+grep -qxF '.local/share/dsh/' "$repo_dir/.chezmoiignore"
+grep -qxF '.dsh/' "$repo_dir/.chezmoiignore"
+
 mkdir -p "$fake_data/nvm"
 cat >"$fake_data/nvm/nvm.sh" <<'EOF'
 NVM_ALIAS_LINE=stable

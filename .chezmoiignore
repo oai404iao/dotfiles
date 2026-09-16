@@ -27,6 +27,10 @@ secrets/
 # Retained agent scratch work is machine-local mutable state.
 .local/state/agents/tmp/
 
+# DSH owns its single home, including credentials and sessions.
+.local/share/dsh/
+.dsh/
+
 # Skill payloads and CLI lock state are owned by npx skills.
 .agents/skills/
 .agents/.skill-lock.json

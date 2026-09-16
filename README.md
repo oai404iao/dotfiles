@@ -12,6 +12,11 @@ credentials and mutable application state out of Git.
 - Machine capabilities are selected during `chezmoi init`.
 - Bash and Zsh share one public login environment while keeping interactive
   behavior shell-specific.
+- The shared login environment exports `DSH_HOME`, defaulting to
+  `$XDG_DATA_HOME/dsh` (`~/.local/share/dsh`) while preserving explicit overrides.
+  DSH keeps everything under this single root; its contents stay unmanaged.
+  Existing `~/.dsh` data is not migrated automatically. Set overrides in the
+  launch environment, not in DSH `.env` files.
 - User sessions use Simplified Chinese while interactive shells use a complete
   English locale.
 - Proportional UI uses Adwaita Sans, terminals use JetBrainsMono Nerd Font

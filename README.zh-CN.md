@@ -10,6 +10,10 @@
 
 - 在 `chezmoi init` 时按机器能力选择配置。
 - Bash 与 Zsh 共享公共登录环境，交互行为仍由各自单独管理。
+- 共享登录环境导出 `DSH_HOME`，默认使用 `$XDG_DATA_HOME/dsh`
+  （`~/.local/share/dsh`），并保留显式覆盖值。DSH 的所有内容仍放在这一
+  单一根目录下，不纳入配置管理；现有 `~/.dsh` 数据不会自动迁移。
+  如需覆盖，请在启动环境中设置，不要写入 DSH 的 `.env` 文件。
 - 用户会话使用简体中文，交互式 Shell 则使用完整的英文 locale。
 - 比例界面使用 Adwaita Sans，终端使用 JetBrainsMono Nerd Font Mono，
   状态栏使用其完整宽度的 Nerd Font 变体；Noto 字体提供 CJK、符号与

@@ -10,6 +10,10 @@ export XDG_CACHE_HOME
 export XDG_DATA_HOME
 export XDG_STATE_HOME
 
+# DSH keeps configuration, credentials, and runtime data under one root.
+: "${DSH_HOME:=$XDG_DATA_HOME/dsh}"
+export DSH_HOME
+
 toolchains_profile="$XDG_CONFIG_HOME/shell/toolchains.sh"
 if [ -r "$toolchains_profile" ]; then
     . "$toolchains_profile"
