@@ -143,7 +143,7 @@ package_sources = {
 }
 expected_npm_packages = {
     "npm:@juicesharp/rpiv-ask-user-question@2.10.1",
-    "npm:@oai404iao/pi-telegram-notify@0.2.0",
+    "npm:@oai404iao/pi-telegram-notify@0.2.1",
     "npm:@oai404iao/pi-keep-defaults@0.2.0",
     "npm:@oai404iao/pi-codex-minimal-tools@2.1.0",
     "npm:@oai404iao/pi-subagent@0.4.0",
@@ -290,6 +290,8 @@ if shutil.which("chezmoi"):
         env=fake_env,
     )
     telegram = load_json(result.stdout)
+    if telegram.get("$schema") != "https://unpkg.com/@oai404iao/pi-telegram-notify@0.2.1/config.schema.json":
+        raise SystemExit("Telegram schema version does not match the pinned package")
     if telegram["botToken"] != "123456:test-token" or telegram["chatId"] != "-123456789":
         raise SystemExit("Telegram template did not use the fake rbw values")
 PY

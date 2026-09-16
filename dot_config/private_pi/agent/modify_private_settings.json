@@ -23,7 +23,7 @@ settings.update(
         ],
         "packages": [
             "npm:@juicesharp/rpiv-ask-user-question@2.10.1",
-            "npm:@oai404iao/pi-telegram-notify@0.2.0",
+            "npm:@oai404iao/pi-telegram-notify@0.2.1",
             "npm:@oai404iao/pi-keep-defaults@0.2.0",
             "npm:@oai404iao/pi-codex-minimal-tools@2.1.0",
             "npm:@oai404iao/pi-subagent@0.4.0",
