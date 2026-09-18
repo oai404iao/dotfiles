@@ -85,6 +85,16 @@ assert satty["general"]["actions-on-escape"] == ["exit"]
 assert "output-filename" not in satty["general"]
 assert satty["font"]["fallback"] == ["Noto Sans CJK SC"]
 
+shardx = repo / "dot_local/share/applications/shardx-launcher.desktop"
+launcher = configparser.ConfigParser(interpolation=None)
+launcher.optionxform = str
+launcher.read(shardx)
+assert launcher["Desktop Entry"]["Exec"] == "env GTK_IM_MODULE=fcitx shardx-launcher"
+assert launcher["Desktop Entry"]["Type"] == "Application"
+assert not launcher["Desktop Entry"].getboolean("Terminal")
+if shutil.which("desktop-file-validate"):
+    subprocess.run(["desktop-file-validate", str(shardx)], check=True)
+
 ignore = (repo / ".chezmoiignore").read_text()
 graphical = ignore.split("{{- if not .graphical }}", 1)[1].split("{{- end }}", 1)[0]
 niri = ignore.split("{{- if not (and .graphical .niri) }}", 1)[1].split("{{- end }}", 1)[0]
@@ -92,6 +102,7 @@ assert ".config/xdg-desktop-portal/niri-portals.conf" in niri.splitlines()
 for path in (
     ".config/btop/", ".config/fcitx5/", ".config/satty/", ".config/swaylock/",
     ".config/gtk-3.0/", ".config/gtk-4.0/", ".local/share/fcitx5/themes/Matugen/",
+    ".local/share/applications/shardx-launcher.desktop",
 ):
     assert path in graphical.splitlines(), path
 for path in (".config/fcitx5/profile", ".config/fcitx5/config", ".local/share/fcitx5/rime/"):

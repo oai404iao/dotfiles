@@ -1,0 +1,9 @@
+[Desktop Entry]
+Categories=Network;WebBrowser;
+Comment=Anti-detect browser launcher for ShardX Chromium
+Exec=env GTK_IM_MODULE=fcitx shardx-launcher
+StartupWMClass=shardx-launcher
+Icon=shardx-launcher
+Name=ShardX Launcher
+Terminal=false
+Type=Application

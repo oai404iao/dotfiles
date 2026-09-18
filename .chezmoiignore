@@ -118,6 +118,7 @@ secrets/
 .config/satty/
 .config/swaylock/
 .config/waypaper/
+.local/share/applications/shardx-launcher.desktop
 .local/share/fcitx5/themes/Matugen/
 {{- end }}
 
