@@ -1,0 +1,11 @@
+[Unit]
+Description=Display color temperature for Waybar
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+Type=dbus
+BusName=rs.wl-gammarelay
+ExecStart=/usr/bin/wl-gammarelay-rs run
+Restart=on-failure
+RestartSec=2

@@ -177,6 +177,33 @@ screen sharing have ended. Reopen a portal-using application's file chooser
 to check it. The preference list selects an available backend; it does not
 guarantee retrying GTK if a running GNOME backend fails.
 
+## Manual color temperature
+
+Install `wl-gammarelay-rs` separately (`yay -S wl-gammarelay-rs` on Arch).
+The Waybar temperature module next to brightness displays the current Kelvin
+value. Scroll up for +100K (cooler), down for -100K (warmer), or left-click
+to toggle between 6500K and 4500K. Clicking at any value other than 6500K
+returns to 6500K. It adjusts all connected displays; the displayed value is
+their average if their temperatures differ. Hardware brightness is unchanged.
+
+Waybar starts the user unit `waybar-gammarelay.service` before running
+`wl-gammarelay-rs watch '{t}'`. The unit waits for D-Bus ownership, so watchers
+cannot become the server: unplugging a monitor or reloading its bar must not
+terminate gamma control for the remaining displays. No Niri startup entry or
+`systemctl enable` is needed; the service stops with the graphical session.
+The module is hidden when its dependencies are missing. After applying the
+unit, run `systemctl --user daemon-reload` and reload Waybar. Event commands do
+not restart the watcher, and a failed watcher is retried after two seconds.
+
+Temperature is session-local, not persisted: restarting the service
+resets it to 6500K. Do not run wlsunset, gammastep, or another gamma controller
+at the same time. Gamma adjustment still depends on driver/output support;
+a changing number alone does not prove the display accepted the change.
+
+Upstream references:
+[wl-gammarelay-rs](https://github.com/MaxVerevkin/wl-gammarelay-rs) and
+[Waybar custom modules](https://github.com/Alexays/Waybar/blob/master/man/waybar-custom.5.scd).
+
 ## Locale split
 
 The login and user-service environments use `LANG=zh_CN.UTF-8`,
@@ -210,6 +237,7 @@ Optional Waybar actions:
 
 - grim, slurp, satty, wl-clipboard, wf-recorder
 - ddcutil, hyprpicker, pavucontrol, wlogout, blueberry
+- wl-gammarelay-rs, systemd (`busctl`) for manual color temperature
 - uv for the long-screenshot helper
 
 Desktop application styling also supports Satty, btop, Fcitx5 with

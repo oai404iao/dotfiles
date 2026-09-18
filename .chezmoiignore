@@ -124,5 +124,6 @@ secrets/
 {{- if not (and .graphical .niri) }}
 .config/niri/
 .config/waybar/
+.config/systemd/user/waybar-gammarelay.service
 .config/xdg-desktop-portal/niri-portals.conf
 {{- end }}

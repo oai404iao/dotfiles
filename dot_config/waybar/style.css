@@ -253,6 +253,7 @@ window#waybar.empty #window {
 }
 
 #ddcutil,
+#custom-temperature,
 #privacy,
 #audio,
 #battery,
@@ -309,6 +310,12 @@ window#waybar.empty #window {
     color: @error;
 }
 
+#custom-temperature {
+    padding: 0 0.42em;
+    color: @tertiary;
+    font-size: 0.86em;
+}
+
 #pulseaudio {
     padding: 0 0.42em;
     background-color: transparent;
@@ -343,6 +350,7 @@ window#waybar.empty #window {
 #custom-ddcutil-day:hover,
 #custom-ddcutil-night:hover,
 #custom-ddcutil-sleep:hover,
+#custom-temperature:hover,
 #pulseaudio:hover,
 #battery:hover {
     background-color: alpha(@primary, 0.14);

@@ -56,8 +56,13 @@ gtk2_expected=$(printf '%s\n' \
 
 python3 - "$repo_dir" <<'PY'
 import configparser
+import json
+import os
 import pathlib
+import shlex
+import subprocess
 import sys
+import tempfile
 import tomllib
 import xml.etree.ElementTree as ET
 
@@ -220,6 +225,100 @@ if "_div" in waybar_config:
 
 metrics = ("memory", "network#download", "network#upload")
 waybar_modules = (repo_dir / "dot_config/waybar/modules.jsonc").read_text()
+temperature = json.JSONDecoder().raw_decode(
+    waybar_modules.split('"custom/temperature":', 1)[1].lstrip()
+)[0]
+system_modules = waybar_modules.split('"group/system":', 1)[1].split("}", 1)[0]
+if '"custom/temperature"' not in system_modules:
+    raise SystemExit("Waybar temperature is not in the system group")
+if temperature["exec-if"] != "command -v wl-gammarelay-rs && command -v busctl && command -v systemctl":
+    raise SystemExit("Waybar temperature lacks dependency guards")
+if shlex.split(temperature["exec"]) != [
+    "systemctl", "--user", "start", "waybar-gammarelay.service", "&&",
+    "exec", "wl-gammarelay-rs", "watch", "{t}",
+]:
+    raise SystemExit("Waybar does not start its gamma service before watching")
+gamma_service = configparser.ConfigParser(interpolation=None)
+gamma_service.read(repo_dir / "dot_config/systemd/user/waybar-gammarelay.service")
+for section, key, value in (
+    ("Unit", "PartOf", "graphical-session.target"),
+    ("Unit", "After", "graphical-session.target"),
+    ("Service", "Type", "dbus"),
+    ("Service", "BusName", "rs.wl-gammarelay"),
+    ("Service", "ExecStart", "/usr/bin/wl-gammarelay-rs run"),
+    ("Service", "Restart", "on-failure"),
+    ("Service", "RestartSec", "2"),
+):
+    if gamma_service.get(section, key) != value:
+        raise SystemExit(f"unexpected gamma service {section}.{key}")
+niri_ignore_block = ignore_text.split(
+    "{{- if not (and .graphical .niri) }}", 1
+)[1].split("{{- end }}", 1)[0]
+if ".config/systemd/user/waybar-gammarelay.service" not in niri_ignore_block.splitlines():
+    raise SystemExit("the gamma service is not restricted to Niri profiles")
+if (
+    temperature["exec-on-event"] is not False
+    or temperature["restart-interval"] != 2
+    or "interval" in temperature
+    or "signal" in temperature
+):
+    raise SystemExit("Waybar temperature can restart its server on interaction")
+for event, delta in (("on-scroll-up", "+100"), ("on-scroll-down", "-100")):
+    if shlex.split(temperature[event]) != [
+        "busctl", "--user", "--", "call", "rs.wl-gammarelay", "/",
+        "rs.wl.gammarelay", "UpdateTemperature", "n", delta,
+    ]:
+        raise SystemExit(f"unexpected temperature action: {event}")
+if temperature["on-click"] != "${XDG_CONFIG_HOME:-$HOME/.config}/waybar/scripts/toggle-temperature.sh":
+    raise SystemExit("Waybar temperature does not use the preset toggle")
+scratch_root = pathlib.Path.home() / ".local/state/agents/tmp"
+scratch_root.mkdir(parents=True, exist_ok=True)
+toggle_fixture = pathlib.Path(tempfile.mkdtemp(prefix="check-temperature.", dir=scratch_root))
+fake_busctl = toggle_fixture / "busctl"
+fake_busctl.write_text("""#!/bin/sh
+set -eu
+case "$2" in
+    get-property)
+        [ "$*" = "--user get-property rs.wl-gammarelay / rs.wl.gammarelay Temperature" ]
+        [ "$CURRENT" != fail ] || exit 1
+        printf 'q %s\\n' "$CURRENT"
+        ;;
+    set-property)
+        printf '%s\\n' "$*" > "$CALL_LOG"
+        exit "$SET_STATUS"
+        ;;
+    *) exit 2 ;;
+esac
+""")
+fake_busctl.chmod(0o700)
+toggle_script = repo_dir / "dot_config/waybar/scripts/executable_toggle-temperature.sh"
+for index, (current, target, set_status) in enumerate((
+    ("6500", "4500", 0),
+    ("4500", "6500", 0),
+    ("5000", "6500", 0),
+    ("fail", None, 0),
+    ("6500", "4500", 1),
+)):
+    call_log = toggle_fixture / f"call-{index}"
+    result = subprocess.run(
+        ["/bin/sh", str(toggle_script)],
+        env={**os.environ, "PATH": str(toggle_fixture), "CURRENT": current,
+             "CALL_LOG": str(call_log), "SET_STATUS": str(set_status)},
+        capture_output=True, text=True,
+    )
+    expected_status = 1 if current == "fail" else set_status
+    if result.returncode != expected_status:
+        raise SystemExit(f"temperature toggle returned {result.returncode}: {result.stderr}")
+    if target is None:
+        if call_log.exists():
+            raise SystemExit("temperature toggle writes after a failed read")
+    elif call_log.read_text().strip() != (
+        "--user set-property rs.wl-gammarelay / rs.wl.gammarelay Temperature q " + target
+    ):
+        raise SystemExit(f"unexpected preset for {current}K")
+print(f"temperature preset checks passed (retained fixtures: {toggle_fixture})")
+if temperature["format"] != " {}K" or "#custom-temperature {" not in waybar:
+    raise SystemExit("Waybar temperature display or style is missing")
 launcher_config = waybar_modules.split('"custom/applauncher": {', 1)[1].split("}", 1)[0]
 if '"format": ""' not in launcher_config:
     raise SystemExit("the Waybar launcher does not use the upstream Arch icon")
