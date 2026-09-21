@@ -369,10 +369,10 @@
   "custom/temperature": {
     "format": " {}K",
     "tooltip-format": "Color temperature (all displays)\nScroll up: cooler +100K\nScroll down: warmer -100K\nClick: toggle 6500K / 4500K",
-    "exec-if": "command -v wl-gammarelay-rs && command -v busctl && command -v systemctl",
-    "exec": "systemctl --user start waybar-gammarelay.service && exec wl-gammarelay-rs watch '{t}'",
+    "exec-if": "command -v wl-gammarelay-rs && command -v busctl && command -v systemctl && command -v timeout",
+    "exec": "${XDG_CONFIG_HOME:-$HOME/.config}/waybar/scripts/temperature.sh",
     "exec-on-event": false,
-    "restart-interval": 2,
+    "interval": 2,
     "on-scroll-up": "busctl --user -- call rs.wl-gammarelay / rs.wl.gammarelay UpdateTemperature n +100",
     "on-scroll-down": "busctl --user -- call rs.wl-gammarelay / rs.wl.gammarelay UpdateTemperature n -100",
     "on-click": "${XDG_CONFIG_HOME:-$HOME/.config}/waybar/scripts/toggle-temperature.sh"

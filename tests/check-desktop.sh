@@ -231,13 +231,10 @@ temperature = json.JSONDecoder().raw_decode(
 system_modules = waybar_modules.split('"group/system":', 1)[1].split("}", 1)[0]
 if '"custom/temperature"' not in system_modules:
     raise SystemExit("Waybar temperature is not in the system group")
-if temperature["exec-if"] != "command -v wl-gammarelay-rs && command -v busctl && command -v systemctl":
+if temperature["exec-if"] != "command -v wl-gammarelay-rs && command -v busctl && command -v systemctl && command -v timeout":
     raise SystemExit("Waybar temperature lacks dependency guards")
-if shlex.split(temperature["exec"]) != [
-    "systemctl", "--user", "start", "waybar-gammarelay.service", "&&",
-    "exec", "wl-gammarelay-rs", "watch", "{t}",
-]:
-    raise SystemExit("Waybar does not start its gamma service before watching")
+if temperature["exec"] != "${XDG_CONFIG_HOME:-$HOME/.config}/waybar/scripts/temperature.sh":
+    raise SystemExit("Waybar temperature does not use the finite query helper")
 gamma_service = configparser.ConfigParser(interpolation=None)
 gamma_service.read(repo_dir / "dot_config/systemd/user/waybar-gammarelay.service")
 for section, key, value in (
@@ -258,11 +255,11 @@ if ".config/systemd/user/waybar-gammarelay.service" not in niri_ignore_block.spl
     raise SystemExit("the gamma service is not restricted to Niri profiles")
 if (
     temperature["exec-on-event"] is not False
-    or temperature["restart-interval"] != 2
-    or "interval" in temperature
+    or temperature["interval"] != 2
+    or "restart-interval" in temperature
     or "signal" in temperature
 ):
-    raise SystemExit("Waybar temperature can restart its server on interaction")
+    raise SystemExit("Waybar temperature must poll instead of restarting a continuous watcher")
 for event, delta in (("on-scroll-up", "+100"), ("on-scroll-down", "-100")):
     if shlex.split(temperature[event]) != [
         "busctl", "--user", "--", "call", "rs.wl-gammarelay", "/",
@@ -317,6 +314,47 @@ for index, (current, target, set_status) in enumerate((
     ):
         raise SystemExit(f"unexpected preset for {current}K")
 print(f"temperature preset checks passed (retained fixtures: {toggle_fixture})")
+query_fixture = toggle_fixture / "query"
+query_fixture.mkdir()
+for name, content in {
+    "timeout": """[ "$1" = 3s ]
+shift
+exec "$@"
+""",
+    "systemctl": """[ "$*" = "--user start waybar-gammarelay.service" ]
+printf 'start\\n' >> "$CALL_LOG"
+exit "$START_STATUS"
+""",
+    "busctl": """[ "$*" = "--user --timeout=3 get-property rs.wl-gammarelay / rs.wl.gammarelay Temperature" ]
+printf 'read\\n' >> "$CALL_LOG"
+[ "$CURRENT" != fail ] || exit 1
+printf 'q %s\\n' "$CURRENT"
+""",
+}.items():
+    command = query_fixture / name
+    command.write_text("#!/bin/sh\nset -eu\n" + content)
+    command.chmod(0o700)
+query_script = repo_dir / "dot_config/waybar/scripts/executable_temperature.sh"
+subprocess.run(["/bin/sh", "-n", str(query_script)], check=True)
+for index, (current, start_status, expected_status, output, calls) in enumerate((
+    ("4500", 0, 0, "4500\n", "start\nread\n"),
+    ("6500", 0, 0, "6500\n", "start\nread\n"),
+    ("fail", 0, 1, "", "start\nread\n"),
+    ("4500", 1, 1, "", "start\n"),
+    ("4500", 124, 124, "", "start\n"),
+)):
+    call_log = query_fixture / f"call-{index}"
+    result = subprocess.run(
+        ["/bin/sh", str(query_script)],
+        env={**os.environ, "PATH": str(query_fixture), "CURRENT": current,
+             "CALL_LOG": str(call_log), "START_STATUS": str(start_status)},
+        capture_output=True, text=True, timeout=5,
+    )
+    if result.returncode != expected_status or result.stdout != output:
+        raise SystemExit(f"unexpected temperature query result: {result}")
+    if call_log.read_text() != calls:
+        raise SystemExit("temperature query did not start its service before reading")
+print("temperature query checks passed")
 if temperature["format"] != " {}K" or "#custom-temperature {" not in waybar:
     raise SystemExit("Waybar temperature display or style is missing")
 launcher_config = waybar_modules.split('"custom/applauncher": {', 1)[1].split("}", 1)[0]

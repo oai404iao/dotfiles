@@ -186,14 +186,16 @@ to toggle between 6500K and 4500K. Clicking at any value other than 6500K
 returns to 6500K. It adjusts all connected displays; the displayed value is
 their average if their temperatures differ. Hardware brightness is unchanged.
 
-Waybar starts the user unit `waybar-gammarelay.service` before running
-`wl-gammarelay-rs watch '{t}'`. The unit waits for D-Bus ownership, so watchers
-cannot become the server: unplugging a monitor or reloading its bar must not
-terminate gamma control for the remaining displays. No Niri startup entry or
-`systemctl enable` is needed; the service stops with the graphical session.
+Waybar polls the temperature over D-Bus every two seconds. Its helper starts
+the user unit `waybar-gammarelay.service` before reading the value, with a
+three-second timeout for each command. Finite queries avoid the continuous
+custom-module teardown race observed with Waybar 0.15.0 during monitor
+disconnects. The unit waits for D-Bus ownership and owns gamma control
+independently of the bars. No Niri startup entry or `systemctl enable` is
+needed; the service stops with the graphical session.
 The module is hidden when its dependencies are missing. After applying the
 unit, run `systemctl --user daemon-reload` and reload Waybar. Event commands do
-not restart the watcher, and a failed watcher is retried after two seconds.
+not trigger extra queries; a failed query is retried at the next interval.
 
 Temperature is session-local, not persisted: restarting the service
 resets it to 6500K. Do not run wlsunset, gammastep, or another gamma controller
