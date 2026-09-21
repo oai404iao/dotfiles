@@ -195,7 +195,57 @@ env -i HOME="$fake_home" XDG_CONFIG_HOME="$fake_config" \
         [[ $NVM_TEST_LOADED = 1 ]]
     '
 
-grep -qF 'shell/nvm.sh' "$repo_dir/dot_config/bash/rc.d/50-node.bash"
-grep -qF 'shell/nvm.sh' "$repo_dir/dot_config/zsh/rc.d/50-node.zsh"
+for old_loader in bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
+    [ ! -e "$repo_dir/dot_config/$old_loader" ]
+    grep -qxF ".config/$old_loader" "$repo_dir/.chezmoiremove"
+done
+if grep -rF 'shell/nvm.sh' "$repo_dir/dot_config/bash" "$repo_dir/dot_config/zsh"; then
+    printf '%s\n' "nvm must not be loaded automatically" >&2
+    exit 1
+fi
+
+mkdir -p "$fake_data/pnpm/bin" "$fake_data/nvm/versions/node/v24/bin"
+for tool_dir in "$fake_data/pnpm/bin" "$fake_data/nvm/versions/node/v24/bin"; do
+    printf '#!/bin/sh\nexit 0\n' >"$tool_dir/node"
+    chmod +x "$tool_dir/node"
+done
+for interpreter in sh bash zsh; do
+    env -i HOME="$fake_home" XDG_CONFIG_HOME="$fake_config" \
+        XDG_DATA_HOME="$fake_data" XDG_STATE_HOME="$fake_state" \
+        NVM_DIR="$fake_data/nvm" NVM_BIN="$fake_data/nvm/versions/node/v24/bin" \
+        NVM_INC="$fake_data/nvm/versions/node/v24/include/node" \
+        PATH="$fake_data/nvm/versions/node/v24/bin:$fake_data/pnpm/bin:/usr/bin:/bin:" \
+        TOOLCHAINS="$repo_dir/dot_config/shell/toolchains.sh" \
+        "$interpreter" -c '
+            . "$TOOLCHAINS"
+            [ "$(command -v node)" = "$PNPM_HOME/bin/node" ] || exit 1
+            [ -z "${NVM_BIN+x}${NVM_INC+x}" ] || exit 1
+            case "$PATH" in *"$NVM_DIR"*) exit 1 ;; esac
+            case "$PATH" in *:) ;; *) exit 1 ;; esac
+            original_path=$PATH
+            . "$TOOLCHAINS"
+            [ "$PATH" = "$original_path" ]
+        '
+done
+
+mkdir -p "$fake_config/zsh"
+cp "$repo_dir/dot_zshenv" "$fake_home/.zshenv"
+cp "$repo_dir/dot_config/zsh/dot_zshenv" "$fake_config/zsh/.zshenv"
+cp "$repo_dir/dot_config/shell/toolchains.sh" "$fake_config/shell/toolchains.sh"
+for zsh_mode in -c -ic; do
+    env -i HOME="$fake_home" XDG_CONFIG_HOME="$fake_config" \
+        XDG_DATA_HOME="$fake_data" XDG_STATE_HOME="$fake_state" \
+        ZDOTDIR="$fake_config/zsh" NVM_DIR="$fake_data/nvm" \
+        PATH="$fake_data/nvm/versions/node/v24/bin:$fake_data/pnpm/bin:/usr/bin:/bin" \
+        zsh "$zsh_mode" '
+            [[ "$(command -v node)" = "$PNPM_HOME/bin/node" ]] || exit 1
+            [[ "$PATH" != *"$NVM_DIR"* ]] || exit 1
+            export EXPECTED_PATH=$PATH
+            exec zsh -c '"'"'
+                [[ "$(command -v node)" = "$PNPM_HOME/bin/node" ]] || exit 1
+                [[ "$PATH" = "$EXPECTED_PATH" ]]
+            '"'"'
+        '
+done
 
 printf '%s\n' "shell toolchain config passed"

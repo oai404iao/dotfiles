@@ -1,0 +1,2 @@
+# An inherited ZDOTDIR bypasses the home entrypoint unless we delegate to it.
+[[ -r "$HOME/.zshenv" ]] && source "$HOME/.zshenv"

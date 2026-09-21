@@ -149,6 +149,30 @@ font configuration also expects Fontconfig plus the Adwaita, Noto, Noto CJK,
 Noto Symbols, Noto Color Emoji, and JetBrains Mono Nerd Font families; the
 corresponding Arch packages are listed in [docs/desktop.md](docs/desktop.md).
 
+### User-level Node.js
+
+Install pnpm 12 separately (for example, `pnpm-bin` from the AUR), then use
+the shared shell environment and install the user runtime without `sudo`:
+
+```sh
+. "${XDG_CONFIG_HOME:-$HOME/.config}/shell/toolchains.sh"
+pnpm runtime set node 24 -g
+pnpm add -g npm@11
+```
+
+pnpm itself remains system-package-managed; Node.js and npm/npx live under
+`PNPM_HOME` (default: `~/.local/share/pnpm`). Chezmoi manages the environment,
+not the downloaded runtimes or global packages.
+
+When migrating, back up the existing `shell/toolchains.sh` and
+`bash/rc.d/50-node.bash` / `zsh/rc.d/50-node.zsh` under `~/.config` before a
+targeted apply. `.chezmoiremove` removes the two nvm autoloaders; new shells
+also discard inherited nvm runtime paths. The nvm installation and its global
+packages remain untouched. For a temporary fallback, manually source
+`${XDG_CONFIG_HOME:-$HOME/.config}/shell/nvm.sh` in an interactive shell.
+Open a new terminal after applying and verify `command -v node npm pnpm`:
+Node/npm should resolve under `$PNPM_HOME/bin`, and pnpm to the system package.
+
 ## Bootstrap a New Machine
 
 ### 1. Initialize without applying

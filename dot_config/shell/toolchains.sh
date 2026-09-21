@@ -83,6 +83,28 @@ if [ -n "${JAVA_HOME-}" ]; then
     export JAVA_HOME
 fi
 
+# New shells must not inherit an old nvm runtime ahead of pnpm's user bins.
+toolchain_remaining=${PATH-}
+toolchain_path=
+toolchain_separator=
+while :; do
+    toolchain_entry=${toolchain_remaining%%:*}
+    case "$toolchain_entry" in
+        "$NVM_DIR"/versions/node/*/bin | "$NVM_DIR"/versions/io.js/*/bin | "$NVM_DIR"/bin) ;;
+        *)
+            toolchain_path="$toolchain_path$toolchain_separator$toolchain_entry"
+            toolchain_separator=:
+            ;;
+    esac
+    case "$toolchain_remaining" in
+        *:*) toolchain_remaining=${toolchain_remaining#*:} ;;
+        *) break ;;
+    esac
+done
+PATH=$toolchain_path
+unset toolchain_remaining toolchain_path toolchain_separator toolchain_entry
+unset NVM_BIN NVM_INC
+
 for tool_bin in \
     "${JAVA_HOME:+$JAVA_HOME/bin}" \
     "$PNPM_HOME" \

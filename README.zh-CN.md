@@ -134,6 +134,29 @@ Fontconfig，以及 Adwaita、Noto、Noto CJK、Noto Symbols、Noto Color Emoji
 和 JetBrains Mono Nerd Font 字体族；对应的 Arch 软件包见
 [docs/desktop.md](docs/desktop.md)。
 
+### 用户级 Node.js
+
+单独安装 pnpm 12（例如 AUR 的 `pnpm-bin`），然后加载共享 Shell 环境，
+无需 `sudo` 即可安装用户级运行时：
+
+```sh
+. "${XDG_CONFIG_HOME:-$HOME/.config}/shell/toolchains.sh"
+pnpm runtime set node 24 -g
+pnpm add -g npm@11
+```
+
+pnpm 本体仍由系统包管理器维护；Node.js 和 npm/npx 位于 `PNPM_HOME`
+（默认 `~/.local/share/pnpm`）下。Chezmoi 只管理环境配置，不管理下载的
+运行时或全局包。
+
+迁移时，先备份 `~/.config` 下已有的 `shell/toolchains.sh`、
+`bash/rc.d/50-node.bash` / `zsh/rc.d/50-node.zsh`，再定向 apply。
+`.chezmoiremove` 会移除两个 nvm 自动加载模块；新 Shell 也会移除继承的
+nvm 运行时 PATH。nvm 安装及其全局包保持不变。需要临时回退时，在交互式
+Shell 中手动 source `${XDG_CONFIG_HOME:-$HOME/.config}/shell/nvm.sh`。
+应用后打开新终端，用 `command -v node npm pnpm` 检查：Node/npm 应指向
+`$PNPM_HOME/bin`，pnpm 应指向系统包。
+
 ## 在新机器上初始化
 
 ### 1. 只初始化，不立即应用
