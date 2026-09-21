@@ -50,7 +50,7 @@ mkdir -p \
 
     . "$repo_dir/dot_config/shell/toolchains.sh"
 
-    [ "$NVM_DIR" = "$fake_data/nvm" ]
+    [ -z "${NVM_DIR+x}" ]
     [ "$NPM_CONFIG_CACHE" = "$fake_cache/npm" ]
     [ "$NPM_CONFIG_USERCONFIG" = "$fake_config/npm/npmrc" ]
     [ "$NODE_REPL_HISTORY" = "$fake_state/node_repl_history" ]
@@ -91,8 +91,8 @@ mkdir -p \
     XDG_CACHE_HOME="$fake_cache"
     XDG_DATA_HOME="$fake_data"
     XDG_STATE_HOME="$fake_state"
-    PATH="/usr/bin:/bin"
     NVM_DIR="$test_root/custom-nvm"
+    PATH="$NVM_DIR/versions/node/v24/bin:/usr/bin:/bin"
     MAVEN_ARGS="-B -Dmaven.repo.local=$test_root/custom-maven"
     _JAVA_OPTIONS="-Xmx1g -Djava.util.prefs.userRoot=$test_root/custom-java"
     export HOME XDG_CONFIG_HOME XDG_CACHE_HOME XDG_DATA_HOME XDG_STATE_HOME PATH
@@ -100,7 +100,8 @@ mkdir -p \
 
     . "$repo_dir/dot_config/shell/toolchains.sh"
 
-    [ "$NVM_DIR" = "$test_root/custom-nvm" ]
+    [ -z "${NVM_DIR+x}" ]
+    case "$PATH" in *"$test_root/custom-nvm"*) exit 1 ;; esac
     [ "$MAVEN_ARGS" = "-B -Dmaven.repo.local=$test_root/custom-maven --settings $fake_config/maven/settings.xml" ]
     [ "$_JAVA_OPTIONS" = "-Xmx1g -Djava.util.prefs.userRoot=$test_root/custom-java" ]
 )
@@ -165,37 +166,47 @@ done
 grep -qxF '.local/share/dsh/' "$repo_dir/.chezmoiignore"
 grep -qxF '.dsh/' "$repo_dir/.chezmoiignore"
 
-mkdir -p "$fake_data/nvm"
-cat >"$fake_data/nvm/nvm.sh" <<'EOF'
-NVM_ALIAS_LINE=stable
-NVM_ALIAS_LINE="${NVM_ALIAS_LINE%%#*}"
-NVM_TEST_LOADED=1
-export NVM_TEST_LOADED
+if command -v chezmoi >/dev/null 2>&1; then
+    fixture_source="$test_root/source"
+    mkdir -p "$fixture_source/dot_config"
+    cp "$repo_dir/.chezmoiignore" "$repo_dir/.chezmoiremove" \
+        "$repo_dir/dot_bash_profile" "$repo_dir/dot_bashrc" \
+        "$repo_dir/dot_zshenv" "$fixture_source/"
+    cp -R "$repo_dir/dot_config/bash" "$repo_dir/dot_config/zsh" \
+        "$repo_dir/dot_config/shell" "$fixture_source/dot_config/"
+    for shell_choice in bash zsh; do
+        shell_home="$test_root/deploy-$shell_choice"
+        mkdir -p "$shell_home/.config/shell" \
+            "$shell_home/.config/bash/rc.d" "$shell_home/.config/zsh/rc.d"
+        for old_loader in shell/nvm.sh bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
+            : >"$shell_home/.config/$old_loader"
+        done
+        cat >"$test_root/$shell_choice.toml" <<EOF
+mode = "file"
+[data]
+shell = "$shell_choice"
+graphical = false
+niri = false
 EOF
+        chezmoi --config "$test_root/$shell_choice.toml" \
+            --source "$fixture_source" --destination "$shell_home" \
+            --cache "$test_root/chezmoi-cache" \
+            --persistent-state "$test_root/$shell_choice-state.boltdb" \
+            apply --exclude scripts,encrypted \
+            "$shell_home/.bash_profile" "$shell_home/.bashrc" \
+            "$shell_home/.zshenv" "$shell_home/.config/bash" \
+            "$shell_home/.config/zsh" "$shell_home/.config/shell"
+        for target in .bash_profile .bashrc .zshenv \
+            .config/bash/rc.d/10-options.bash .config/zsh/.zshrc; do
+            [ -f "$shell_home/$target" ]
+        done
+        for old_loader in shell/nvm.sh bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
+            [ ! -e "$shell_home/.config/$old_loader" ]
+        done
+    done
+fi
 
-(
-    HOME="$fake_home"
-    XDG_DATA_HOME="$fake_data"
-    NVM_DIR="$fake_data/nvm"
-    export HOME XDG_DATA_HOME NVM_DIR
-
-    . "$repo_dir/dot_config/shell/nvm.sh"
-    [ "$NVM_TEST_LOADED" = 1 ]
-)
-
-env -i HOME="$fake_home" XDG_CONFIG_HOME="$fake_config" \
-    XDG_DATA_HOME="$fake_data" XDG_STATE_HOME="$fake_state" \
-    NVM_DIR="$fake_data/nvm" \
-    PATH="/usr/bin:/bin" \
-    OPTIONS="$repo_dir/dot_config/zsh/rc.d/10-options.zsh" \
-    NVM_PROFILE="$repo_dir/dot_config/shell/nvm.sh" \
-    zsh -f -c '
-        source "$OPTIONS"
-        source "$NVM_PROFILE"
-        [[ $NVM_TEST_LOADED = 1 ]]
-    '
-
-for old_loader in bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
+for old_loader in bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh shell/nvm.sh; do
     [ ! -e "$repo_dir/dot_config/$old_loader" ]
     grep -qxF ".config/$old_loader" "$repo_dir/.chezmoiremove"
 done
@@ -219,8 +230,8 @@ for interpreter in sh bash zsh; do
         "$interpreter" -c '
             . "$TOOLCHAINS"
             [ "$(command -v node)" = "$PNPM_HOME/bin/node" ] || exit 1
-            [ -z "${NVM_BIN+x}${NVM_INC+x}" ] || exit 1
-            case "$PATH" in *"$NVM_DIR"*) exit 1 ;; esac
+            [ -z "${NVM_DIR+x}${NVM_BIN+x}${NVM_INC+x}" ] || exit 1
+            case "$PATH" in *"$XDG_DATA_HOME/nvm"*) exit 1 ;; esac
             case "$PATH" in *:) ;; *) exit 1 ;; esac
             original_path=$PATH
             . "$TOOLCHAINS"
@@ -239,7 +250,8 @@ for zsh_mode in -c -ic; do
         PATH="$fake_data/nvm/versions/node/v24/bin:$fake_data/pnpm/bin:/usr/bin:/bin" \
         zsh "$zsh_mode" '
             [[ "$(command -v node)" = "$PNPM_HOME/bin/node" ]] || exit 1
-            [[ "$PATH" != *"$NVM_DIR"* ]] || exit 1
+            [[ -z "${NVM_DIR+x}" ]] || exit 1
+            [[ "$PATH" != *"$XDG_DATA_HOME/nvm"* ]] || exit 1
             export EXPECTED_PATH=$PATH
             exec zsh -c '"'"'
                 [[ "$(command -v node)" = "$PNPM_HOME/bin/node" ]] || exit 1

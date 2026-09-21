@@ -106,7 +106,7 @@ Telegram 扩展自身不支持解析命令，因此 chezmoi 会将 Bitwarden 中
 | 键 | 可选值 | 作用 |
 |---|---|---|
 | `role` | `desktop`、`laptop`、`server` | 机器角色元数据 |
-| `shell` | `zsh`、`bash` | 选择一套 Shell 专属配置 |
+| `shell` | `zsh`、`bash` | 记录 Shell 偏好；两套配置均部署，不修改登录 Shell |
 | `graphical` | 布尔值 | 启用图形应用配置 |
 | `niri` | 布尔值 | 启用 Niri、Waybar 及 swayidle 所有权转移 |
 | `niriOutputProfile` | `auto`、命名档案 | 选择渲染后的显示器配置 |
@@ -149,11 +149,16 @@ pnpm 本体仍由系统包管理器维护；Node.js 和 npm/npx 位于 `PNPM_HOM
 （默认 `~/.local/share/pnpm`）下。Chezmoi 只管理环境配置，不管理下载的
 运行时或全局包。
 
-迁移时，先备份 `~/.config` 下已有的 `shell/toolchains.sh`、
-`bash/rc.d/50-node.bash` / `zsh/rc.d/50-node.zsh`，再定向 apply。
-`.chezmoiremove` 会移除两个 nvm 自动加载模块；新 Shell 也会移除继承的
-nvm 运行时 PATH。nvm 安装及其全局包保持不变。需要临时回退时，在交互式
-Shell 中手动 source `${XDG_CONFIG_HOME:-$HOME/.config}/shell/nvm.sh`。
+Bash 和 zsh 配置均纳入管理，不受 `shell` 偏好影响。定向 apply 前，
+备份已有的 `~/.bash_profile`、`~/.bashrc`、`~/.zshenv`、
+`~/.config/bash` 和 `~/.config/zsh`。将废弃的 `~/.zshrc` 移入备份；
+zsh 现在读取 `~/.config/zsh/.zshrc`。
+
+从 nvm 迁移时，还应备份 `~/.config` 下的 `shell/toolchains.sh`、
+`shell/nvm.sh` 和 `bash/rc.d/50-node.bash` / `zsh/rc.d/50-node.zsh`。
+`.chezmoiremove` 会移除 nvm 加载脚本；新 Shell 会清除继承的 nvm 运行时
+PATH 和变量。Chezmoi 不会卸载 nvm 或其中的全局包：先迁移仍需使用的工具，
+再单独卸载系统 nvm 包，并将其用户运行时目录移至回收站。
 应用后打开新终端，用 `command -v node npm pnpm` 检查：Node/npm 应指向
 `$PNPM_HOME/bin`，pnpm 应指向系统包。
 

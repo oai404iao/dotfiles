@@ -1,2 +1,3 @@
 .config/bash/rc.d/50-node.bash
 .config/zsh/rc.d/50-node.zsh
+.config/shell/nvm.sh

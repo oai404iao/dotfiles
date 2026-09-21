@@ -118,7 +118,7 @@ config:
 | Key | Values | Effect |
 |---|---|---|
 | `role` | `desktop`, `laptop`, `server` | Machine role metadata |
-| `shell` | `zsh`, `bash` | Selects one shell-specific tree |
+| `shell` | `zsh`, `bash` | Records shell preference; both configurations are deployed, without changing the login shell |
 | `graphical` | boolean | Enables graphical application configuration |
 | `niri` | boolean | Enables Niri, Waybar, and swayidle ownership transfer |
 | `niriOutputProfile` | `auto`, named profile | Selects rendered output config |
@@ -164,12 +164,17 @@ pnpm itself remains system-package-managed; Node.js and npm/npx live under
 `PNPM_HOME` (default: `~/.local/share/pnpm`). Chezmoi manages the environment,
 not the downloaded runtimes or global packages.
 
-When migrating, back up the existing `shell/toolchains.sh` and
-`bash/rc.d/50-node.bash` / `zsh/rc.d/50-node.zsh` under `~/.config` before a
-targeted apply. `.chezmoiremove` removes the two nvm autoloaders; new shells
-also discard inherited nvm runtime paths. The nvm installation and its global
-packages remain untouched. For a temporary fallback, manually source
-`${XDG_CONFIG_HOME:-$HOME/.config}/shell/nvm.sh` in an interactive shell.
+Both Bash and zsh configurations are managed, regardless of the `shell`
+preference. Back up existing `~/.bash_profile`, `~/.bashrc`, `~/.zshenv`,
+`~/.config/bash`, and `~/.config/zsh` before a targeted apply. Move an obsolete
+`~/.zshrc` into the backup; zsh now reads `~/.config/zsh/.zshrc`.
+
+When migrating from nvm, also back up `shell/toolchains.sh`, `shell/nvm.sh`,
+and `bash/rc.d/50-node.bash` / `zsh/rc.d/50-node.zsh` under `~/.config`.
+`.chezmoiremove` removes the nvm loaders; new shells discard inherited nvm
+runtime paths and variables. Chezmoi does not uninstall nvm or its global
+packages: migrate any needed tools before separately removing the system nvm
+package and trashing its user runtime directory.
 Open a new terminal after applying and verify `command -v node npm pnpm`:
 Node/npm should resolve under `$PNPM_HOME/bin`, and pnpm to the system package.
 

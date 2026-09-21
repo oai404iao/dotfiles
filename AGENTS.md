@@ -84,7 +84,7 @@ checking the resulting target path and mode with `chezmoi target-path` and
 `chezmoi status`.
 
 Machine-local data comes from `.chezmoi.toml.tmpl`. Conditional deployment is
-implemented in `.chezmoiignore`; currently `shell`, `graphical`, `niri`, and
+implemented in `.chezmoiignore`; currently `graphical`, `niri`, and
 `niriOutputProfile` materially affect rendered targets. Prefer capability
 flags over hostname checks.
 
@@ -161,8 +161,9 @@ Git source state
 
 ### Shell Selection
 
-`.chezmoiignore` deploys exactly one shell-specific tree while retaining
-`dot_config/shell/profile.sh` as the shared public environment. Do not move
+Both Bash and zsh trees are deployed; `shell` records a preference and does
+not change the login shell. Keep `dot_config/shell/profile.sh` as the shared
+public environment. Do not move
 shell-specific completion, options, bindings, or prompts into the shared
 profile, and do not retrieve secrets during shell startup.
 

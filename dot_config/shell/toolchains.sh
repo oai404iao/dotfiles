@@ -10,7 +10,6 @@ export XDG_CACHE_HOME
 export XDG_DATA_HOME
 export XDG_STATE_HOME
 
-: "${NVM_DIR:=$XDG_DATA_HOME/nvm}"
 : "${NPM_CONFIG_CACHE:=$XDG_CACHE_HOME/npm}"
 : "${NPM_CONFIG_USERCONFIG:=$XDG_CONFIG_HOME/npm/npmrc}"
 : "${NODE_REPL_HISTORY:=$XDG_STATE_HOME/node_repl_history}"
@@ -59,7 +58,6 @@ fi
 : "${NUGET_HTTP_CACHE_PATH:=$XDG_CACHE_HOME/nuget/http-cache}"
 : "${NUGET_PLUGINS_CACHE_PATH:=$XDG_CACHE_HOME/nuget/plugins-cache}"
 
-export NVM_DIR
 export NPM_CONFIG_CACHE
 export NPM_CONFIG_USERCONFIG
 export NODE_REPL_HISTORY
@@ -84,13 +82,14 @@ if [ -n "${JAVA_HOME-}" ]; then
 fi
 
 # New shells must not inherit an old nvm runtime ahead of pnpm's user bins.
+toolchain_nvm_dir="${NVM_DIR:-$XDG_DATA_HOME/nvm}"
 toolchain_remaining=${PATH-}
 toolchain_path=
 toolchain_separator=
 while :; do
     toolchain_entry=${toolchain_remaining%%:*}
     case "$toolchain_entry" in
-        "$NVM_DIR"/versions/node/*/bin | "$NVM_DIR"/versions/io.js/*/bin | "$NVM_DIR"/bin) ;;
+        "$toolchain_nvm_dir"/versions/node/*/bin | "$toolchain_nvm_dir"/versions/io.js/*/bin | "$toolchain_nvm_dir"/bin) ;;
         *)
             toolchain_path="$toolchain_path$toolchain_separator$toolchain_entry"
             toolchain_separator=:
@@ -102,8 +101,8 @@ while :; do
     esac
 done
 PATH=$toolchain_path
-unset toolchain_remaining toolchain_path toolchain_separator toolchain_entry
-unset NVM_BIN NVM_INC
+unset toolchain_nvm_dir toolchain_remaining toolchain_path toolchain_separator toolchain_entry
+unset NVM_DIR NVM_BIN NVM_INC
 
 for tool_bin in \
     "${JAVA_HOME:+$JAVA_HOME/bin}" \

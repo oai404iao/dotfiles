@@ -92,17 +92,6 @@ secrets/
 .config/pi/agent/workflows/model-tiers.json
 .config/pi/agent/workflows/projects/
 
-{{- if ne .shell "zsh" }}
-.zshenv
-.config/zsh/
-{{- end }}
-
-{{- if ne .shell "bash" }}
-.bash_profile
-.bashrc
-.config/bash/
-{{- end }}
-
 {{- if not .graphical }}
 .gtkrc-2.0
 .config/environment.d/im.conf
