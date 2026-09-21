@@ -28,6 +28,8 @@ The following generated or mutable data is deliberately not managed:
 
 Package declarations in `settings.json` remain the source of truth for
 reinstalling Pi packages. npm packages are pinned to their adopted versions.
+The pinned extensions require Pi 0.86.1 or newer and Node.js 22.19 or newer.
+Upgrade the system-managed Pi package before applying these declarations.
 The enabled local package still requires this checkout at its rendered path:
 
 - `~/Dev/local/omp/pi-extensions/pi-tree-continue`
