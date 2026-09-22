@@ -57,6 +57,7 @@ fi
 
 "$repo_dir/tests/check-safe-rm.sh"
 "$repo_dir/tests/check-pi.sh"
+"$repo_dir/tests/check-tavily.sh"
 "$repo_dir/tests/check-skills.sh"
 "$repo_dir/tests/check-ssh.sh"
 "$repo_dir/tests/check-desktop.sh"

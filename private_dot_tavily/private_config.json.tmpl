@@ -1,0 +1,4 @@
+{{- $apiKey := (rbw "pi tavily api key").data.password -}}
+{
+  "api_key": {{ $apiKey | toJson }}
+}

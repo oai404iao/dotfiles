@@ -16,6 +16,18 @@
         "frontend-design",
         "git-branch-development-workflow"
       ]
+    },
+    {
+      "source": "tavily-ai/skills",
+      "skills": [
+        "tavily-cli",
+        "tavily-search",
+        "tavily-extract",
+        "tavily-map",
+        "tavily-crawl",
+        "tavily-research",
+        "tavily-dynamic-search"
+      ]
     }
   ]
 }

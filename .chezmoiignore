@@ -28,6 +28,9 @@ secrets/
 .local/share/chezmoi/
 .local/state/chezmoi/
 
+# Tavily CLI session state; api_key is rendered into config.json instead.
+.tavily/session.json
+
 # Retained agent scratch work is machine-local mutable state.
 .local/state/agents/tmp/
 

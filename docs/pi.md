@@ -149,3 +149,33 @@ chezmoi apply ~/.config/pi/agent
 
 Pi's `auth.json` remains unmanaged so `/login` can safely maintain OAuth
 credentials without chezmoi overwriting them.
+
+## Web search
+
+Pi reaches the web by running the `tvly` command through its normal bash tool,
+guided by the Tavily Agent Skills. Install the CLI outside chezmoi:
+
+```sh
+uv tool install tavily-cli
+```
+
+The skills are declared in `scripts/skills.json` and installed with
+`scripts/install-skills.py`; see [Global skills](skills.md). Do not run a bare
+`tvly init`, which installs its own bundled copies of the same skills and would
+give `~/.agents/skills/` a second owner. Pi discovers that directory natively
+and needs a restart before newly installed skills are available.
+
+The CLI cannot interpolate a command reference, so chezmoi renders
+`~/.tavily/config.json` from the Bitwarden entry `pi tavily api key`:
+
+```sh
+rbw unlock
+chezmoi apply ~/.tavily/config.json
+```
+
+`tvly` reads the `api_key` field of that file; `TAVILY_API_KEY` in the
+environment would take precedence over it. Search and extract also work
+keyless, while `map`, `crawl`, and `research` require the credential.
+`tvly login`, `tvly logout`, and other CLI state live under `~/.tavily/`;
+`session.json` is ignored, and a later apply restores the managed key.
+Verify with `tvly auth --json` and a single `tvly search`.
