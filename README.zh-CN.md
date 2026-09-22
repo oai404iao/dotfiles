@@ -30,7 +30,8 @@
   `~/.agents/skills/` 下的下载内容不纳入本仓库。
 - OpenSSH 使用经 age 加密的公钥选择器与主机元数据，客户端私钥由
   Bitwarden 中的 `rbw-agent` 使用；Git 身份元数据同样经过加密。
-- 递归 `rm` 会转移到桌面回收站，并拒绝操作受保护的 XDG 与 Pi 根目录。
+- 可选的 `safeRm` 项会把递归 `rm` 转移到桌面回收站，并拒绝操作受保护的
+  XDG 与 Pi 根目录。
 
 ## 仓库结构
 
@@ -49,7 +50,7 @@
 │   ├── waypaper/            # 壁纸集成
 │   └── private_pi/agent/    # 使用私有权限的 Pi 声明式配置
 ├── private_dot_ssh/         # 通用 SSH 策略与加密清单
-├── dot_local/bin/           # 用户命令，包括安全 rm 包装器
+├── dot_local/bin/           # 用户命令，包括可选的安全 rm 包装器
 ├── scripts/                 # 仅供源码侧使用的 age identity 工具
 ├── tests/                   # 离线源码与渲染检查
 ├── docs/                    # 各组件操作说明
@@ -127,7 +128,7 @@ sudo pacman -S --needed git chezmoi age rbw openssh python bash zsh glib2
 完整源码验证需要 Bash 和 Zsh；实际运行时只需要所选的 Shell。还需确保已安装
 `neovim` 和 `less`。Pi 与 Node.js 需要单独安装。图形环境依赖见
 [docs/desktop.md](docs/desktop.md)；本仓库不提供系统级软件包引导安装。
-`glib2` 提供安全 rm 包装器及其测试所需的 `gio` 命令。
+`glib2` 提供安全 rm 测试所需的 `gio` 命令；启用 `safeRm` 后包装器也依赖它。
 
 宿主机必须已经生成 `en_US.UTF-8` 与 `zh_CN.UTF-8`。图形字体配置还需要
 Fontconfig，以及 Adwaita、Noto、Noto CJK、Noto Symbols、Noto Color Emoji
@@ -286,7 +287,7 @@ fc-match monospace
 chezmoi status --skip-secrets --exclude=encrypted
 ```
 
-预期的 `rm` 路径是 `~/.local/bin/rm`。
+启用 `safeRm` 时预期的 `rm` 路径是 `~/.local/bin/rm`，否则为 `/usr/bin/rm`。
 
 ## 日常工作流
 
@@ -316,7 +317,7 @@ chezmoi add ~/.config/example/config
 ## 详细文档
 
 - [桌面配置所有权与依赖](docs/desktop.md)
-- [可恢复的递归删除](docs/deletion-safety.md)
+- [可选的递归删除保护](docs/deletion-safety.md)
 - [Pi 配置与凭据](docs/pi.md)
 - [SSH identity 与 rbw-agent](docs/ssh.md)
 - [公开仓库安全流程](docs/publication.md)

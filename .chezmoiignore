@@ -6,6 +6,10 @@
 {{- if hasKey . "sshInboundIdentity" -}}
 {{-   $sshInboundIdentity = .sshInboundIdentity -}}
 {{- end -}}
+{{- $safeRm := false -}}
+{{- if hasKey . "safeRm" -}}
+{{-   $safeRm = .safeRm -}}
+{{- end -}}
 README.md
 README.zh-CN.md
 AGENTS.md
@@ -91,6 +95,11 @@ secrets/
 .config/pi/agent/extensions/pi-permission-system/logs/
 .config/pi/agent/workflows/model-tiers.json
 .config/pi/agent/workflows/projects/
+
+# Optional recoverable recursive-removal wrapper.
+{{- if not $safeRm }}
+.local/bin/rm
+{{- end }}
 
 {{- if not .graphical }}
 .gtkrc-2.0

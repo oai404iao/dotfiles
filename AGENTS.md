@@ -32,7 +32,7 @@ Treat the repository as public and respect the ownership boundaries below.
 |   |-- waypaper/            # Wallpaper state bootstrap and theme hook
 |   `-- private_pi/agent/    # Private-mode declarative Pi configuration
 |-- dot_local/bin/
-|   `-- executable_rm        # Recoverable recursive-removal wrapper
+|   `-- executable_rm        # Optional recoverable recursive-removal wrapper
 |-- run_once_before_disable-swayidle-service.sh.tmpl
 |                            # Transfers swayidle ownership to Niri once
 |-- scripts/                 # Source-only age identity backup/restore helpers
@@ -84,9 +84,9 @@ checking the resulting target path and mode with `chezmoi target-path` and
 `chezmoi status`.
 
 Machine-local data comes from `.chezmoi.toml.tmpl`. Conditional deployment is
-implemented in `.chezmoiignore`; currently `graphical`, `niri`, and
-`niriOutputProfile` materially affect rendered targets. Prefer capability
-flags over hostname checks.
+implemented in `.chezmoiignore`; currently `graphical`, `niri`,
+`niriOutputProfile`, and `safeRm` materially affect rendered targets. Prefer
+capability flags over hostname checks.
 
 ## Build, Test & Development Commands
 
@@ -234,9 +234,10 @@ in `.chezmoi.toml.tmpl` and the output template, then run `check-niri.sh`.
 
 ### Recoverable Removal
 
-`dot_local/bin/executable_rm` delegates non-recursive removal to
-`/usr/bin/rm`, but recursive removal must pass full preflight and use GIO Trash.
-Do not weaken protected-root checks or add a permanent-delete fallback.
+`dot_local/bin/executable_rm` is an opt-in target gated by the `safeRm`
+machine key and is not applied by default. It delegates non-recursive removal
+to `/usr/bin/rm`, but recursive removal must pass full preflight and use GIO
+Trash. Do not weaken protected-root checks or add a permanent-delete fallback.
 Pass relative operands to GIO with an explicit `./` prefix so URI-shaped
 filenames retain local filesystem semantics.
 Keep direct execution pinned to the declared system commands; dependency
@@ -394,7 +395,7 @@ not replace trusted commit review.
 | SSH rendering assertions | `tests/check-ssh.sh` |
 | Publication gates | `docs/publication.md`, `tests/check-public.sh` |
 | Niri output profiles | `dot_config/niri/conf.d/20-outputs.kdl.tmpl` |
-| Safe recursive removal | `dot_local/bin/executable_rm` |
+| Optional safe recursive removal (`safeRm`) | `dot_local/bin/executable_rm` |
 | Age identity helpers | `scripts/backup-age-identity.sh`, `scripts/restore-age-identity.sh` |
 
 ## Code Style

@@ -37,8 +37,8 @@ credentials and mutable application state out of Git.
 - OpenSSH uses age-encrypted public selectors and host metadata while
   `rbw-agent` keeps private client keys in Bitwarden; Git identity metadata is
   encrypted as well.
-- Recursive `rm` is redirected to the desktop Trash and rejects protected XDG
-  and Pi roots.
+- The optional `safeRm` opt-in redirects recursive `rm` to the desktop Trash
+  and rejects protected XDG and Pi roots.
 
 ## Repository Layout
 
@@ -57,7 +57,7 @@ credentials and mutable application state out of Git.
 │   ├── waypaper/            # Wallpaper integration
 │   └── private_pi/agent/    # Private-mode declarative Pi configuration
 ├── private_dot_ssh/         # Generic SSH policy and encrypted inventory
-├── dot_local/bin/           # User commands, including the safe rm wrapper
+├── dot_local/bin/           # User commands, including the optional safe rm wrapper
 ├── scripts/                 # Source-only age identity helpers
 ├── tests/                   # Offline source and rendering checks
 ├── docs/                    # Component-specific operating notes
@@ -142,7 +142,7 @@ shell is needed at runtime. `neovim` and `less` are expected to be installed.
 Pi and Node.js are installed separately. Graphical dependencies are listed in
 [docs/desktop.md](docs/desktop.md); this repository does not provide a
 system-wide package bootstrap. `glib2` supplies the `gio` command used by the
-safe-rm wrapper and its test.
+safe-rm test and, when `safeRm` is enabled, by the wrapper.
 
 Both `en_US.UTF-8` and `zh_CN.UTF-8` must be generated on the host. Graphical
 font configuration also expects Fontconfig plus the Adwaita, Noto, Noto CJK,
@@ -308,7 +308,8 @@ fc-match monospace
 chezmoi status --skip-secrets --exclude=encrypted
 ```
 
-The expected `rm` path is `~/.local/bin/rm`.
+The expected `rm` path is `~/.local/bin/rm` when `safeRm` is enabled and
+`/usr/bin/rm` otherwise.
 
 ## Daily Workflow
 
@@ -338,7 +339,7 @@ secrets belong in `.chezmoiignore` or the appropriate external secret backend.
 ## Documentation
 
 - [Desktop ownership and dependencies](docs/desktop.md)
-- [Recoverable recursive deletion](docs/deletion-safety.md)
+- [Optional recoverable recursive deletion](docs/deletion-safety.md)
 - [Pi configuration and credentials](docs/pi.md)
 - [SSH identities and rbw-agent](docs/ssh.md)
 - [Public repository safety](docs/publication.md)

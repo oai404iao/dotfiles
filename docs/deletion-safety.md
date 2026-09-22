@@ -1,8 +1,13 @@
 # Recoverable recursive removal
 
-`~/.local/bin/rm` is a user-level guard for accidental recursive deletion.
-Because `~/.local/bin` is kept at the front of `PATH`, it also covers normal
-non-interactive shell scripts and Pi shell commands that invoke `rm` by name.
+`~/.local/bin/rm` is an optional user-level guard for accidental recursive
+deletion. It is deployed only when the machine data key `safeRm` is `true`;
+the default is `false`, so a machine without that opt-in keeps the system
+`/usr/bin/rm` as `rm`.
+
+When enabled, `~/.local/bin` is kept at the front of `PATH`, so the wrapper
+also covers normal non-interactive shell scripts and Pi shell commands that
+invoke `rm` by name.
 
 The wrapper behaves as follows:
 
@@ -34,15 +39,33 @@ gio trash --list
 gio trash --restore trash:///ITEM
 ```
 
-After the first apply, start a new shell or clear its command cache:
+## Enabling or disabling
+
+`chezmoi init` records `safeRm` with a default of `false`. On an already
+initialized machine, add the key with `chezmoi edit-config` instead of
+rerunning `chezmoi init`: a missing key is treated as `false`, and the first
+chezmoi command after a template change prints a one-time
+`config file template has changed` warning. Set `safeRm = true` in the
+`[data]` table, then apply the explicit target and refresh the shell command
+cache:
 
 ```sh
+chezmoi apply ~/.local/bin/rm
 hash -r 2>/dev/null || true
 rehash 2>/dev/null || true
 command -v rm
 ```
 
-The expected path is `~/.local/bin/rm`.
+The expected path is `~/.local/bin/rm`. Setting `safeRm = false` stops
+chezmoi managing the target but leaves an existing `~/.local/bin/rm` in place,
+because chezmoi does not delete targets that become ignored. Remove it
+explicitly and clear the shell cache:
+
+```sh
+/usr/bin/rm ~/.local/bin/rm
+hash -r 2>/dev/null || true
+rehash 2>/dev/null || true
+```
 
 ## Validation isolation
 

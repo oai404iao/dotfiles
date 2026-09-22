@@ -16,6 +16,7 @@
 {{- $sshAgent := promptBoolOnce . "sshAgent" "Use rbw SSH agent" (ne $role "server") -}}
 {{- $sshInboundIdentities := list "none" "private" "uni" -}}
 {{- $sshInboundIdentity := promptChoiceOnce . "sshInboundIdentity" "SSH authorized_keys identity" $sshInboundIdentities "none" -}}
+{{- $safeRm := promptBoolOnce . "safeRm" "Use recoverable rm wrapper" false -}}
 
 encryption = "age"
 mode = "file"
@@ -47,4 +48,5 @@ mode = "file"
     work = {{ $work }}
     sshAgent = {{ $sshAgent }}
     sshInboundIdentity = {{ $sshInboundIdentity | quote }}
+    safeRm = {{ $safeRm }}
     secretBackend = "rbw"

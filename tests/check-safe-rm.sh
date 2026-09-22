@@ -59,6 +59,24 @@ assert_equal() {
     fi
 }
 
+# The wrapper is opt-in, so the default machine state must not deploy it.
+/usr/bin/grep -qxF -- '{{- $safeRm := false -}}' \
+    "$repo_dir/.chezmoiignore" ||
+    test_fail "safeRm does not default to false in .chezmoiignore"
+safe_rm_ignore_block=$(
+    /usr/bin/sed -n '/{{- if not \$safeRm }}/,/{{- end }}/p' \
+        "$repo_dir/.chezmoiignore"
+)
+/usr/bin/grep -qxF -- '.local/bin/rm' <<<"$safe_rm_ignore_block" ||
+    test_fail "the safe-rm target is not ignored when safeRm is off"
+/usr/bin/grep -Fq -- \
+    'promptBoolOnce . "safeRm" "Use recoverable rm wrapper" false' \
+    "$repo_dir/.chezmoi.toml.tmpl" ||
+    test_fail "safeRm must default to false in the machine-data template"
+/usr/bin/grep -qF -- 'safeRm = {{ $safeRm }}' \
+    "$repo_dir/.chezmoi.toml.tmpl" ||
+    test_fail "safeRm is missing from the rendered machine data"
+
 fake_home="$sandbox/home"
 fake_config="$fake_home/.config"
 fake_cache="$fake_home/.cache"
