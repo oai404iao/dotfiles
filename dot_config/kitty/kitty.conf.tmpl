@@ -9,11 +9,18 @@ cursor_trail 1
 cursor_shape block
 shell_integration no-cursor
 
+{{ if and (get . "graphical") (get . "niri") (eq (get . "desktopShell" | default "custom") "dms") -}}
+include dank-theme.conf
+include dank-tabs.conf
+# Keep semantic terminal colors stable while DMS updates the wallpaper palette.
+include dms-ansi.conf
+{{ else -}}
 # Matugen owns this create-only fallback after the first theme generation.
 # BEGIN_KITTY_THEME
 # Matugen
 include current-theme.conf
 # END_KITTY_THEME
+{{ end }}
 
 kitty_mod ctrl+shift
 map kitty_mod+enter launch --cwd=current

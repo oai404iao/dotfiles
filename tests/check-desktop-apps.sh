@@ -19,8 +19,19 @@ import xml.etree.ElementTree as ET
 repo = pathlib.Path(sys.argv[1])
 
 def modify(relative, text):
+    path = repo / relative
+    if not path.exists() and path.with_name(path.name + ".tmpl").exists():
+        script = subprocess.run(
+            ["chezmoi", "--config", "/dev/null", "--config-format", "toml",
+             "--source", str(repo), "--override-data", '{"desktopShell":"custom"}',
+             "execute-template", "--file", str(path) + ".tmpl"],
+            text=True, capture_output=True, check=True,
+        ).stdout
+        command = [sys.executable, "-c", script]
+    else:
+        command = [str(path)]
     return subprocess.run(
-        [str(repo / relative)], input=text, text=True, capture_output=True, check=True
+        command, input=text, text=True, capture_output=True, check=True
     ).stdout
 
 btop = "dot_config/btop/modify_btop.conf"
@@ -134,7 +145,12 @@ for version in ("3.0", "4.0"):
             assert custom in updated
 
 gtk3_settings = configparser.ConfigParser()
-gtk3_settings.read(repo / "dot_config/gtk-3.0/settings.ini")
+gtk3_settings.read_string(subprocess.run(
+    ["chezmoi", "--config", "/dev/null", "--config-format", "toml",
+     "--source", str(repo), "--override-data", '{"desktopShell":"custom"}',
+     "execute-template", "--file", str(repo / "dot_config/gtk-3.0/settings.ini.tmpl")],
+    capture_output=True, text=True, check=True,
+).stdout)
 assert gtk3_settings["Settings"]["gtk-theme-name"] == "adw-gtk3-dark"
 assert gtk3_settings["Settings"].getboolean("gtk-application-prefer-dark-theme")
 

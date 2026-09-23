@@ -4,10 +4,12 @@
 {{- $shell := promptChoiceOnce . "shell" "Default shell" $shells "zsh" -}}
 {{- $graphical := promptBoolOnce . "graphical" "Graphical machine" true -}}
 {{- $niri := false -}}
+{{- $desktopShell := "custom" -}}
 {{- $niriOutputProfile := "auto" -}}
 {{- if $graphical -}}
 {{-   $niri = promptBoolOnce . "niri" "Use niri" true -}}
 {{-   if $niri -}}
+{{-     $desktopShell = promptChoiceOnce . "desktopShell" "Desktop shell: DMS or custom components" (list "dms" "custom") "custom" -}}
 {{-     $outputProfiles := list "auto" "laptop-dual-1080p" "desktop-single-4k" -}}
 {{-     $niriOutputProfile = promptChoiceOnce . "niriOutputProfile" "Niri output profile" $outputProfiles "auto" -}}
 {{-   end -}}
@@ -44,6 +46,7 @@ mode = "file"
     shell = {{ $shell | quote }}
     graphical = {{ $graphical }}
     niri = {{ $niri }}
+    desktopShell = {{ $desktopShell | quote }}
     niriOutputProfile = {{ $niriOutputProfile | quote }}
     work = {{ $work }}
     sshAgent = {{ $sshAgent }}

@@ -19,7 +19,7 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-binds_file="$repo_dir/dot_config/niri/conf.d/60-binds.kdl"
+binds_file="$repo_dir/.chezmoitemplates/niri-binds.kdl"
 while IFS='|' read -r expected_bind action; do
     if ! grep -Fqx "    $expected_bind" "$binds_file"; then
         printf 'missing beginner hotkey overlay entry: %s\n' "$expected_bind" >&2

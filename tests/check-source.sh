@@ -62,6 +62,7 @@ fi
 "$repo_dir/tests/check-ssh.sh"
 "$repo_dir/tests/check-desktop.sh"
 "$repo_dir/tests/check-desktop-apps.sh"
+"$repo_dir/tests/check-desktop-profiles.sh"
 "$repo_dir/tests/check-keyring.sh"
 
 printf '%s\n' "source checks passed"

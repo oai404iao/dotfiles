@@ -124,7 +124,17 @@ if aliases != expected_aliases:
 
 for gtk_version in ("3.0", "4.0"):
     settings = configparser.ConfigParser(interpolation=None)
-    settings.read(repo_dir / f"dot_config/gtk-{gtk_version}/settings.ini")
+    path = repo_dir / f"dot_config/gtk-{gtk_version}/settings.ini"
+    if gtk_version == "3.0":
+        rendered = subprocess.run(
+            ["chezmoi", "--config", "/dev/null", "--config-format", "toml",
+             "--source", str(repo_dir), "--override-data", '{"desktopShell":"custom"}',
+             "execute-template", "--file", str(path) + ".tmpl"],
+            capture_output=True, text=True, check=True,
+        ).stdout
+        settings.read_string(rendered)
+    else:
+        settings.read(path)
     if settings.get("Settings", "gtk-font-name") != "Adwaita Sans 11":
         raise SystemExit(f"unexpected GTK {gtk_version} font")
 

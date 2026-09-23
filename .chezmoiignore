@@ -7,6 +7,10 @@
 {{-   $sshInboundIdentity = .sshInboundIdentity -}}
 {{- end -}}
 {{- $safeRm := false -}}
+{{- $desktopShell := get . "desktopShell" | default "custom" -}}
+{{- if not (has $desktopShell (list "custom" "dms")) -}}
+{{-   fail "desktopShell must be custom or dms" -}}
+{{- end -}}
 {{- if hasKey . "safeRm" -}}
 {{-   $safeRm = .safeRm -}}
 {{- end -}}
@@ -46,6 +50,28 @@ secrets/
 .config/fcitx5/conf/cached_layouts
 .local/share/fcitx5/rime/
 .config/btop/btop.log*
+
+# DMS owns mutable preferences, clipboard data, plugins, and generated themes.
+.cache/DankMaterialShell/
+.local/state/DankMaterialShell/
+.local/share/DankMaterialShell/
+.config/DankMaterialShell/.firstlaunch
+.config/DankMaterialShell/clsettings.json
+.config/DankMaterialShell/plugin_settings.json
+.config/DankMaterialShell/plugins*
+.config/DankMaterialShell/.repos/
+.config/DankMaterialShell/themes/
+.config/DankMaterialShell/backups/
+.config/DankMaterialShell/session.json
+.config/DankMaterialShell/cache.json
+.config/DankMaterialShell/appusage.json
+.config/DankMaterialShell/launcher_cache.json
+.config/DankMaterialShell/notification_history.json
+.config/quickshell/
+.config/matugen/dms/
+.config/qt6ct/colors/
+.local/share/fcitx5/themes/dms/
+.config/niri/dms/*.bak*
 
 # Skill payloads and CLI lock state are owned by npx skills.
 .agents/skills/
@@ -123,6 +149,35 @@ secrets/
 .config/waypaper/
 .local/share/applications/shardx-launcher.desktop
 .local/share/fcitx5/themes/Matugen/
+{{- end }}
+
+{{- if and .graphical .niri (eq $desktopShell "dms") }}
+.config/fuzzel/
+.config/mako/
+.config/waybar/
+.config/waypaper/
+.config/matugen/
+.config/swaylock/
+.config/systemd/user/waybar-gammarelay.service
+.config/niri/conf.d/20-outputs.kdl
+.config/niri/conf.d/60-binds.kdl
+.config/niri/scripts/
+.config/niri/colors.kdl
+.config/kitty/current-theme.conf
+.config/kitty/themes/matugen.conf
+.config/gtk-3.0/colors.css
+.config/gtk-4.0/colors.css
+.config/gtk-4.0/nautilus.css
+.local/share/fcitx5/themes/Matugen/
+{{- else }}
+.config/DankMaterialShell/
+.config/niri/dms/
+.config/kitty/dank-theme.conf
+.config/kitty/dank-tabs.conf
+.config/kitty/dms-ansi.conf
+.config/gtk-3.0/dank-colors.css
+.config/gtk-4.0/dank-colors.css
+.config/qt6ct/qt6ct.conf
 {{- end }}
 
 {{- if not (and .graphical .niri) }}

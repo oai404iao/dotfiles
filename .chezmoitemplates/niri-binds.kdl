@@ -1,18 +1,38 @@
+{{- $dms := eq (get . "desktopShell" | default "custom") "dms" -}}
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
+{{ if $dms }}
+    XF86AudioRaiseVolume allow-when-locked=true { spawn "dms" "ipc" "call" "audio" "increment" "10"; }
+    XF86AudioLowerVolume allow-when-locked=true { spawn "dms" "ipc" "call" "audio" "decrement" "10"; }
+    XF86AudioMute allow-when-locked=true { spawn "dms" "ipc" "call" "audio" "mute"; }
+    XF86AudioMicMute allow-when-locked=true { spawn "dms" "ipc" "call" "audio" "micmute"; }
+{{ else }}
     XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"; }
     XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"; }
     XF86AudioMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }
     XF86AudioMicMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"; }
+{{ end }}
 
+{{ if $dms }}
+    XF86AudioPlay allow-when-locked=true { spawn "dms" "ipc" "call" "mpris" "playPause"; }
+    XF86AudioStop allow-when-locked=true { spawn "dms" "ipc" "call" "mpris" "stop"; }
+    XF86AudioPrev allow-when-locked=true { spawn "dms" "ipc" "call" "mpris" "previous"; }
+    XF86AudioNext allow-when-locked=true { spawn "dms" "ipc" "call" "mpris" "next"; }
+{{ else }}
     XF86AudioPlay allow-when-locked=true { spawn "playerctl" "play-pause"; }
     XF86AudioStop allow-when-locked=true { spawn "playerctl" "stop"; }
     XF86AudioPrev allow-when-locked=true { spawn "playerctl" "previous"; }
     XF86AudioNext allow-when-locked=true { spawn "playerctl" "next"; }
+{{ end }}
 
+{{ if $dms }}
+    XF86MonBrightnessUp allow-when-locked=true { spawn "dms" "ipc" "call" "brightness" "increment" "10" ""; }
+    XF86MonBrightnessDown allow-when-locked=true { spawn "dms" "ipc" "call" "brightness" "decrement" "10" ""; }
+{{ else }}
     XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+10%"; }
     XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "10%-"; }
+{{ end }}
 
     Mod+O repeat=false { toggle-overview; }
     Mod+Q repeat=false { close-window; }
@@ -115,11 +135,23 @@ binds {
 
     // Additional custom overlay entries follow bind order; keep launchers after the learning shortcuts.
     Mod+T hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }
+{{ if $dms }}
+    Mod+D hotkey-overlay-title="Run an Application: DMS" { spawn "dms" "ipc" "call" "spotlight" "toggle"; }
+    Alt+Space hotkey-overlay-title="Run an Application: DMS" { spawn "dms" "ipc" "call" "spotlight" "toggle"; }
+    Super+Alt+L hotkey-overlay-title="Lock and Turn Off Monitors" { spawn "dms" "ipc" "call" "lock" "lockAndOutputsOff"; }
+    Mod+F2 hotkey-overlay-title="DMS Settings" { spawn "dms" "ipc" "call" "settings" "focusOrToggle"; }
+    Mod+Alt+V hotkey-overlay-title="DMS Clipboard" { spawn "dms" "ipc" "call" "clipboard" "toggle"; }
+    Mod+N hotkey-overlay-title="Notifications" { spawn "dms" "ipc" "call" "notifications" "toggle"; }
+    Mod+Y hotkey-overlay-title="Wallpapers" { spawn "dms" "ipc" "call" "dankdash" "wallpaper"; }
+    Mod+Alt+N hotkey-overlay-title="Night Mode" { spawn "dms" "ipc" "call" "night" "toggle"; }
+    Mod+Alt+M hotkey-overlay-title="Task Manager" { spawn "dms" "ipc" "call" "processlist" "focusOrToggle"; }
+{{ else }}
     Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
     Alt+Space hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
     Super+Alt+L hotkey-overlay-title="Lock and Turn Off Monitors" { spawn-sh "swaylock -f && sleep 0.2 && niri msg action power-off-monitors"; }
     Mod+F2 hotkey-overlay-title="Reload Waybar" { spawn-sh "pkill -SIGUSR2 -x waybar || waybar"; }
     Mod+Alt+V hotkey-overlay-title="Toggle CopyQ" { spawn "copyq" "toggle"; }
+{{ end }}
 
     Mod+R { switch-preset-column-width; }
     Mod+Shift+R { switch-preset-column-width-back; }
@@ -142,12 +174,23 @@ binds {
     Mod+Shift+V { switch-focus-between-floating-and-tiling; }
     Mod+W { toggle-column-tabbed-display; }
 
+{{ if $dms }}
+    Print { spawn "dms" "screenshot"; }
+    Ctrl+Print { spawn "dms" "screenshot" "full"; }
+    Alt+Print { spawn "dms" "screenshot" "window"; }
+{{ else }}
     Print { spawn-sh "${XDG_CONFIG_HOME:-$HOME/.config}/niri/scripts/edit-screenshot.sh"; }
     Ctrl+Print { screenshot-screen; }
     Alt+Print { screenshot-window; }
+{{ end }}
 
     Mod+Escape allow-inhibiting=false { toggle-keyboard-shortcuts-inhibit; }
+{{ if $dms }}
+    Mod+Shift+E { spawn "dms" "ipc" "call" "powermenu" "toggle"; }
+    Ctrl+Alt+Delete { spawn "dms" "ipc" "call" "powermenu" "toggle"; }
+{{ else }}
     Mod+Shift+E { quit; }
     Ctrl+Alt+Delete { quit; }
+{{ end }}
     Mod+Shift+P { power-off-monitors; }
 }

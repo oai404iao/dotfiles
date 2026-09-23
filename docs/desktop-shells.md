@@ -1,0 +1,217 @@
+# Desktop shell profiles
+
+Niri supports two complete desktop stacks:
+
+| Responsibility | `custom` | `dms` |
+| --- | --- | --- |
+| Bar / launcher / notifications | Waybar / Fuzzel / Mako | DMS |
+| Wallpaper / palette orchestration | awww / Waypaper / user Matugen templates | DMS wallpaper and built-in Matugen templates |
+| Clipboard history | CopyQ | DMS native clipboard (no cliphist watcher) |
+| Idle / lock / sleep integration | swayidle / swaylock-effects | DMS |
+| Color temperature | waybar-gammarelay.service | DMS night mode |
+| Screenshot shortcuts | Niri / Satty helper | DMS screenshot |
+| Power / resource UI | Waybar actions / wlogout | DMS power menu / dgop |
+
+DMS still depends on Quickshell, Matugen for generated palettes, and system
+services such as PipeWire, NetworkManager, and BlueZ. It replaces the desktop
+frontends and their coordination, not those underlying services. Niri, Kitty,
+Fcitx5, fonts, locale, portals, and GNOME Keyring remain shared.
+
+## Selection and packages
+
+On a new machine, `chezmoi init` asks for **Desktop shell: DMS or custom
+components** when both `graphical` and `niri` are enabled. The default is
+`custom`; older machine configurations without `desktopShell` also retain
+custom. Invalid values fail rendering. Outside Niri, the DMS profile is inactive.
+
+On an initialized machine, use `chezmoi edit-config` to set the following
+under the existing `[data]` section. Do not rerun init to silence its warning:
+
+```toml
+graphical = true
+niri = true
+desktopShell = "dms" # or "custom"
+```
+
+The DMS integration was checked against Arch's DMS 1.6.2 and Niri 26.04.
+Install separately; inspect any system upgrade transaction before accepting:
+
+```sh
+sudo pacman -Syu --needed dms-shell-niri dgop matugen wtype qt6ct \
+  adw-gtk-theme adwaita-icon-theme
+```
+
+Quickshell and accountsservice are pulled in as dependencies. Existing shared
+desktop dependencies still apply. Cava and qt6-multimedia enable visualization
+and sound feedback. See [custom dependencies](desktop.md#runtime-dependencies)
+for the other profile. Keeping both package sets installed is supported.
+
+Do not run DankInstall or `dms setup --force` over this configuration. Chezmoi
+already supplies the compositor integration. DMS starts **only** through
+`spawn-at-startup "dms" "run"`; do not also enable `dms.service`.
+
+## Configuration ownership
+
+- Chezmoi owns Niri's main include graph, common input/window rules, profile
+  startup, Kitty includes, GTK imports, and the Fcitx5 theme selector.
+- `~/.config/DankMaterialShell/settings.json` is **create-only**. Its initial
+  settings enable wallpaper-based colors, native clipboard paste, Adwaita
+  Sans, and the idle policy below. Existing settings are never reset by apply.
+  Pre-seeding this file bypasses DMS's first-launch wizard; open Settings normally.
+- `~/.config/niri/dms/{binds,outputs,layout,cursor,colors,alttab,windowrules}.kdl`
+  are create-only. DMS owns subsequent edits. Output selection and familiar
+  window bindings are seeded from the same templates as custom mode. DMS
+  Settings can reassign/remove bindings without leaving a second copy active.
+  Input configuration remains in the common `conf.d/10-input.kdl`.
+- Kitty's `dank-theme.conf` / `dank-tabs.conf` and GTK's `dank-colors.css`
+  receive create-only fallbacks; DMS generates subsequent palettes. DMS mode
+  does not import the custom Nautilus CSS or force GTK's dark preference.
+  Reopen GTK applications after changing palettes if they do not refresh.
+- The initial dynamic palette uses Matugen's `scheme-neutral`: wallpaper hue
+  remains, with less saturated accents and backgrounds. Terminals stay dark
+  even when the shell switches to light mode. Kitty includes the declarative
+  `dms-ansi.conf` after DMS's generated files for soft, stable ANSI colors;
+  foreground, background, selection, tabs, and links still follow DMS. This
+  does not enable the legacy user Matugen templates. Existing DMS installations
+  can select **Neutral** and **Terminals - Always use Dark Theme** in Settings;
+  the create-only seed does not reset their preferences.
+- Qt6ct's configuration is create-only, initially selecting its generated
+  `colors/matugen.conf` palette and the installed `Adwaita` icon theme. Without
+  an icon theme, Qt can fall back to `hicolor`, where Fcitx5's
+  `input-keyboard-symbolic` is missing (a purple/black placeholder in the tray).
+  If a Qt6ct config already exists, select that palette, enable custom colors,
+  and choose Adwaita icons in Qt6ct manually. DMS's Niri environment selects
+  `QT_QPA_PLATFORMTHEME=qt6ct`. After changing the icon theme, run `dms restart`
+  while unlocked: an existing Quickshell process can retain its old icon
+  lookup state even when a newly launched Qt application finds the icons.
+- Fcitx5 selects DMS's generated `dms` theme, without taking over input schemes
+  or dictionaries. Its first palette is generated by DMS at runtime.
+- DMS uses its **built-in** Matugen templates. `runUserMatugenTemplates=false`
+  prevents old user templates from updating/reloading Waybar, Mako, swaylock,
+  etc. Keep it disabled while the legacy `~/.config/matugen/config.toml`
+  remains. The existing repository's `[config.wallpaper]` has `set=false`;
+  it does not launch awww when DMS reads that config. Review additional
+  machine-local `~/.config/matugen/dms/configs/` templates separately: DMS can
+  execute these even when user templates are disabled.
+- Custom-only files become ignored in DMS mode, not deleted. CopyQ history
+  remains untouched and is not imported into DMS. DMS clipboard data,
+  notifications, night-mode/wallpaper session state, plugins, and caches stay
+  machine-local; never recursively add these directories to chezmoi.
+
+If DMS was already configured before adopting this profile, review its current
+settings instead of forcing the create-only seed. In particular, check
+`runUserMatugenTemplates`, idle/lock settings, and any custom power commands.
+
+### Idle and lock defaults
+
+On AC and battery: lock after 300 seconds idle, then use DMS's 30-second
+post-lock display-off timer. Independent unlocked display-off and automatic
+suspend timers are disabled. Lock-before-suspend and loginctl integration are
+enabled; the pre-lock fade/grace period is disabled.
+
+The lock-and-display-off shortcut calls DMS's `lockAndOutputsOff`, which waits
+for its session lock before powering displays off, rather than chaining
+asynchronous shell commands. Authentication and suspend/resume still require
+an interactive check on the real machine; offline config validation cannot
+prove successful PAM authentication. Do not run two lockers or idle daemons.
+
+Night mode is owned entirely by DMS. `Mod+Alt+N` toggles it; its default warm
+temperature is 4500 K. Schedule and temperature choices live in DMS's mutable
+session state, not in the declarative settings seed. Do not run gammarelay,
+gammastep, or another gamma controller alongside it.
+
+### Initial DMS shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| `Mod+D`, `Alt+Space` | Launcher |
+| `Mod+F2` | Settings |
+| `Mod+Alt+V` | Clipboard |
+| `Mod+N` | Notification center |
+| `Mod+Y` | Wallpaper selection |
+| `Mod+Alt+N` | Night mode |
+| `Mod+Alt+M` | Task manager |
+| `Super+Alt+L` | Lock and turn off displays |
+| `Mod+Shift+E`, `Ctrl+Alt+Delete` | Power menu |
+| `Print`, `Ctrl+Print`, `Alt+Print` | Region, focused output, focused window screenshot |
+| Volume, microphone, brightness, media keys | DMS controls / OSD |
+
+Niri movement, workspace, column, and floating shortcuts retain their original
+keys. In particular, `Mod+V`, `Mod+M`, and `Mod+Comma` are not repurposed.
+
+## Switch an existing machine
+
+1. Save work and **log out of Niri**, then use a TTY for the transition.
+   Niri reloads configuration immediately, but `spawn-at-startup` is not rerun
+   on reload. Applying mid-session would mix new bindings with old processes.
+2. Review `systemctl --user list-unit-files` and
+   `~/.config/autostart/` for independent DMS, Waybar, Mako, CopyQ, awww,
+   Waypaper, or swayidle startup. Disable only reviewed conflicting entries.
+   In particular, remove previously enabled `dms.service` or
+   `niri.service.wants/swayidle.service` startup; this repository owns startup
+   through Niri. Stop any surviving `waybar-gammarelay.service` before DMS
+   takes gamma control. Ignoring its unit file does not stop a running service.
+3. Back up `~/.config/chezmoi/chezmoi.toml` and each pre-existing target below
+   into a private, retained machine-local directory before changing ownership.
+   Include custom component configs when switching back; do not copy clipboard
+   histories or other personal state into the repository.
+4. Set `desktopShell` deliberately via `chezmoi edit-config`.
+5. Preview and apply **only** the selected desktop targets. For DMS:
+
+   ```sh
+   chezmoi diff --recursive --skip-secrets --exclude=encrypted \
+     ~/.config/niri ~/.config/kitty ~/.config/gtk-3.0 ~/.config/gtk-4.0 \
+     ~/.config/fcitx5/conf/classicui.conf \
+     ~/.config/DankMaterialShell/settings.json ~/.config/qt6ct/qt6ct.conf
+
+   chezmoi apply --exclude=scripts,encrypted \
+     ~/.config/niri ~/.config/kitty ~/.config/gtk-3.0 ~/.config/gtk-4.0 \
+     ~/.config/fcitx5/conf/classicui.conf \
+     ~/.config/DankMaterialShell/settings.json ~/.config/qt6ct/qt6ct.conf
+   ```
+
+   Existing DMS settings can contain personal paths; inspect that target locally,
+   not in shared logs. Create missing target parent directories first if chezmoi
+   reports an absent parent for an explicit file target.
+6. Run `niri validate --config ~/.config/niri/config.kdl`, then start a fresh
+   `niri-session`. Do not start DMS manually as well.
+7. Open Settings and select a wallpaper. Test notifications, clipboard paste,
+   audio/brightness, night mode, and application palettes. Test lock/unlock
+   before leaving the machine unattended, then test suspend/resume separately.
+
+### Return to custom
+
+Follow the same logout/backup/review procedure and set `desktopShell="custom"`.
+Apply the common targets above **without** the DMS and Qt6ct targets, plus:
+
+```sh
+chezmoi apply --exclude=scripts,encrypted \
+  ~/.config/fuzzel ~/.config/mako ~/.config/waybar ~/.config/waypaper \
+  ~/.config/matugen ~/.config/swaylock \
+  ~/.config/systemd/user/waybar-gammarelay.service \
+  ~/.local/share/fcitx5/themes/Matugen
+```
+
+Review their targeted diff before applying. Run `systemctl --user daemon-reload`
+after restoring the gamma unit. Disable independent DMS autostart if previously
+enabled, and ensure DMS is stopped before logging into custom.
+Reapply a wallpaper through Waypaper to regenerate custom colors; `create_`
+fallbacks deliberately do not overwrite old generated palettes. DMS-generated
+files can stay on disk: custom no longer includes them. No packages or histories
+need to be deleted, and DMS GUI preferences survive the round trip.
+
+## Validation
+
+`tests/check-desktop-profiles.sh` renders both shells across every output
+profile, validates Niri, checks init choices, legacy/default and headless
+behavior, verifies GTK import switching and create-only preservation, and
+excludes runtime state. It does not start DMS, lock the screen, change services,
+or access the real credential backend.
+
+Run `./tests/check-source.sh` and `git diff --check` before applying.
+
+References:
+[installation](https://danklinux.com/docs/dankmaterialshell/installation),
+[Niri integration](https://danklinux.com/docs/dankmaterialshell/compositors),
+[application themes](https://danklinux.com/docs/dankmaterialshell/application-themes),
+and [DMS v1.6.2 source](https://github.com/AvengeMedia/DankMaterialShell/tree/v1.6.2).

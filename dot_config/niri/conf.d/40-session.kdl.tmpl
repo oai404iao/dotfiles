@@ -1,8 +1,16 @@
+{{ if eq (get . "desktopShell" | default "custom") "dms" -}}
+spawn-at-startup "dms" "run"
+
+environment {
+    QT_QPA_PLATFORMTHEME "qt6ct"
+}
+{{ else -}}
 spawn-at-startup "waybar"
 spawn-at-startup "mako"
 spawn-at-startup "awww-daemon"
 spawn-at-startup "copyq"
 spawn-at-startup "swayidle" "-w" "timeout" "300" "swaylock -f" "timeout" "330" "niri msg action power-off-monitors" "resume" "niri msg action power-on-monitors" "before-sleep" "swaylock -f"
+{{ end }}
 
 hotkey-overlay {}
 

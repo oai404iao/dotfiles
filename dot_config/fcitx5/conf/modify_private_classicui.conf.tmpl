@@ -5,7 +5,7 @@ import sys
 managed = {
     "Font": '"Adwaita Sans 11"',
     "MenuFont": '"Adwaita Sans 11"',
-    "Theme": "Matugen",
+    "Theme": "{{ if and (get . "graphical") (get . "niri") (eq (get . "desktopShell" | default "custom") "dms") }}dms{{ else }}Matugen{{ end }}",
     "UseDarkTheme": "False",
     "UseAccentColor": "False",
     "ForceWaylandDPI": "0",

@@ -19,6 +19,8 @@
   状态栏使用其 Nerd Font Propo 变体以对齐图标；Noto 字体提供 CJK、符号与
   Emoji 回退。
 - Niri 使用模块化配置和可选择的显示器配置档案。
+- Niri 桌面可在 init 时选择完整的 `dms` 或现有 `custom` 组件组合。
+  [方案切换与所有权说明](docs/desktop-shells.md)涵盖 GUI 偏好的保留和两套启动流程的隔离。
 - Niri 设备上的 GNOME Keyring D-Bus 激活统一使用软件包提供的 systemd
   用户服务；[密钥环数据及备份只留在本机](docs/desktop.md#desktop-keyring)。
 - 为 Matugen 与 Waypaper 提供初始状态，同时避免后续 apply 覆盖应用生成值。
@@ -111,7 +113,8 @@ Telegram 扩展自身不支持解析命令，因此 chezmoi 会将 Bitwarden 中
 | `role` | `desktop`、`laptop`、`server` | 机器角色元数据 |
 | `shell` | `zsh`、`bash` | 记录 Shell 偏好；两套配置均部署，不修改登录 Shell |
 | `graphical` | 布尔值 | 启用图形应用配置 |
-| `niri` | 布尔值 | 启用 Niri、Waybar 及 swayidle 所有权转移 |
+| `niri` | 布尔值 | 启用 Niri 及桌面会话所有权管理 |
+| `desktopShell` | `custom`、`dms` | 选择 Niri 桌面方案；未设置时保留 `custom` |
 | `niriOutputProfile` | `auto`、命名档案 | 选择渲染后的显示器配置 |
 | `work` | 布尔值 | 工作设备元数据 |
 | `sshAgent` | 布尔值 | 启用 rbw SSH 客户端和公钥选择器 |
@@ -319,6 +322,7 @@ chezmoi add ~/.config/example/config
 ## 详细文档
 
 - [桌面配置所有权与依赖](docs/desktop.md)
+- [DMS/custom 桌面方案与切换](docs/desktop-shells.md)
 - [可选的递归删除保护](docs/deletion-safety.md)
 - [Pi 配置与凭据](docs/pi.md)
 - [SSH identity 与 rbw-agent](docs/ssh.md)

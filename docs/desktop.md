@@ -1,5 +1,12 @@
 # Desktop configuration
 
+Niri machines select `desktopShell = "custom"` or `"dms"` during init.
+Missing values retain the custom stack. See
+[desktop shell profiles](desktop-shells.md) for DMS dependencies, ownership,
+keybindings, and the explicit migration/rollback procedure. The Waybar,
+Waypaper, Mako, swaylock, and Matugen pipeline below describes **custom**;
+fonts, locale, portals, and keyring remain shared.
+
 The desktop profile is intentionally split by ownership:
 
 - chezmoi owns hand-written Kitty, Fuzzel, Mako, Waybar, Matugen, and Niri
@@ -339,6 +346,10 @@ Kitty scrollback integration also expects
 `desktop-single-4k` profile matches the P275MV by its monitor identity rather
 than its connector name and selects 3840x2160 at 120 Hz with 1.5 scaling.
 
+In DMS mode this profile seeds `~/.config/niri/dms/outputs.kdl` only once;
+subsequent output edits belong to DMS Settings. The procedure below applies
+to custom mode.
+
 For an already initialized machine, run `chezmoi edit-config`, set
 `niriOutputProfile = "desktop-single-4k"` under `[data]`, then apply only the
 reviewed output target:
@@ -358,5 +369,5 @@ fc-match 'monospace:charset=4e2d'
 fuzzel --check-config
 matugen --dry-run image /path/to/wallpaper
 niri validate --config ~/.config/niri/config.kdl
-chezmoi diff --skip-secrets
+chezmoi diff --skip-secrets --exclude=encrypted ~/.config/niri
 ```

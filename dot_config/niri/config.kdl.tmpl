@@ -1,0 +1,38 @@
+// Managed by chezmoi. Included files are ordered by responsibility.
+
+include "conf.d/10-input.kdl"
+{{ if eq (get . "desktopShell" | default "custom") "dms" -}}
+include "dms/outputs.kdl"
+{{ else -}}
+include "conf.d/20-outputs.kdl"
+{{ end -}}
+include "conf.d/30-layout.kdl"
+include "conf.d/40-session.kdl"
+include "conf.d/50-rules.kdl"
+{{ if eq (get . "desktopShell" | default "custom") "dms" -}}
+include "dms/colors.kdl"
+include "dms/layout.kdl"
+include "dms/cursor.kdl"
+include "dms/alttab.kdl"
+include "dms/binds.kdl"
+include "dms/windowrules.kdl"
+
+layout {
+    background-color "transparent"
+}
+
+layer-rule {
+    match namespace="^quickshell$"
+    place-within-backdrop true
+}
+
+layer-rule {
+    match namespace="^dms:blurwallpaper$"
+    place-within-backdrop true
+}
+{{ else -}}
+include "conf.d/60-binds.kdl"
+include "colors.kdl"
+{{ end }}
+
+prefer-no-csd

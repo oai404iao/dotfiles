@@ -23,6 +23,9 @@ credentials and mutable application state out of Git.
   Mono, and the status bar uses its Nerd Font Propo variant for icon alignment; Noto fonts
   provide CJK, symbol, and emoji fallback.
 - Niri uses modular configuration and selectable output profiles.
+- Niri desktops choose a complete `dms` shell or the existing `custom`
+  component stack during init. [Profile switching and ownership](docs/desktop-shells.md)
+  preserve GUI preferences and keep the two startup paths separate.
 - On Niri machines, GNOME Keyring D-Bus activation uses the packaged systemd
   user service; [keyring data and backups stay machine-local](docs/desktop.md#desktop-keyring).
 - Matugen and Waypaper generated state is bootstrapped without being reset on
@@ -122,7 +125,8 @@ config:
 | `role` | `desktop`, `laptop`, `server` | Machine role metadata |
 | `shell` | `zsh`, `bash` | Records shell preference; both configurations are deployed, without changing the login shell |
 | `graphical` | boolean | Enables graphical application configuration |
-| `niri` | boolean | Enables Niri, Waybar, and swayidle ownership transfer |
+| `niri` | boolean | Enables Niri and desktop session ownership |
+| `desktopShell` | `custom`, `dms` | Selects the Niri desktop shell; missing values retain `custom` |
 | `niriOutputProfile` | `auto`, named profile | Selects rendered output config |
 | `work` | boolean | Work-machine metadata |
 | `sshAgent` | boolean | Enables the rbw SSH client and selector files |
@@ -341,6 +345,7 @@ secrets belong in `.chezmoiignore` or the appropriate external secret backend.
 ## Documentation
 
 - [Desktop ownership and dependencies](docs/desktop.md)
+- [DMS/custom desktop profiles and switching](docs/desktop-shells.md)
 - [Optional recoverable recursive deletion](docs/deletion-safety.md)
 - [Pi configuration and credentials](docs/pi.md)
 - [SSH identities and rbw-agent](docs/ssh.md)

@@ -2,7 +2,7 @@
 #!/bin/sh
 set -eu
 
-# Niri owns swayidle through spawn-at-startup. Leave the current process
+# The selected Niri desktop profile owns idle handling. Leave the current process
 # running, but prevent the user unit from starting a duplicate next session.
 wants_link="${XDG_CONFIG_HOME:-$HOME/.config}/systemd/user/niri.service.wants/swayidle.service"
 
