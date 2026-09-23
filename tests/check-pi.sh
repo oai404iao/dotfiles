@@ -121,6 +121,10 @@ if settings.get("defaultProvider") != "openai" or settings.get("defaultModel") !
     raise SystemExit("Pi default model is not openai/gpt-6-astra")
 if "openai/gpt-6-astra" not in settings.get("enabledModels", []):
     raise SystemExit("GPT-6 Astra is not enabled in Pi settings")
+if not {"openai/gpt-6-sol", "openai/gpt-6-luna"} <= set(
+    settings.get("enabledModels", [])
+):
+    raise SystemExit("GPT-6 Sol/Luna are not enabled in Pi settings")
 enabled_models = set(settings.get("enabledModels", []))
 expected_deepseek_models = {
     "deepseek/deepseek-flash",
@@ -150,11 +154,10 @@ package_sources = {
     for package in settings["packages"]
 }
 expected_npm_packages = {
-    "npm:@juicesharp/rpiv-ask-user-question@2.10.1",
-    "npm:@oai404iao/pi-telegram-notify@0.3.0",
-    "npm:@oai404iao/pi-keep-defaults@0.3.0",
-    "npm:@oai404iao/pi-codex-minimal-tools@3.0.0",
-    "npm:@oai404iao/pi-subagent@0.5.0",
+    "npm:@juicesharp/rpiv-ask-user-question@2.11.0",
+    "npm:@oai404iao/pi-telegram-notify@0.5.0",
+    "npm:@oai404iao/pi-codex-minimal-tools@4.0.0",
+    "npm:@oai404iao/pi-subagent@0.6.0",
 }
 actual_npm_packages = {
     source for source in package_sources if source.startswith("npm:")
@@ -176,6 +179,8 @@ expected_context_overrides = {
     "gpt-5.6-sol": 350000,
     "gpt-5.6-terra": 350000,
     "gpt-6-astra": 350000,
+    "gpt-6-luna": 350000,
+    "gpt-6-sol": 350000,
 }
 actual_context_overrides = {
     model_id: override.get("contextWindow")
@@ -229,9 +234,9 @@ if shutil.which("chezmoi"):
         )
         rendered = load_json(result.stdout)
         package = (
-            "pi-subagent@0.5.0"
+            "pi-subagent@0.6.0"
             if relative == "private_subagent.json.tmpl"
-            else "pi-codex-minimal-tools@3.0.0"
+            else "pi-codex-minimal-tools@4.0.0"
         )
         schema = "models" if relative.endswith("private_models.json.tmpl") else "config"
         if rendered.get("$schema") != f"https://unpkg.com/@oai404iao/{package}/{schema}.schema.json":
@@ -276,21 +281,30 @@ if shutil.which("chezmoi"):
             if set(profiles) != {
                 "openai/gpt-5.6-sol",
                 "openai/gpt-6-astra",
+                "openai/gpt-6-luna",
+                "openai/gpt-6-sol",
             }:
                 raise SystemExit("unexpected Codex tool profile inventory")
-            astra = profiles.get("openai/gpt-6-astra", {})
-            astra_responses = astra.get("responses", {})
             parent_responses = profiles.get(
-                astra.get("extends"), {}
+                "openai/gpt-5.6-sol", {}
             ).get("responses", {})
-            if (
-                astra.get("extends") != "openai/gpt-5.6-sol"
-                or astra_responses.get("reasoningSummary") != "auto"
-                or astra_responses.get(
-                    "transport", parent_responses.get("transport")
-                ) != "auto"
+            for model_id in (
+                "openai/gpt-6-astra",
+                "openai/gpt-6-luna",
+                "openai/gpt-6-sol",
             ):
-                raise SystemExit("GPT-6 Astra Codex tool profile is incomplete")
+                profile = profiles.get(model_id, {})
+                responses = profile.get("responses", {})
+                if (
+                    profile.get("extends") != "openai/gpt-5.6-sol"
+                    or responses.get("reasoningSummary") != "auto"
+                    or responses.get(
+                        "transport", parent_responses.get("transport")
+                    ) != "auto"
+                ):
+                    raise SystemExit(
+                        f"{model_id} Codex tool profile is incomplete"
+                    )
 
     fake_env = os.environ.copy()
     fake_bin = repo_dir / "tests/fixtures/pi/bin"
@@ -306,7 +320,7 @@ if shutil.which("chezmoi"):
         env=fake_env,
     )
     telegram = load_json(result.stdout)
-    if telegram.get("$schema") != "https://unpkg.com/@oai404iao/pi-telegram-notify@0.3.0/config.schema.json":
+    if telegram.get("$schema") != "https://unpkg.com/@oai404iao/pi-telegram-notify@0.5.0/config.schema.json":
         raise SystemExit("Telegram schema version does not match the pinned package")
     if telegram["botToken"] != "123456:test-token" or telegram["chatId"] != "-123456789":
         raise SystemExit("Telegram template did not use the fake rbw values")
