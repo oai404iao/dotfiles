@@ -23,6 +23,8 @@ credentials and mutable application state out of Git.
   Mono, and the status bar uses its Nerd Font Propo variant for icon alignment; Noto fonts
   provide CJK, symbol, and emoji fallback.
 - Niri uses modular configuration and selectable output profiles.
+- On Niri machines, GNOME Keyring D-Bus activation uses the packaged systemd
+  user service; [keyring data and backups stay machine-local](docs/desktop.md#desktop-keyring).
 - Matugen and Waypaper generated state is bootstrapped without being reset on
   later applies.
 - Satty, btop, Fcitx5 candidate windows, swaylock-effects, and GTK file
@@ -84,8 +86,8 @@ are not installed into the destination home.
   keys used through `rbw-agent`.
 - **age** is reserved for static secret files that genuinely need versioning.
 - **Each machine** owns GPG private keys, SSH host trust and local fragments,
-  caches, histories, databases, sessions, Pi authentication/trust state, and
-  downloaded packages.
+  caches, histories, databases, sessions, Pi authentication/trust state,
+  downloaded packages, and desktop keyring databases and backups.
 
 Treat this repository as public even when its remote is private. Never add a
 credential, recursively import `$HOME` or an XDG root, or commit a recovery

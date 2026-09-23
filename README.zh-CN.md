@@ -19,6 +19,8 @@
   状态栏使用其 Nerd Font Propo 变体以对齐图标；Noto 字体提供 CJK、符号与
   Emoji 回退。
 - Niri 使用模块化配置和可选择的显示器配置档案。
+- Niri 设备上的 GNOME Keyring D-Bus 激活统一使用软件包提供的 systemd
+  用户服务；[密钥环数据及备份只留在本机](docs/desktop.md#desktop-keyring)。
 - 为 Matugen 与 Waypaper 提供初始状态，同时避免后续 apply 覆盖应用生成值。
 - Satty、btop、Fcitx5 候选框、swaylock-effects 与 GTK 文件管理共享桌面风格，
   同时保留输入方案和应用状态。
@@ -77,7 +79,7 @@ chezmoi 的源码属性是本设计的一部分：
   SSH 客户端私钥。
 - **age**：仅用于确实需要版本化的静态秘密文件。
 - **各台机器本地**：保存 GPG 私钥、SSH 主机信任与本机扩展配置、缓存、
-  历史、数据库、会话、Pi 登录/信任状态以及下载的软件包。
+  历史、数据库、会话、Pi 登录/信任状态、下载的软件包，以及桌面密钥环数据库和备份。
 
 即使远端仓库是私有的，也要把本仓库视为公开仓库。禁止加入凭据、递归导入
 `$HOME` 或 XDG 根目录，也不要提交恢复备份。

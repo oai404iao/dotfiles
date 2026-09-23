@@ -177,6 +177,89 @@ screen sharing have ended. Reopen a portal-using application's file chooser
 to check it. The preference list selects an available backend; it does not
 guarantee retrying GTK if a running GNOME backend fails.
 
+## Desktop keyring
+
+When both `graphical` and `niri` are enabled, chezmoi manages these user D-Bus
+activation overrides:
+
+```text
+~/.local/share/dbus-1/services/org.freedesktop.secrets.service
+~/.local/share/dbus-1/services/org.gnome.keyring.service
+```
+
+Both keep the packaged daemon command as a fallback and set
+`SystemdService=gnome-keyring-daemon.service`. D-Bus activation therefore uses
+the same unit as socket activation instead of launching a separate transient
+daemon after a restart. The packaged service and socket remain unchanged;
+do not add a daemon startup command to Niri or shell profiles. This coordinates
+activation, not a fix for every possible daemon crash.
+
+GNOME Keyring's Secret Portal is an interface on `org.freedesktop.secrets`.
+It does not need a third override named `org.freedesktop.impl.portal.Secret`.
+The Niri portal preference file still manages only the file chooser.
+
+Install `gnome-keyring`, `libsecret`, and `seahorse` separately. Use the
+packaged `gnome-keyring-daemon.socket` for socket activation (enable it with
+`systemctl --user enable --now gnome-keyring-daemon.socket` if needed).
+PAM, not Niri, supplies the login password for unlocking. On an Arch TTY login,
+review `/etc/pam.d/login` for these entries after the corresponding included
+authentication and session stacks:
+
+```pam
+auth       optional    pam_gnome_keyring.so
+session    optional    pam_gnome_keyring.so auto_start
+```
+
+If using a display manager, review its PAM stack instead. For password
+changes, review `/etc/pam.d/passwd` for
+`password optional pam_gnome_keyring.so use_authtok` after the password stack.
+Back up PAM files before editing; do not replace the existing stack or add
+duplicate entries. System package installation, PAM edits, and service
+enablement are manual prerequisites, not chezmoi apply hooks.
+
+Use Seahorse to make **Login** the default password keyring, with its password
+matching the login password. Passwordless login cannot supply that password
+to PAM. Changing the default does not migrate existing entries: any migration
+must separately preserve conflicting application keys and verify the affected
+applications. Do not delete or recreate keyrings to fix a missing UI category.
+SSH continues to use `rbw-agent`; do not change `SSH_AUTH_SOCK` for this setup.
+
+`~/.local/share/keyrings/` (including the default selector) and
+`~/.local/state/keyring-backups/` are machine-local, ignored state. Never add
+their contents to chezmoi or Git, even as encrypted recovery copies.
+
+Before taking over existing activation files, back up and review only these
+two non-secret targets. Then apply them explicitly:
+
+```sh
+mkdir -p ~/.local/share/dbus-1/services
+chezmoi diff --skip-secrets --exclude=encrypted \
+  ~/.local/share/dbus-1/services/org.freedesktop.secrets.service \
+  ~/.local/share/dbus-1/services/org.gnome.keyring.service
+chezmoi apply \
+  ~/.local/share/dbus-1/services/org.freedesktop.secrets.service \
+  ~/.local/share/dbus-1/services/org.gnome.keyring.service
+```
+
+Log out completely and log in again to load the overrides and exercise PAM
+unlocking. On an existing dbus-broker session, `systemctl --user reload
+dbus.service` reloads activation metadata without restarting the bus, but
+does not remove an already running extra daemon. Do not restart the session
+bus. A deliberate keyring-service restart drops its unlocked state, so
+applications may ask for the keyring password again. GNOME Keyring also reads
+the Portal's default collection at startup; after changing the default,
+use a fresh session or a deliberate keyring-service restart.
+
+Offline coverage is in `tests/check-keyring.sh`; it neither contacts the
+live keyring nor starts services. After a real login, check the service status
+and verify that Seahorse shows Login and applications retain their credentials.
+If moving to a different desktop or Secret Service provider, explicitly retire
+these two overrides after review: ignoring them in another profile does not
+remove previously deployed files.
+
+References: [GNOME Keyring PAM](https://wiki.gnome.org/Projects/GnomeKeyring/Pam)
+and [D-Bus service activation](https://dbus.freedesktop.org/doc/dbus-daemon.1.html).
+
 ## Manual color temperature
 
 Install `wl-gammarelay-rs` separately (`yay -S wl-gammarelay-rs` on Arch).
@@ -234,6 +317,7 @@ Core session:
 - ttf-jetbrains-mono-nerd
 - adw-gtk-theme
 - xdg-desktop-portal, xdg-desktop-portal-gnome, xdg-desktop-portal-gtk
+- gnome-keyring, libsecret, seahorse
 
 Optional Waybar actions:
 

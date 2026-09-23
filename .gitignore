@@ -7,3 +7,9 @@
 /dot_agents/skills/
 /dot_agents/dot_skill-lock.json
 /dot_local/state/skills/dot_skill-lock.json
+/.local/share/keyrings/
+/.local/state/keyring-backups/
+/dot_local/share/keyrings/
+/dot_local/share/private_keyrings/
+/dot_local/state/keyring-backups/
+/dot_local/state/private_keyring-backups/

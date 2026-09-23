@@ -27,6 +27,8 @@ secrets/
 .gnupg/
 .local/share/chezmoi/
 .local/state/chezmoi/
+.local/share/keyrings/
+.local/state/keyring-backups/
 
 # Tavily CLI session state; api_key is rendered into config.json instead.
 .tavily/session.json
@@ -128,4 +130,6 @@ secrets/
 .config/waybar/
 .config/systemd/user/waybar-gammarelay.service
 .config/xdg-desktop-portal/niri-portals.conf
+.local/share/dbus-1/services/org.freedesktop.secrets.service
+.local/share/dbus-1/services/org.gnome.keyring.service
 {{- end }}
