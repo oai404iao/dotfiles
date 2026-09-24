@@ -267,8 +267,8 @@ if shutil.which("chezmoi"):
             }
             if deprecated_keys & rendered.keys():
                 raise SystemExit("Codex tools config retains deprecated settings")
-            if rendered.get("webSocketEnabled") is not False:
-                raise SystemExit("Codex tools WebSocket transport is enabled")
+            if rendered.get("webSocketEnabled") is not True:
+                raise SystemExit("Codex tools WebSocket transport is disabled")
             if rendered.get("fastMode") is not False:
                 raise SystemExit("Codex tools Fast mode is enabled by default")
             if rendered.get("imageGeneration") is not False:
