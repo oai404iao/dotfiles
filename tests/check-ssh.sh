@@ -31,6 +31,7 @@ expected_source_inventory=$(cat <<'EOF'
 encrypted_private_authorized_keys.tmpl.age
 private_config
 private_config.d/encrypted_private_10-private.conf.age
+private_config.d/encrypted_private_20-uni.conf.age
 private_config.d/encrypted_private_30-company.conf.age
 private_config.d/encrypted_private_40-github.conf.age
 private_config.d/private_90-defaults.conf
@@ -53,7 +54,7 @@ actual_source_inventory=$(
 encrypted_sources=$(
     find "$ssh_source_dir" -type f -name '*.age' | sort
 )
-[ "$(printf '%s\n' "$encrypted_sources" | wc -l)" -eq 10 ] || {
+[ "$(printf '%s\n' "$encrypted_sources" | wc -l)" -eq 11 ] || {
     printf '%s\n' 'unexpected encrypted SSH source count' >&2
     exit 1
 }
@@ -128,7 +129,9 @@ Host fixture-private fixture-private-alt
     Port 2201
     IdentityFile ~/.ssh/identities/private.pub
     IdentitiesOnly yes
+EOF
 
+cat >"$fixture_plain/20-uni.conf" <<'EOF'
 Host fixture-remote
     HostName remote.example.invalid
     User remote-user
@@ -167,7 +170,7 @@ Host fixture-github-secondary
     IdentitiesOnly yes
 EOF
 
-for fragment in 10-private.conf 30-company.conf 40-github.conf; do
+for fragment in 10-private.conf 20-uni.conf 30-company.conf 40-github.conf; do
     age -a -r "$fixture_recipient" \
         -o "$fixture_source/private_dot_ssh/private_config.d/encrypted_private_$fragment.age" \
         "$fixture_plain/$fragment"
@@ -282,6 +285,7 @@ verify_profile() {
     if [ "$ssh_agent" = true ]; then
         [ -f "$home_dir/.ssh/config" ]
         [ -f "$home_dir/.ssh/config.d/10-private.conf" ]
+        [ -f "$home_dir/.ssh/config.d/20-uni.conf" ]
         [ -f "$home_dir/.ssh/config.d/30-company.conf" ]
         [ -f "$home_dir/.ssh/config.d/40-github.conf" ]
         [ -f "$home_dir/.ssh/config.d/90-defaults.conf" ]
@@ -323,6 +327,7 @@ agent_home="$fixture_home_root/true-private"
 [ "$(stat -c %a "$agent_home/.ssh/config")" = "600" ]
 [ "$(stat -c %a "$agent_home/.ssh/config.d")" = "700" ]
 [ "$(stat -c %a "$agent_home/.ssh/config.d/10-private.conf")" = "600" ]
+[ "$(stat -c %a "$agent_home/.ssh/config.d/20-uni.conf")" = "600" ]
 [ "$(stat -c %a "$agent_home/.ssh/identities")" = "700" ]
 [ "$(stat -c %a "$agent_home/.ssh/identities/private.pub")" = "644" ]
 [ "$(stat -c %a "$agent_home/.ssh/authorized_keys")" = "600" ]
@@ -400,6 +405,7 @@ chezmoi --cache "$tmp_dir/excluded-cache" \
 [ -f "$excluded_home/.ssh/config" ]
 [ -f "$excluded_home/.ssh/config.d/90-defaults.conf" ]
 [ ! -e "$excluded_home/.ssh/config.d/10-private.conf" ]
+[ ! -e "$excluded_home/.ssh/config.d/20-uni.conf" ]
 [ ! -e "$excluded_home/.ssh/identities/private.pub" ]
 [ ! -e "$excluded_home/.ssh/authorized_keys" ]
 
@@ -471,7 +477,7 @@ validate_real_sources() {
     done
     validate_key_set "$real_dir/keys"
 
-    for fragment in 10-private.conf 30-company.conf 40-github.conf; do
+    for fragment in 10-private.conf 20-uni.conf 30-company.conf 40-github.conf; do
         age -d -i "$identity_file" \
             "$ssh_source_dir/private_config.d/encrypted_private_$fragment.age" \
             >"$real_dir/config/$fragment"
