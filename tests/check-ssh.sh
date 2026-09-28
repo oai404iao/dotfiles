@@ -135,6 +135,13 @@ Host fixture-remote
     Port 2202
     IdentityFile ~/.ssh/identities/uni.pub
     IdentitiesOnly yes
+
+Host fixture-private-via-jump
+    HostName private-via-jump.example.invalid
+    User private-user
+    ProxyJump fixture-private
+    IdentityFile ~/.ssh/identities/private.pub
+    IdentitiesOnly yes
 EOF
 cat >"$fixture_plain/30-company.conf" <<'EOF'
 Host fixture-company-dev
@@ -339,6 +346,7 @@ assert_host() {
     expected_user=$3
     expected_port=$4
     expected_identity=$5
+    expected_proxy_jump=$6
     rendered="$tmp_dir/ssh-$host"
 
     ssh -F "$assembled_config" -G "$host" >"$rendered" 2>/dev/null
@@ -351,18 +359,25 @@ assert_host() {
     [ "$(awk '$1 == "identityfile" { print $2 }' "$rendered")" = \
         "~/.ssh/identities/$expected_identity.pub" ]
     [ "$(awk '$1 == "identityfile" { count++ } END { print count + 0 }' "$rendered")" -eq 1 ]
+    actual_proxy_jump=$(awk '$1 == "proxyjump" { print $2 }' "$rendered")
+    if [ "$expected_proxy_jump" = - ]; then
+        [ -z "$actual_proxy_jump" ]
+    else
+        [ "$actual_proxy_jump" = "$expected_proxy_jump" ]
+    fi
 }
 
-while IFS='|' read -r host hostname user port identity; do
-    assert_host "$host" "$hostname" "$user" "$port" "$identity"
+while IFS='|' read -r host hostname user port identity proxy_jump; do
+    assert_host "$host" "$hostname" "$user" "$port" "$identity" "$proxy_jump"
 done <<'EOF'
-fixture-private|private.example.invalid|private-user|2201|private
-fixture-private-alt|private.example.invalid|private-user|2201|private
-fixture-remote|remote.example.invalid|remote-user|2202|uni
-fixture-company-dev|dev.example.invalid|dev-user|2203|company_dev
-fixture-company-ai|ai.example.invalid|ai-user|2204|company_ai
-fixture-github-primary|github.example.invalid|git|22|github_primary
-fixture-github-secondary|github.example.invalid|git|22|github_secondary
+fixture-private|private.example.invalid|private-user|2201|private|-
+fixture-private-alt|private.example.invalid|private-user|2201|private|-
+fixture-remote|remote.example.invalid|remote-user|2202|uni|-
+fixture-private-via-jump|private-via-jump.example.invalid|private-user|22|private|fixture-private
+fixture-company-dev|dev.example.invalid|dev-user|2203|company_dev|-
+fixture-company-ai|ai.example.invalid|ai-user|2204|company_ai|-
+fixture-github-primary|github.example.invalid|git|22|github_primary|-
+fixture-github-secondary|github.example.invalid|git|22|github_secondary|-
 EOF
 
 transition_home="$fixture_home_root/false-uni"
@@ -495,6 +510,7 @@ identities = {
     "uni",
 }
 aliases_seen = set()
+proxy_jumps = []
 
 for path in sorted((root / "config").glob("*.conf")):
     blocks = []
@@ -525,6 +541,7 @@ for path in sorted((root / "config").glob("*.conf")):
             "hostname",
             "user",
             "port",
+            "proxyjump",
             "identityfile",
             "identitiesonly",
         }:
@@ -560,6 +577,16 @@ for path in sorted((root / "config").glob("*.conf")):
                 raise SystemExit("invalid encrypted Port") from None
             if not 1 <= port <= 65535:
                 raise SystemExit("encrypted Port is out of range")
+        if "proxyjump" in item:
+            if not re.fullmatch(r"[A-Za-z0-9._-]+", item["proxyjump"]):
+                raise SystemExit("invalid encrypted ProxyJump")
+            proxy_jumps.append((item["host"], item["proxyjump"]))
+
+for hosts, proxy_jump in proxy_jumps:
+    if proxy_jump not in aliases_seen:
+        raise SystemExit("encrypted ProxyJump does not reference a managed alias")
+    if proxy_jump in hosts:
+        raise SystemExit("encrypted Host cannot jump through itself")
 
 key_dir = root / "keys"
 private_key = (key_dir / "private.pub").read_text().strip()
