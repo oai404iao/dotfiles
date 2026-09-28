@@ -47,6 +47,9 @@ They are age ciphertext in Git and are decrypted only while chezmoi computes a
 target. Git identity profiles and their account-specific URL rewrites are
 encrypted for the same metadata-privacy reason.
 
+The `20-uni.conf` fragment groups remote hosts using the `uni` selector before
+the `90-defaults.conf` catch-all.
+
 `--skip-secrets` does not exclude native encrypted source files. Broad review
 and bootstrap commands must use both:
 
