@@ -51,7 +51,7 @@ secrets/
 .local/share/fcitx5/rime/
 .config/btop/btop.log*
 
-# DMS owns mutable preferences, clipboard data, plugins, and generated themes.
+# DMS owns other mutable preferences, clipboard data, plugins, and generated themes.
 .cache/DankMaterialShell/
 .local/state/DankMaterialShell/
 .local/share/DankMaterialShell/

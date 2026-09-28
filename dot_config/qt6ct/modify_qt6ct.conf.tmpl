@@ -1,0 +1,54 @@
+#!/usr/bin/env python3
+import re
+import sys
+
+managed = {
+    "Appearance": {
+        "color_scheme_path": "{{ .chezmoi.homeDir }}/.config/qt6ct/colors/matugen.conf",
+        "custom_palette": "true",
+        "icon_theme": "Adwaita",
+        "style": "Fusion",
+    },
+    "Fonts": {
+        "fixed": '"JetBrainsMono Nerd Font Mono,11,-1,5,50,0,0,0,0,0"',
+        "general": '"Adwaita Sans,11,-1,5,50,0,0,0,0,0"',
+    },
+}
+
+seen = {section: set() for section in managed}
+sections = set()
+result = []
+section = None
+
+def add_missing(current):
+    if current in managed:
+        for key, value in managed[current].items():
+            if key not in seen[current]:
+                result.append(f"{key}={value}")
+
+for line in sys.stdin.read().splitlines():
+    header = re.fullmatch(r"\s*\[([^\]]+)\]\s*", line)
+    if header:
+        add_missing(section)
+        section = header[1]
+        sections.add(section)
+        result.append(line)
+        continue
+    option = re.match(r"\s*([^#;=\s][^=]*?)\s*=", line)
+    key = option[1].strip() if option else None
+    if section in managed and key in managed[section]:
+        if key not in seen[section]:
+            result.append(f"{key}={managed[section][key]}")
+            seen[section].add(key)
+    else:
+        result.append(line)
+
+add_missing(section)
+for section in managed:
+    if section not in sections:
+        if result and result[-1]:
+            result.append("")
+        result.append(f"[{section}]")
+        add_missing(section)
+
+sys.stdout.write("\n".join(result) + "\n")

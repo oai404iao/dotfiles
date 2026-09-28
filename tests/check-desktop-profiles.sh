@@ -135,9 +135,23 @@ for shell in ("custom", "dms"):
             assert settings["currentThemeName"] == "dynamic"
             assert settings["matugenScheme"] == "scheme-neutral"
             assert settings["terminalsAlwaysDark"] is True
+            assert settings["cornerRadius"] == 16
+            assert settings["widgetColorMode"] == "default"
+            assert settings["runningAppsCurrentWorkspace"] is True
+            bar = settings["barConfigs"]
+            assert len(bar) == 1
+            assert bar[0]["island"] is True
+            assert bar[0]["screenPreferences"] == ["all"]
+            assert bar[0]["leftWidgets"] == ["launcherButton", "workspaceSwitcher", "focusedWindow"]
             qt6ct = configparser.ConfigParser(interpolation=None)
-            qt6ct.read(home / ".config/qt6ct/qt6ct.conf")
+            qt_file = home / ".config/qt6ct/qt6ct.conf"
+            qt6ct.read(qt_file)
+            assert qt6ct["Appearance"]["color_scheme_path"] == str(home / ".config/qt6ct/colors/matugen.conf")
+            assert qt6ct["Appearance"]["custom_palette"] == "true"
             assert qt6ct["Appearance"]["icon_theme"] == "Adwaita"
+            assert qt6ct["Appearance"]["style"] == "Fusion"
+            assert qt6ct["Fonts"]["fixed"].startswith('"JetBrainsMono Nerd Font Mono,')
+            assert qt6ct["Fonts"]["general"].startswith('"Adwaita Sans,')
             gtk_settings = (home / ".config/gtk-3.0/settings.ini").read_text()
             assert "gtk-theme-name" not in gtk_settings
             assert "gtk-application-prefer-dark-theme" not in gtk_settings
@@ -149,16 +163,46 @@ for shell in ("custom", "dms"):
             assert settings["lockBeforeSuspend"] and settings["loginctlLockIntegration"]
             assert not settings["fadeToLockEnabled"]
             assert settings["clipboardClickToPaste"] and settings["clipboardEnterToPaste"]
-            # Existing GUI preferences and compositor-generated files must survive apply.
+            # Only selected GUI preferences are managed; generated files remain DMS-owned.
             settings["acLockTimeout"] = 600
             settings["futurePreference"] = True
+            settings["networkPreference"] = "ethernet"
+            settings["barConfigs"] = [{"id": "local"}]
+            settings["cornerRadius"] = 8
+            settings["widgetColorMode"] = "colorful"
+            settings["runningAppsCurrentWorkspace"] = False
             settings_file.write_text(json.dumps(settings))
+            qt_file.write_text(
+                "; local comment\n[Appearance]\nicon_theme=breeze\ncustom_palette=false\n"
+                "custom_key=keep\n[Fonts]\nfixed=monospace\n[Interface]\nretain=1\n"
+            )
             output_file.write_text('// user output preferences\n')
             color_file = niri_dir / "dms/colors.kdl"
             color_file.write_text('// generated palette\n')
             binds_file.write_text(binds.replace("Mod+D hotkey", "Mod+Space hotkey"))
             apply(home, env, command, shell)
-            assert json.loads(settings_file.read_text()) == settings
+            updated = json.loads(settings_file.read_text())
+            assert updated["barConfigs"] == bar
+            assert updated["cornerRadius"] == 16
+            assert updated["widgetColorMode"] == "default"
+            assert updated["runningAppsCurrentWorkspace"] is True
+            assert updated["acLockTimeout"] == 600
+            assert updated["futurePreference"] is True
+            assert updated["networkPreference"] == "ethernet"
+            qt6ct = configparser.ConfigParser(interpolation=None)
+            qt6ct.read(qt_file)
+            assert qt6ct["Appearance"]["icon_theme"] == "Adwaita"
+            assert qt6ct["Appearance"]["custom_palette"] == "true"
+            assert qt6ct["Appearance"]["color_scheme_path"] == str(home / ".config/qt6ct/colors/matugen.conf")
+            assert qt6ct["Appearance"]["style"] == "Fusion"
+            assert qt6ct["Fonts"]["fixed"].startswith('"JetBrainsMono Nerd Font Mono,')
+            assert qt6ct["Fonts"]["general"].startswith('"Adwaita Sans,')
+            assert qt6ct["Appearance"]["custom_key"] == "keep"
+            assert qt6ct["Interface"]["retain"] == "1"
+            assert "; local comment\n" in qt_file.read_text()
+            after = (settings_file.read_bytes(), qt_file.read_bytes())
+            apply(home, env, command, shell)
+            assert (settings_file.read_bytes(), qt_file.read_bytes()) == after
             assert output_file.read_text() == '// user output preferences\n'
             assert color_file.read_text() == '// generated palette\n'
             assert "Mod+D hotkey" not in binds_file.read_text()
@@ -176,6 +220,27 @@ for shell in ("custom", "dms"):
             expected = "dank-colors.css" if shell == "dms" else "colors.css"
             assert css.startswith(f'@import "{expected}";\n')
             assert ('@import "nautilus.css";' in css) == (version == "4.0" and shell == "custom")
+
+home, env, command = fixture("dms-existing", "dms")
+settings_file = home / ".config/DankMaterialShell/settings.json"
+qt_file = home / ".config/qt6ct/qt6ct.conf"
+settings_file.parent.mkdir(parents=True)
+qt_file.parent.mkdir(parents=True)
+settings_file.write_text('{"networkPreference": "ethernet", "futurePreference": true}\n')
+qt_file.write_text("[Appearance]\nicon_theme=breeze\n[Interface]\nretain=1\n")
+apply(home, env, command, "dms")
+settings = json.loads(settings_file.read_text())
+assert settings["networkPreference"] == "ethernet"
+assert settings["futurePreference"] is True
+assert "acLockTimeout" not in settings
+assert settings["barConfigs"][0]["island"] is True
+assert settings["cornerRadius"] == 16
+assert settings["widgetColorMode"] == "default"
+assert settings["runningAppsCurrentWorkspace"] is True
+qt6ct = configparser.ConfigParser(interpolation=None)
+qt6ct.read(qt_file)
+assert qt6ct["Appearance"]["icon_theme"] == "Adwaita"
+assert qt6ct["Interface"]["retain"] == "1"
 
 home, env, command = fixture("legacy")
 assert custom_only <= managed(command, env)

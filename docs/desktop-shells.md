@@ -54,10 +54,14 @@ already supplies the compositor integration. DMS starts **only** through
 
 - Chezmoi owns Niri's main include graph, common input/window rules, profile
   startup, Kitty includes, GTK imports, and the Fcitx5 theme selector.
-- `~/.config/DankMaterialShell/settings.json` is **create-only**. Its initial
-  settings enable wallpaper-based colors, native clipboard paste, Adwaita
-  Sans, and the idle policy below. Existing settings are never reset by apply.
-  Pre-seeding this file bypasses DMS's first-launch wizard; open Settings normally.
+- Chezmoi merges `~/.config/DankMaterialShell/settings.json`: it owns the
+  complete `barConfigs` (Island bar), `cornerRadius=16`,
+  `widgetColorMode=default`, and `runningAppsCurrentWorkspace=true`. On a
+  missing file it also seeds wallpaper-based colors, native clipboard paste,
+  Adwaita Sans, and the idle policy below. Existing files keep every other
+  preference, including machine-specific outputs, wallpaper, network, and
+  battery settings. Applying again restores only the four owned fields;
+  pre-seeding this file bypasses DMS's first-launch wizard.
 - `~/.config/niri/dms/{binds,outputs,layout,cursor,colors,alttab,windowrules}.kdl`
   are create-only. DMS owns subsequent edits. Output selection and familiar
   window bindings are seeded from the same templates as custom mode. DMS
@@ -74,13 +78,14 @@ already supplies the compositor integration. DMS starts **only** through
   foreground, background, selection, tabs, and links still follow DMS. This
   does not enable the legacy user Matugen templates. Existing DMS installations
   can select **Neutral** and **Terminals - Always use Dark Theme** in Settings;
-  the create-only seed does not reset their preferences.
-- Qt6ct's configuration is create-only, initially selecting its generated
-  `colors/matugen.conf` palette and the installed `Adwaita` icon theme. Without
+  the seed does not reset existing preferences outside the four owned fields.
+- Chezmoi merges Qt6ct's `Appearance` palette path
+  (`colors/matugen.conf` under this machine's home), custom palette, Adwaita
+  icon theme, Fusion style, and `Fonts` settings. Other sections and keys
+  remain local; DMS still generates the palette file itself. Without
   an icon theme, Qt can fall back to `hicolor`, where Fcitx5's
   `input-keyboard-symbolic` is missing (a purple/black placeholder in the tray).
-  If a Qt6ct config already exists, select that palette, enable custom colors,
-  and choose Adwaita icons in Qt6ct manually. DMS's Niri environment selects
+  DMS's Niri environment selects
   `QT_QPA_PLATFORMTHEME=qt6ct`. After changing the icon theme, run `dms restart`
   while unlocked: an existing Quickshell process can retain its old icon
   lookup state even when a newly launched Qt application finds the icons.
@@ -98,9 +103,10 @@ already supplies the compositor integration. DMS starts **only** through
   notifications, night-mode/wallpaper session state, plugins, and caches stay
   machine-local; never recursively add these directories to chezmoi.
 
-If DMS was already configured before adopting this profile, review its current
-settings instead of forcing the create-only seed. In particular, check
-`runUserMatugenTemplates`, idle/lock settings, and any custom power commands.
+If DMS was already configured before adopting this profile, back up and review
+its current settings before applying the modifier. In particular, check
+`runUserMatugenTemplates`, idle/lock settings, and any custom power commands:
+those are only seeded on a new file, not changed in an existing file.
 
 ### Idle and lock defaults
 
@@ -171,8 +177,10 @@ keys. In particular, `Mod+V`, `Mod+M`, and `Mod+Comma` are not repurposed.
    ```
 
    Existing DMS settings can contain personal paths; inspect that target locally,
-   not in shared logs. Create missing target parent directories first if chezmoi
-   reports an absent parent for an explicit file target.
+   not in shared logs. The Bar layout and Qt6ct fields above will be replaced;
+   back up both targets first. Create missing target parent directories if
+   chezmoi reports an absent parent for an explicit file target. Restart DMS
+   after applying to refresh its generated Niri corners and Qt icon state.
 6. Run `niri validate --config ~/.config/niri/config.kdl`, then start a fresh
    `niri-session`. Do not start DMS manually as well.
 7. Open Settings and select a wallpaper. Test notifications, clipboard paste,
@@ -204,7 +212,8 @@ need to be deleted, and DMS GUI preferences survive the round trip.
 
 `tests/check-desktop-profiles.sh` renders both shells across every output
 profile, validates Niri, checks init choices, legacy/default and headless
-behavior, verifies GTK import switching and create-only preservation, and
+behavior, verifies selective DMS/Qt6ct merges, GTK import switching, and
+generated-file preservation, and
 excludes runtime state. It does not start DMS, lock the screen, change services,
 or access the real credential backend.
 
