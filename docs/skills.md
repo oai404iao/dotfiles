@@ -3,7 +3,7 @@
 The repository manages installation intent, not skill contents:
 
 - `scripts/skills.json`: pinned `skills` CLI version and selected remote skills
-- `scripts/install-skills.py`: explicit manual installation via `npx skills`
+- `scripts/install-skills.py`: explicit manual installation via `pnpm dlx skills`
 - `~/.agents/skills/`: downloaded contents, owned by the external installer
 - `~/.local/state/skills/.skill-lock.json`: machine-local CLI bookkeeping, not
   a manifest (`$XDG_STATE_HOME/skills/.skill-lock.json` when set)
@@ -48,12 +48,12 @@ From the chezmoi source root:
 # Offline: validate the entire manifest and print the planned commands.
 python3 scripts/install-skills.py --dry-run
 
-# Explicit network operation; requires pnpm-managed Node.js/npm (npx) and Git.
+# Explicit network operation; requires pnpm, Node.js and Git.
 python3 scripts/install-skills.py
 ```
 
 Neither command does anything to installed skills when the manifest is empty.
-Dry runs do not invoke `npx`, create directories, or require Node.js.
+Dry runs do not invoke `pnpm`, create directories, or require Node.js.
 There is no chezmoi run hook: `chezmoi apply` never installs these skills.
 
 The helper passes `--global --agent universal --skill <names> --yes` to the
@@ -77,7 +77,7 @@ the helper leaves the task directory in place. Do not retain credentials there.
 
 ## Offline checks
 
-`./tests/check-skills.sh` uses a fake `npx` with isolated HOME/XDG directories.
+`./tests/check-skills.sh` uses a fake `pnpm` with isolated HOME/XDG directories.
 It validates the manifest, argv, dry-run/empty behavior, failure handling, and
 state exclusions without fetching packages or changing real installed skills.
 It is also included in `./tests/check-source.sh`.

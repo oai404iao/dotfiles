@@ -107,7 +107,7 @@ settings_modifier = source_dir / "modify_private_settings.json"
 compile(settings_modifier.read_text(), str(settings_modifier), "exec")
 settings_result = subprocess.run(
     [sys.executable, str(settings_modifier)],
-    input='{"lastChangelogVersion":"preserve-me","futureState":true}',
+    input='{"lastChangelogVersion":"preserve-me","futureState":true,"npmCommand":["npm"]}',
     text=True,
     capture_output=True,
     check=True,
@@ -115,6 +115,8 @@ settings_result = subprocess.run(
 settings = load_json(settings_result.stdout)
 if settings.get("lastChangelogVersion") != "preserve-me" or settings.get("futureState") is not True:
     raise SystemExit("Pi settings modifier did not preserve mutable state")
+if settings.get("npmCommand") != ["pnpm"]:
+    raise SystemExit("Pi package manager is not pnpm")
 if settings.get("defaultThinkingLevel") != "high":
     raise SystemExit("Pi default thinking level is not high")
 if settings.get("defaultProvider") != "openai" or settings.get("defaultModel") != "gpt-6-astra":

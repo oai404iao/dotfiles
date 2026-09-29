@@ -22,7 +22,7 @@ installer = repo / "scripts/install-skills.py"
 compile(installer.read_text(), str(installer), "exec")
 home = task / "home"
 home.mkdir()
-log = task / "npx.jsonl"
+log = task / "pnpm.jsonl"
 manifest = task / "manifest.json"
 fake_bin = repo / "tests/fixtures/skills/bin"
 env = os.environ.copy()
@@ -86,12 +86,13 @@ assert declared["sources"] == [
 ]
 
 write_manifest([source, second])
-no_npx = {**env, "PATH": str(task / "missing-bin")}
-preview = run("--manifest", str(manifest), "--dry-run", environment=no_npx)
+no_pnpm = {**env, "PATH": str(task / "missing-bin")}
+preview = run("--manifest", str(manifest), "--dry-run", environment=no_pnpm)
+assert "pnpm dlx --yes skills@1.5.26 add" in preview.stdout
 assert "--global --agent universal --skill alpha beta --yes" in preview.stdout
-assert "skills@1.5.26" in preview.stdout
 assert not log.exists() and not list(home.iterdir())
-run("--manifest", str(manifest), success=False, environment=no_npx)
+missing_pnpm = run("--manifest", str(manifest), success=False, environment=no_pnpm)
+assert "pnpm is required" in missing_pnpm.stderr
 assert not log.exists() and not list(home.iterdir())
 
 for invalid in (
@@ -134,7 +135,7 @@ calls = [json.loads(line) for line in log.read_text().splitlines()]
 assert len(calls) == 2
 for call, entry in zip(calls, [source, second]):
     assert call["args"] == [
-        "--yes", "skills@1.5.26", "add", entry["source"],
+        "dlx", "--yes", "skills@1.5.26", "add", entry["source"],
         "--global", "--agent", "universal", "--skill", *entry["skills"], "--yes",
     ]
     assert call["home"] == str(home)

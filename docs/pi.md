@@ -27,7 +27,9 @@ The following generated or mutable data is deliberately not managed:
 - sessions, recovery fragments, caches, and logs
 
 Package declarations in `settings.json` remain the source of truth for
-reinstalling Pi packages. npm packages are pinned to their adopted versions.
+reinstalling Pi packages. `"npmCommand": ["pnpm"]` makes Pi use pnpm for package
+lookup and installation; the `npm:` source prefix still identifies registry
+packages. npm packages are pinned to their adopted versions.
 The pinned extensions require Pi 0.87.1 (the Codex tools package needs 0.87.0
 or newer) and Node.js 22.19 or newer. Upgrade the system-managed Pi package
 (`pacman -S pi`) before applying these declarations.
@@ -38,7 +40,7 @@ The enabled local package still requires this checkout at its rendered path:
 Disabled packages and their configuration are not managed.
 
 Shared skills under `~/.agents/skills/` are installed separately with
-`npx skills`; only their [manifest and manual installer](skills.md) are managed
+`pnpm dlx skills`; only their [manifest and manual installer](skills.md) are managed
 here, not the downloaded contents or CLI lock state.
 
 ## Global agent instructions

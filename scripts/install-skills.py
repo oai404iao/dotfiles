@@ -72,14 +72,14 @@ def load_commands(path):
                 raise ValueError(f"duplicate skill name: {skill}")
             seen.add(skill)
         commands.append([
-            "npx", "--yes", f"skills@{version}", "add", entry["source"],
+            "pnpm", "dlx", "--yes", f"skills@{version}", "add", entry["source"],
             "--global", "--agent", "universal", "--skill", *skills, "--yes",
         ])
     return commands
 
 
 def main():
-    parser = argparse.ArgumentParser(description="Install declared global skills with npx skills.")
+    parser = argparse.ArgumentParser(description="Install declared global skills with pnpm dlx.")
     parser.add_argument(
         "--manifest", type=Path, default=Path(__file__).resolve().with_name("skills.json")
     )
@@ -93,8 +93,8 @@ def main():
         print(shlex.join(command), flush=True)
     if args.dry_run:
         return
-    if not shutil.which("npx"):
-        raise ValueError("npx is required; install Node.js and npm first")
+    if not shutil.which("pnpm"):
+        raise ValueError("pnpm is required; install pnpm first")
     scratch_root = Path.home() / ".local/state/agents/tmp"
     scratch_root.mkdir(mode=0o700, parents=True, exist_ok=True)
     task_dir = tempfile.mkdtemp(prefix="skills-install.", dir=scratch_root)
