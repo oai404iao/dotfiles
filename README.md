@@ -150,6 +150,13 @@ Pi and Node.js are installed separately. Graphical dependencies are listed in
 system-wide package bootstrap. `glib2` supplies the `gio` command used by the
 safe-rm test and, when `safeRm` is enabled, by the wrapper.
 
+The annotated Arch package lists cover all profiles: [pacman packages](docs/packages/pacman.txt)
+and [AUR packages](docs/packages/aur.txt). Select only the sections you use;
+these are source-only inventories, not install scripts or a dump of every
+package on this machine. The pacman list marks `archlinuxcn` binary packages
+separately from official packages; AUR providers such as `noto-fonts-lite`
+can conflict with official alternatives.
+
 Both `en_US.UTF-8` and `zh_CN.UTF-8` must be generated on the host. Graphical
 font configuration also expects Fontconfig plus the Adwaita, Noto, Noto CJK,
 Noto Symbols, Noto Color Emoji, and JetBrains Mono Nerd Font families; the
@@ -163,7 +170,7 @@ the shared shell environment and install the user runtime without `sudo`:
 ```sh
 . "${XDG_CONFIG_HOME:-$HOME/.config}/shell/toolchains.sh"
 pnpm runtime set node 24 -g
-pnpm add -g npm@11
+pnpm add -g npm@12.1.0
 ```
 
 pnpm itself remains system-package-managed; Node.js and npm/npx live under
@@ -181,8 +188,9 @@ and `bash/rc.d/50-node.bash` / `zsh/rc.d/50-node.zsh` under `~/.config`.
 runtime paths and variables. Chezmoi does not uninstall nvm or its global
 packages: migrate any needed tools before separately removing the system nvm
 package and trashing its user runtime directory.
-Open a new terminal after applying and verify `command -v node npm pnpm`:
-Node/npm should resolve under `$PNPM_HOME/bin`, and pnpm to the system package.
+Open a new terminal after applying and verify `command -v node npm npx pnpm`:
+Node/npm/npx should resolve under `$PNPM_HOME/bin`, and pnpm to the system
+package.
 
 ## Bootstrap a New Machine
 

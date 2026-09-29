@@ -135,6 +135,12 @@ sudo pacman -S --needed git chezmoi age rbw openssh python bash zsh glib2
 [docs/desktop.md](docs/desktop.md)；本仓库不提供系统级软件包引导安装。
 `glib2` 提供安全 rm 测试所需的 `gio` 命令；启用 `safeRm` 后包装器也依赖它。
 
+按全部配置档分类并附用途注释的 Arch 软件包清单见
+[pacman 包](docs/packages/pacman.txt)和 [AUR 包](docs/packages/aur.txt)。
+按实际启用的配置档选择；它们是仅保留在源码仓库的清单，并非安装脚本或本机全部
+已安装软件的导出。pacman 清单把 `archlinuxcn` 第三方二进制包与官方包分开标注；
+`noto-fonts-lite` 等 AUR 提供者可能与官方替代包冲突。
+
 宿主机必须已经生成 `en_US.UTF-8` 与 `zh_CN.UTF-8`。图形字体配置还需要
 Fontconfig，以及 Adwaita、Noto、Noto CJK、Noto Symbols、Noto Color Emoji
 和 JetBrains Mono Nerd Font 字体族；对应的 Arch 软件包见
@@ -148,7 +154,7 @@ Fontconfig，以及 Adwaita、Noto、Noto CJK、Noto Symbols、Noto Color Emoji
 ```sh
 . "${XDG_CONFIG_HOME:-$HOME/.config}/shell/toolchains.sh"
 pnpm runtime set node 24 -g
-pnpm add -g npm@11
+pnpm add -g npm@12.1.0
 ```
 
 pnpm 本体仍由系统包管理器维护；Node.js 和 npm/npx 位于 `PNPM_HOME`
@@ -165,8 +171,8 @@ zsh 现在读取 `~/.config/zsh/.zshrc`。
 `.chezmoiremove` 会移除 nvm 加载脚本；新 Shell 会清除继承的 nvm 运行时
 PATH 和变量。Chezmoi 不会卸载 nvm 或其中的全局包：先迁移仍需使用的工具，
 再单独卸载系统 nvm 包，并将其用户运行时目录移至回收站。
-应用后打开新终端，用 `command -v node npm pnpm` 检查：Node/npm 应指向
-`$PNPM_HOME/bin`，pnpm 应指向系统包。
+应用后打开新终端，用 `command -v node npm npx pnpm` 检查：Node/npm/npx
+应指向 `$PNPM_HOME/bin`，pnpm 应指向系统包。
 
 ## 在新机器上初始化
 

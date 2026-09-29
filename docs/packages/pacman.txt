@@ -1,0 +1,133 @@
+# Arch packages used by this repository; select sections for your machine.
+# Package names are unpinned and this is not an automatic install script.
+# "pacman" includes official repositories except for the marked archlinuxcn section.
+
+# Common: bootstrap, managed shell/Git/SSH configuration, and source checks.
+git                    # Chezmoi source, Git identity, Neovim plugin bootstrap.
+chezmoi                # Render and apply the dotfiles.
+age                    # Decrypt the versioned SSH/Git configuration.
+rbw                    # Bitwarden references and optional rbw SSH agent.
+openssh                # SSH client/server identities and ssh-keygen checks.
+systemd                # User services, loginctl and busctl (normally in Arch base).
+python                 # Chezmoi modifiers, helpers, and offline tests.
+bash                   # Managed Bash and helper scripts.
+zsh                    # Managed Zsh; both shells are needed by check-source.sh.
+pinentry               # pinentry-curses selected by the rbw configuration.
+glib2                  # gio for safe-rm and its offline test.
+coreutils              # rm, realpath, stat, install, timeout, etc.
+util-linux             # flock and rfkill in desktop helpers.
+findutils              # Source validation and helper scripts.
+grep                   # Shell scripts and checks.
+sed                    # Shell scripts and checks.
+gawk                   # awk used by helpers and checks.
+less                   # Expected pager.
+
+# Configured CLI applications; install those you actually use.
+neovim                 # LazyVim configuration and Kitty scrollback integration.
+tmux                   # Managed tmux configuration.
+zip                    # Zsh c() archive function.
+aria2                  # Optional Zsh d alias (aria2c).
+bash-completion        # Optional Bash completion, sourced if present.
+# Oh My Zsh, Powerlevel10k and its plugins are optional user-managed files,
+# not dependencies that chezmoi installs as Arch packages.
+
+# Pi / agent tooling (independent of graphical and server roles).
+uv                     # Tavily CLI via uv tool; also custom Waybar longshot.
+# pnpm 12 is supplied by AUR pnpm-bin in aur.txt; Node 24 and npm/npx 12.1.0
+# are user-managed through pnpm, not tracked here as Arch packages.
+# Pi npm extensions and the uv-installed Tavily CLI are managed separately.
+
+# Graphical/Niri: common to desktopShell=dms and desktopShell=custom.
+niri                   # Compositor and managed keybindings.
+kitty                  # Terminal and Neovim scrollback integration.
+fontconfig             # Font fallback.
+adwaita-fonts          # Adwaita Sans UI font.
+noto-fonts             # Official default; choose this OR AUR noto-fonts-lite.
+noto-fonts-extra       # Symbols used by the desktop.
+noto-fonts-cjk         # Chinese/Japanese/Korean text.
+noto-fonts-emoji       # Emoji.
+ttf-jetbrains-mono-nerd # Terminal font and Nerd Font icons.
+adw-gtk-theme          # GTK application theme.
+adwaita-icon-theme     # GTK/Qt/Fcitx icons.
+xdg-desktop-portal     # Screen sharing and desktop portals.
+xdg-desktop-portal-gnome # Niri portal backend.
+xdg-desktop-portal-gtk # File chooser portal backend.
+gnome-keyring          # Secret Service / desktop keyring.
+libsecret              # Secret Service client.
+seahorse               # Keyring management UI.
+fcitx5                 # Input method and generated theme.
+fcitx5-rime            # Rime input method.
+fcitx5-gtk             # GTK input-method integration.
+fcitx5-qt              # Qt input-method integration.
+nautilus               # File manager with managed GTK styling.
+btop                   # Configured system monitor.
+satty                  # Screenshot editor used by the custom profile.
+matugen                # DMS palettes or custom Waypaper theme pipeline.
+networkmanager         # nmtui and DMS network backend.
+bluez                  # Bluetooth service used by desktop shells.
+bluez-utils            # Bluetooth utilities.
+pipewire               # Audio backend.
+pipewire-pulse         # PulseAudio-compatible desktop audio.
+wireplumber            # wpctl and PipeWire session manager.
+power-profiles-daemon  # Waybar power-profile widget / desktop service.
+
+# Niri + DMS: dms-shell-niri pulls dms-shell, Quickshell and accountsservice.
+dms-shell-niri         # DMS compositor integration and shell executable.
+dgop                   # DMS process/resource monitoring.
+wtype                  # DMS native clipboard paste.
+qt6ct                  # DMS-generated Qt palette.
+cava                   # Optional DMS visualization and custom Matugen colors.
+qt6-multimedia         # Optional DMS sound feedback.
+
+# Niri + custom: Waybar/Fuzzel/Mako, screenshot, recording, and helpers.
+fuzzel                 # Application launcher and script menus.
+waybar                 # Bar and its active widgets.
+mako                   # Notifications.
+swayidle               # Idle/lock scheduling with swaylock-effects below.
+copyq                  # Clipboard history.
+awww                   # Wallpaper daemon for Waypaper.
+playerctl              # Niri media-key actions.
+brightnessctl          # Niri backlight-key actions.
+grim                   # Region and long screenshots.
+slurp                  # Region selection.
+imagemagick            # magick stitches long screenshots.
+wl-clipboard           # wl-copy / wl-paste.
+wf-recorder            # Waybar recording widget.
+jq                     # Safe JSON output for Waybar's recorder status.
+ddcutil                # External monitor brightness actions.
+hyprpicker             # Waybar color picker.
+pavucontrol            # Waybar audio settings.
+libnotify              # notify-send in screenshot/brightness helpers.
+procps-ng              # pgrep/pkill in theme and screenshot helpers.
+psmisc                 # killall in the btop Matugen hook.
+xdg-user-dirs          # xdg-user-dir in screenshot/recording helpers.
+xdg-utils              # xdg-open fallback for long screenshots.
+
+# Optional custom-only fallbacks, inactive Waybar modules, or theme recipients.
+swappy                 # Alternative screenshot editor to Satty.
+fzf                    # Alternative wf-recorder selection menu to Fuzzel.
+swaync                 # Defined but inactive Waybar notification module.
+gnome-control-center   # Defined but inactive Waybar settings button.
+ghostty                # Matugen theme recipient; no Ghostty startup.
+fastfetch              # Matugen theme recipient.
+starship               # Matugen theme recipient; not the managed Zsh prompt.
+yazi                   # Matugen theme recipient.
+qt5ct                  # Matugen theme recipient.
+swayosd                # Matugen theme recipient.
+
+# Optional local verification (the source checks skip some if unavailable).
+desktop-file-utils     # desktop-file-validate.
+python-gobject         # GTK style checks.
+python-cairo           # GTK style checks.
+gtk3                   # GTK 3 style checks.
+gtk4                   # GTK 4 style checks.
+libadwaita             # Nautilus/libadwaita style checks.
+
+# Optional AUR build tooling (not required to run the dotfiles).
+base-devel             # makepkg toolchain if building AUR packages locally.
+
+# archlinuxcn: third-party *binary* repository on this host, NOT official/AUR.
+# Review and enable that repository separately before installing these names.
+pi                     # Pi coding agent; its package pulls system nodejs>=22.
+yay                    # AUR helper and optional Waybar updates action.
+swaylock-effects       # Custom profile's blurred lock screen; provides swaylock.

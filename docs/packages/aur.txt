@@ -1,0 +1,21 @@
+# AUR packages used or referenced by this repository; select matching sections.
+# Entries except the marked optional module are installed as foreign packages
+# on the audited machine, NOT official pacman packages.
+# Inspect PKGBUILDs before building; alternatives below are mutually exclusive
+# with providers named in pacman.txt.
+
+# Common: user-level Node setup and an optional font-provider substitution.
+pnpm-bin               # pnpm 12; conflicts with official pnpm; Node/npm/npx use PNPM_HOME.
+noto-fonts-lite        # Installed here instead of official noto-fonts; choose one.
+
+# Graphical: optional managed desktop launcher.
+shardx-launcher-bin    # Provides shardx-launcher for the .desktop entry.
+
+# Niri + custom: runtime and active Waybar actions.
+waypaper-git           # Installed Waypaper provider; conflicts with waypaper.
+blueberry              # Waybar Bluetooth settings button.
+wlogout                # Waybar power-menu action and Matugen style.
+wl-gammarelay-rs       # Waybar's optional manual color-temperature service.
+
+# Optional, NOT installed here: defined but inactive Waybar updates module.
+waybar-module-pacman-updates-git # Provides the checked update-count command.

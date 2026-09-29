@@ -48,7 +48,7 @@ From the chezmoi source root:
 # Offline: validate the entire manifest and print the planned commands.
 python3 scripts/install-skills.py --dry-run
 
-# Explicit network operation; requires Node.js/npm (npx) and Git.
+# Explicit network operation; requires pnpm-managed Node.js/npm (npx) and Git.
 python3 scripts/install-skills.py
 ```
 

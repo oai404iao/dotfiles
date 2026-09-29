@@ -217,8 +217,10 @@ fi
 
 mkdir -p "$fake_data/pnpm/bin" "$fake_data/nvm/versions/node/v24/bin"
 for tool_dir in "$fake_data/pnpm/bin" "$fake_data/nvm/versions/node/v24/bin"; do
-    printf '#!/bin/sh\nexit 0\n' >"$tool_dir/node"
-    chmod +x "$tool_dir/node"
+    for tool in node npm npx; do
+        printf '#!/bin/sh\nexit 0\n' >"$tool_dir/$tool"
+        chmod +x "$tool_dir/$tool"
+    done
 done
 for interpreter in sh bash zsh; do
     env -i HOME="$fake_home" XDG_CONFIG_HOME="$fake_config" \
@@ -229,7 +231,9 @@ for interpreter in sh bash zsh; do
         TOOLCHAINS="$repo_dir/dot_config/shell/toolchains.sh" \
         "$interpreter" -c '
             . "$TOOLCHAINS"
-            [ "$(command -v node)" = "$PNPM_HOME/bin/node" ] || exit 1
+            for tool in node npm npx; do
+                [ "$(command -v "$tool")" = "$PNPM_HOME/bin/$tool" ] || exit 1
+            done
             [ -z "${NVM_DIR+x}${NVM_BIN+x}${NVM_INC+x}" ] || exit 1
             case "$PATH" in *"$XDG_DATA_HOME/nvm"*) exit 1 ;; esac
             case "$PATH" in *:) ;; *) exit 1 ;; esac
@@ -249,12 +253,16 @@ for zsh_mode in -c -ic; do
         ZDOTDIR="$fake_config/zsh" NVM_DIR="$fake_data/nvm" \
         PATH="$fake_data/nvm/versions/node/v24/bin:$fake_data/pnpm/bin:/usr/bin:/bin" \
         zsh "$zsh_mode" '
-            [[ "$(command -v node)" = "$PNPM_HOME/bin/node" ]] || exit 1
+            for tool in node npm npx; do
+                [[ "$(command -v "$tool")" = "$PNPM_HOME/bin/$tool" ]] || exit 1
+            done
             [[ -z "${NVM_DIR+x}" ]] || exit 1
             [[ "$PATH" != *"$XDG_DATA_HOME/nvm"* ]] || exit 1
             export EXPECTED_PATH=$PATH
             exec zsh -c '"'"'
-                [[ "$(command -v node)" = "$PNPM_HOME/bin/node" ]] || exit 1
+                for tool in node npm npx; do
+                    [[ "$(command -v "$tool")" = "$PNPM_HOME/bin/$tool" ]] || exit 1
+                done
                 [[ "$PATH" = "$EXPECTED_PATH" ]]
             '"'"'
         '
