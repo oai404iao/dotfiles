@@ -181,6 +181,7 @@ secrets/
 {{- end }}
 
 {{- if not (and .graphical .niri) }}
+.config/spotify-launcher.conf
 .config/niri/
 .config/waybar/
 .config/systemd/user/waybar-gammarelay.service

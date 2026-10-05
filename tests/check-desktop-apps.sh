@@ -96,6 +96,9 @@ assert satty["general"]["actions-on-escape"] == ["exit"]
 assert "output-filename" not in satty["general"]
 assert satty["font"]["fallback"] == ["Noto Sans CJK SC"]
 
+spotify = tomllib.loads((repo / "dot_config/spotify-launcher.conf").read_text())
+assert spotify["spotify"]["extra_arguments"] == ["--ozone-platform=wayland"]
+
 shardx = repo / "dot_local/share/applications/shardx-launcher.desktop"
 launcher = configparser.ConfigParser(interpolation=None)
 launcher.optionxform = str
@@ -110,6 +113,7 @@ ignore = (repo / ".chezmoiignore").read_text()
 graphical = ignore.split("{{- if not .graphical }}", 1)[1].split("{{- end }}", 1)[0]
 niri = ignore.split("{{- if not (and .graphical .niri) }}", 1)[1].split("{{- end }}", 1)[0]
 assert ".config/xdg-desktop-portal/niri-portals.conf" in niri.splitlines()
+assert ".config/spotify-launcher.conf" in niri.splitlines()
 for path in (
     ".config/btop/", ".config/fcitx5/", ".config/satty/", ".config/swaylock/",
     ".config/gtk-3.0/", ".config/gtk-4.0/", ".local/share/fcitx5/themes/Matugen/",
