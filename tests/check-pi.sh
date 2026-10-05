@@ -107,7 +107,14 @@ settings_modifier = source_dir / "modify_private_settings.json"
 compile(settings_modifier.read_text(), str(settings_modifier), "exec")
 settings_result = subprocess.run(
     [sys.executable, str(settings_modifier)],
-    input='{"lastChangelogVersion":"preserve-me","futureState":true,"npmCommand":["npm"]}',
+    input=json.dumps({
+        "lastChangelogVersion": "preserve-me",
+        "futureState": True,
+        "defaultTools": ["read"],
+        "codemode": {"mode": "only", "inlineBudget": 1234, "futureOption": True},
+        "npmCommand": ["npm"],
+        "packages": [str(pathlib.Path.home() / "Dev/local/omp/pi-extensions/pi-tree-continue")],
+    }),
     text=True,
     capture_output=True,
     check=True,
@@ -117,6 +124,26 @@ if settings.get("lastChangelogVersion") != "preserve-me" or settings.get("future
     raise SystemExit("Pi settings modifier did not preserve mutable state")
 if settings.get("npmCommand") != ["pnpm"]:
     raise SystemExit("Pi package manager is not pnpm")
+if settings.get("defaultTools") != ["+codemode"]:
+    raise SystemExit("Pi codemode must be enabled alongside the default tools")
+if settings.get("codemode") != {
+    "mode": "on", "inlineBudget": 1234, "futureOption": True
+}:
+    raise SystemExit("Pi codemode must preserve unowned options and use on mode")
+for old_settings in ("", settings_result.stdout):
+    result = subprocess.run(
+        [sys.executable, str(settings_modifier)],
+        input=old_settings,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
+    reapplied = load_json(result.stdout)
+    if old_settings:
+        if reapplied != settings:
+            raise SystemExit("Pi settings modifier is not idempotent")
+    elif reapplied.get("defaultTools") != ["+codemode"] or reapplied.get("codemode") != {"mode": "on"}:
+        raise SystemExit("Pi codemode is not enabled on a fresh machine")
 if settings.get("defaultThinkingLevel") != "high":
     raise SystemExit("Pi default thinking level is not high")
 if settings.get("defaultProvider") != "openai" or settings.get("defaultModel") != "gpt-6-astra":
@@ -156,16 +183,13 @@ package_sources = {
     for package in settings["packages"]
 }
 expected_npm_packages = {
-    "npm:@juicesharp/rpiv-ask-user-question@2.11.0",
-    "npm:@oai404iao/pi-telegram-notify@0.5.0",
-    "npm:@oai404iao/pi-codex-minimal-tools@4.0.0",
-    "npm:@oai404iao/pi-subagent@0.6.0",
+    "npm:@juicesharp/rpiv-ask-user-question@2.12.0",
+    "npm:@oai404iao/pi-telegram-notify@0.6.0",
+    "npm:@oai404iao/pi-codex-minimal-tools@4.1.0",
+    "npm:@oai404iao/pi-subagent@0.7.0",
 }
-actual_npm_packages = {
-    source for source in package_sources if source.startswith("npm:")
-}
-if actual_npm_packages != expected_npm_packages:
-    raise SystemExit("Pi npm package versions are not pinned")
+if package_sources != expected_npm_packages or len(settings["packages"]) != len(expected_npm_packages):
+    raise SystemExit("unexpected Pi package inventory or unpinned versions")
 
 models = json.loads((source_dir / "private_models.json").read_text())
 providers = models.get("providers", {})
@@ -236,9 +260,9 @@ if shutil.which("chezmoi"):
         )
         rendered = load_json(result.stdout)
         package = (
-            "pi-subagent@0.6.0"
+            "pi-subagent@0.7.0"
             if relative == "private_subagent.json.tmpl"
-            else "pi-codex-minimal-tools@4.0.0"
+            else "pi-codex-runtime@0.5.0"
         )
         schema = "models" if relative.endswith("private_models.json.tmpl") else "config"
         if rendered.get("$schema") != f"https://unpkg.com/@oai404iao/{package}/{schema}.schema.json":
@@ -290,6 +314,14 @@ if shutil.which("chezmoi"):
             parent_responses = profiles.get(
                 "openai/gpt-5.6-sol", {}
             ).get("responses", {})
+            parent = profiles["openai/gpt-5.6-sol"]
+            astra = profiles["openai/gpt-6-astra"]
+            # Bundled Astra fields override extends; pin them explicitly to retain Lite.
+            for field in ("responses", "tools", "compaction", "fast"):
+                if astra.get(field) != parent.get(field):
+                    raise SystemExit(f"GPT-6 Astra does not explicitly preserve Lite {field}")
+            if any("endpoint" in profile.get("responses", {}) for profile in profiles.values()):
+                raise SystemExit("Codex profiles retain deprecated endpoint overrides")
             for model_id in (
                 "openai/gpt-6-astra",
                 "openai/gpt-6-luna",
@@ -322,7 +354,7 @@ if shutil.which("chezmoi"):
         env=fake_env,
     )
     telegram = load_json(result.stdout)
-    if telegram.get("$schema") != "https://unpkg.com/@oai404iao/pi-telegram-notify@0.5.0/config.schema.json":
+    if telegram.get("$schema") != "https://unpkg.com/@oai404iao/pi-telegram-notify@0.6.0/config.schema.json":
         raise SystemExit("Telegram schema version does not match the pinned package")
     if telegram["botToken"] != "123456:test-token" or telegram["chatId"] != "-123456789":
         raise SystemExit("Telegram template did not use the fake rbw values")

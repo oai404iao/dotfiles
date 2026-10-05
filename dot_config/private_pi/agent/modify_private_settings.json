@@ -1,17 +1,17 @@
 #!/usr/bin/env python3
 import json
-import os
 import sys
 
 raw = sys.stdin.read()
 settings = json.loads(raw) if raw.strip() else {}
-home = os.path.expanduser("~")
 
 settings.update(
     {
         "defaultProvider": "openai",
         "defaultModel": "gpt-6-astra",
         "defaultThinkingLevel": "high",
+        "defaultTools": ["+codemode"],
+        "codemode": {**settings.get("codemode", {}), "mode": "on"},
         "hideThinkingBlock": True,
         "enabledModels": [
             "openai/gpt-5.5",
@@ -25,11 +25,10 @@ settings.update(
         ],
         "npmCommand": ["pnpm"],
         "packages": [
-            "npm:@juicesharp/rpiv-ask-user-question@2.11.0",
-            "npm:@oai404iao/pi-telegram-notify@0.5.0",
-            "npm:@oai404iao/pi-codex-minimal-tools@4.0.0",
-            "npm:@oai404iao/pi-subagent@0.6.0",
-            os.path.join(home, "Dev/local/omp/pi-extensions/pi-tree-continue"),
+            "npm:@juicesharp/rpiv-ask-user-question@2.12.0",
+            "npm:@oai404iao/pi-telegram-notify@0.6.0",
+            "npm:@oai404iao/pi-codex-minimal-tools@4.1.0",
+            "npm:@oai404iao/pi-subagent@0.7.0",
         ],
         "theme": "dark",
         "sessionDir": "~/.local/state/pi/agent/sessions",

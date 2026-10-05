@@ -35,6 +35,8 @@ credentials and mutable application state out of Git.
 - LazyVim configuration includes a lockfile reconstructed from verified local
   plugin checkouts.
 - Pi model and Telegram credentials come from Bitwarden through `rbw`.
+- Pi codemode is enabled alongside direct tools (`on`, not `only`); see
+  [compatibility and child-agent limits](docs/pi.md#codemode).
 - Global agent instructions are managed for Pi first, with retained per-task
   scratch directories under `~/.local/state/agents/tmp/` instead of `/tmp`.
 - [Global skills](docs/skills.md) use a manifest and manual `pnpm dlx skills` installer;
@@ -238,14 +240,9 @@ rbw config unset lock_timeout
 
 ### 3. Prepare external application dependencies
 
-Pi expects this local checkout:
-
-```text
-~/Dev/local/omp/pi-extensions/pi-tree-continue
-```
-
-It is intentionally not cloned by chezmoi. Install the selected shell,
-desktop, Neovim, and Pi dependencies appropriate for the machine.
+Install the selected shell, desktop, Neovim, and Pi dependencies appropriate
+for the machine. The pinned Pi extensions require Pi 0.99.1 or newer and
+Node.js 22.19 or newer; no local extension checkout is required.
 
 ### 4. Validate the source
 

@@ -28,6 +28,8 @@
   同时保留输入方案和应用状态。
 - LazyVim 配置包含根据经过验证的本地插件检出重建的锁文件。
 - Pi 模型与 Telegram 凭据通过 `rbw` 从 Bitwarden 获取。
+- Pi codemode 与直接工具调用并存（`on`，非 `only`）；参见
+  [兼容性与子代理限制](docs/pi.md#codemode)。
 - 全局 agent 指令首先支持 Pi；临时文件按任务存放于
   `~/.local/state/agents/tmp/`，用后保留，避免使用 `/tmp`。
 - [全局 skills](docs/skills.md) 通过清单和手动 `pnpm dlx skills` 脚本安装；
@@ -220,14 +222,8 @@ rbw config unset lock_timeout
 
 ### 3. 准备应用的外部依赖
 
-Pi 需要以下本地 checkout：
-
-```text
-~/Dev/local/omp/pi-extensions/pi-tree-continue
-```
-
-chezmoi 不会自动克隆它。还需要根据机器用途安装对应的 Shell、桌面、Neovim
-和 Pi 依赖。
+根据机器用途安装对应的 Shell、桌面、Neovim 和 Pi 依赖。锁定的 Pi 扩展要求
+Pi 0.99.1 或更高版本、Node.js 22.19 或更高版本；不再需要本地扩展 checkout。
 
 ### 4. 验证源码
 

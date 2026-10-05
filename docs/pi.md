@@ -17,7 +17,6 @@ chezmoi owns the declarative files required to reproduce the current Pi setup:
 - Codex-tool, subagent, and Telegram extension configuration
 
 Files are installed with mode `0600`; `~/.config/pi` remains mode `0700`.
-Absolute development paths are rendered from the destination home directory.
 
 The following generated or mutable data is deliberately not managed:
 
@@ -30,18 +29,60 @@ Package declarations in `settings.json` remain the source of truth for
 reinstalling Pi packages. `"npmCommand": ["pnpm"]` makes Pi use pnpm for package
 lookup and installation; the `npm:` source prefix still identifies registry
 packages. npm packages are pinned to their adopted versions.
-The pinned extensions require Pi 0.87.1 (the Codex tools package needs 0.87.0
-or newer) and Node.js 22.19 or newer. Upgrade the system-managed Pi package
+The pinned extensions require Pi 0.99.1 or newer and Node.js 22.19 or newer.
+Upgrade the system-managed Pi package
 (`pacman -S pi`) before applying these declarations.
-The enabled local package still requires this checkout at its rendered path:
-
-- `~/Dev/local/omp/pi-extensions/pi-tree-continue`
+No local extension checkout is required. The tree-continue package is no longer
+declared; applying settings stops loading it without deleting its local checkout.
 
 Disabled packages and their configuration are not managed.
+
+Codex tools 4.1.0 keeps the existing configuration paths, but its pinned schemas
+come from `pi-codex-runtime@0.5.0`. GPT-6 Astra/Sol/Luna deliberately retain
+Lite, automatic WebSocket transport, prewarm, standalone search, and native
+Responses compaction rather than adopting the new Standard/SSE defaults.
+Astra needs explicit fields: its bundled defaults override inherited values
+even when `extends` points to the Lite profile. Image generation and default
+Fast mode remain disabled. Deprecated `responses.endpoint` overrides are
+removed; Pi's provider API and base URL own routing.
+
+Subagent remains foreground-only. Its tools are now model-only (not callable
+from native codemode); the managed scout/reviewer tool allowlists are unchanged.
+Telegram keeps its existing credential template and notification settings.
+These configuration checks do not establish live endpoint compatibility.
 
 Shared skills under `~/.agents/skills/` are installed separately with
 `pnpm dlx skills`; only their [manifest and manual installer](skills.md) are managed
 here, not the downloaded contents or CLI lock state.
+
+## Codemode
+
+Managed settings enable Pi's built-in codemode with
+`"defaultTools": ["+codemode"]` and `"codemode": {"mode": "on"}`.
+This adds JavaScript tool batching and output filtering without hiding direct
+tool calls. Other codemode options, such as `inlineBudget`, remain machine-local.
+See the [Pi codemode reference](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/codemode.md).
+
+The installed Pi 1.0.2 and pinned extension sources were checked for compatibility:
+
+- Codex tools preserves codemode when reconciling its active tools.
+- Subagent orchestration is `model-only`: call it directly, not through
+  `tools.subagent()`. The managed scout/reviewer allowlists do not include
+  codemode, so this change enables it in the parent, not those children.
+- Ask-user-question 2.12.0 still uses default `direct` exposure, so it is also
+  script-callable. Prefer direct questions; parallel dialogs and cancellation
+  inside scripts have not been validated. This is why `on`, not `only`, is used.
+- Telegram listens for UI prompts and settled runs rather than individual
+  transcript tool results; nested calls should not require a config change.
+
+Nested calls still pass through Pi's tool hooks, but scripts execute real tools:
+their side effects are not rolled back on failure. This is not an OS sandbox.
+Interactive dialogs, live provider requests, and Telegram delivery are not
+covered by the offline checks.
+
+After reviewing and applying the explicit settings target, use `/reload` or
+restart Pi. CLI `--tools`/`--no-tools` overrides can prevent activation; a
+project's plain-name `defaultTools` list can also replace the user selection.
 
 ## Global agent instructions
 

@@ -56,9 +56,8 @@ Root `dot_*` files map to home-directory files such as `~/.zshenv` and
   sessions, databases, or generated runtime state into source control.
 - Preserve lockfiles unless the task explicitly updates dependencies. In
   particular, do not regenerate `dot_config/nvim/lazy-lock.json` incidentally.
-- Pi npm declarations in `modify_private_settings.json` are pinned. The local
-  `~/Dev/local/omp/pi-extensions/pi-tree-continue` checkout is an external
-  prerequisite and is not cloned by chezmoi.
+- Pi npm declarations in `modify_private_settings.json` are pinned and require
+  Pi 0.99.1 or newer. No local extension checkout is required.
 - Use a focused development branch and Conventional Commits. Do not mix
   unrelated changes or overwrite an existing dirty worktree.
 - Keep `README.md` and `README.zh-CN.md` semantically synchronized.
