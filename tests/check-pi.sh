@@ -148,13 +148,18 @@ if settings.get("defaultThinkingLevel") != "high":
     raise SystemExit("Pi default thinking level is not high")
 if settings.get("defaultProvider") != "openai" or settings.get("defaultModel") != "gpt-6-astra":
     raise SystemExit("Pi default model is not openai/gpt-6-astra")
-if "openai/gpt-6-astra" not in settings.get("enabledModels", []):
-    raise SystemExit("GPT-6 Astra is not enabled in Pi settings")
-if not {"openai/gpt-6-sol", "openai/gpt-6-luna"} <= set(
-    settings.get("enabledModels", [])
-):
-    raise SystemExit("GPT-6 Sol/Luna are not enabled in Pi settings")
 enabled_models = set(settings.get("enabledModels", []))
+expected_openai_models = {
+    "openai/gpt-5.6-sol",
+    "openai/gpt-6-astra",
+    "openai/gpt-6-luna",
+    "openai/gpt-6.1-sol",
+}
+enabled_openai_models = {
+    model for model in enabled_models if model.startswith("openai/")
+}
+if enabled_openai_models != expected_openai_models:
+    raise SystemExit("unexpected enabled OpenAI model inventory")
 expected_deepseek_models = {
     "deepseek/deepseek-flash",
 }
