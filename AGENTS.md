@@ -56,10 +56,11 @@ Root `dot_*` files map to home-directory files such as `~/.zshenv` and
   sessions, databases, or generated runtime state into source control.
 - `dot_config/DankMaterialShell/plugins/lyrics/` is a maintained source
   exception, not a downloaded plugin cache. Preserve its upstream MIT license
-  and documented revision; test changes with `tests/check-dms-lyrics.sh` and
-  `tests/check-desktop-profiles.sh`. Other DMS plugins, enablement/preferences,
+  and documented revision; test changes with `tests/check-dms-lyrics.sh`,
+  `tests/check-dms-lyrics-qml.sh`, and `tests/check-desktop-profiles.sh`.
+  It is a shared daemon, not a separate bar widget. Other DMS plugins, enablement/preferences,
   and lockfiles remain machine-local.
-- `scripts/dms-media-lyrics/` maintains the version-pinned native media-page
+- `scripts/dms-media-lyrics/` maintains the version-pinned native media widget/page
   overlay. Prepare it offline with `scripts/prepare-dms-media-lyrics.py`;
   never patch the installed package or its read-only runtime extraction.
   Generated shell trees under `$XDG_DATA_HOME/dms-media-lyrics/` stay ignored.

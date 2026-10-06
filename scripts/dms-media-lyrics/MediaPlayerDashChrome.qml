@@ -13,15 +13,15 @@ Item {
 
     required property var player
 
-    readonly property var lyricsWidget: {
-        BarWidgetService.widgetRegistry;
-        return BarWidgetService.getWidget("lyrics", player.targetScreen?.name);
-    }
-    readonly property bool hasLyrics: (lyricsWidget?.lyricsCount ?? 0) > 0 && !!lyricsWidget?.lyricsView
+    readonly property var lyricsService: PluginService.pluginDaemonInstances["lyrics"] ?? null
+    readonly property bool hasLyrics: (lyricsService?.showLyrics ?? false) && (lyricsService?.lyricsCount ?? 0) > 0
+    readonly property bool showLyricsPanel: hasLyrics
+    readonly property bool mediaAvailable: !player.noneAvailable && !player.showNoPlayerNow
 
     property alias volumeButton: volumeButton
     property alias playerSelectorButton: playerSelectorButton
     property alias audioDevicesButton: audioDevicesButton
+    property alias lyricsSettingsButton: lyricsSettingsButton
 
     implicitHeight: playerContent.height + playerContent.anchors.topMargin * 2
 
@@ -43,11 +43,11 @@ Item {
     Item {
         anchors.fill: parent
         clip: false
-        visible: !player.noneAvailable && (!player.showNoPlayerNow)
+        visible: root.mediaAvailable
         ColumnLayout {
             id: playerContent
-            width: root.hasLyrics ? parent.width - 120 : 484
-            height: root.hasLyrics ? 440 : 370
+            width: root.showLyricsPanel ? parent.width - 120 : 484
+            height: root.showLyricsPanel ? 440 : 370
             spacing: Theme.spacingXS
             anchors.top: parent.top
             anchors.topMargin: 20
@@ -56,32 +56,37 @@ Item {
             Item {
                 id: albumArea
                 Layout.fillWidth: true
-                Layout.preferredHeight: root.hasLyrics ? 310 : 200
+                Layout.preferredHeight: root.showLyricsPanel ? 310 : 200
                 Layout.minimumHeight: Layout.preferredHeight
                 Layout.maximumHeight: Layout.preferredHeight
                 clip: false
 
                 DankAlbumArt {
                     id: albumArt
-                    width: root.hasLyrics ? 150 : Math.min(parent.width * 0.8, parent.height * 0.9)
+                    visible: root.mediaAvailable
+                    width: root.showLyricsPanel ? 150 : Math.min(parent.width * 0.8, parent.height * 0.9)
                     height: width
-                    x: root.hasLyrics ? 0 : (parent.width - width) / 2
-                    y: root.hasLyrics ? 20 : (parent.height - height) / 2
+                    x: root.showLyricsPanel ? 0 : (parent.width - width) / 2
+                    y: root.showLyricsPanel ? 20 : (parent.height - height) / 2
                     activePlayer: player.activePlayer
                     artUrl: TrackArtService.resolvedArtUrl
                     accentColor: MediaAccentService.accent
                     showAnimation: SettingsData.audioVisualizerEnabled
                 }
 
-                Loader {
+                Item {
                     anchors.left: albumArt.right
                     anchors.leftMargin: 24
                     anchors.right: parent.right
                     anchors.top: parent.top
                     anchors.bottom: parent.bottom
-                    active: root.hasLyrics
-                    visible: active
-                    sourceComponent: root.lyricsWidget?.lyricsView ?? null
+                    visible: root.showLyricsPanel
+
+                    Loader {
+                        anchors.fill: parent
+                        active: root.showLyricsPanel
+                        sourceComponent: root.lyricsService?.lyricsView ?? null
+                    }
                 }
             }
 
@@ -93,11 +98,12 @@ Item {
 
                 Column {
                     id: songInfo
-                    parent: root.hasLyrics ? albumArea : controlsArea
-                    width: root.hasLyrics ? albumArt.width : parent.width
+                    visible: root.mediaAvailable
+                    parent: root.showLyricsPanel ? albumArea : controlsArea
+                    width: root.showLyricsPanel ? albumArt.width : parent.width
                     spacing: Theme.spacingXS
-                    y: root.hasLyrics ? albumArt.y + albumArt.height + Theme.spacingM : 0
-                    anchors.horizontalCenter: root.hasLyrics ? albumArt.horizontalCenter : parent.horizontalCenter
+                    y: root.showLyricsPanel ? albumArt.y + albumArt.height + Theme.spacingM : 0
+                    anchors.horizontalCenter: root.showLyricsPanel ? albumArt.horizontalCenter : parent.horizontalCenter
 
                     StyledText {
                         text: MprisController.stableTitle || I18n.tr("Unknown Track")
@@ -138,8 +144,9 @@ Item {
 
                 Item {
                     id: seekbarContainer
+                    visible: root.mediaAvailable
                     width: parent.width
-                    anchors.top: root.hasLyrics ? parent.top : songInfo.bottom
+                    anchors.top: root.showLyricsPanel ? parent.top : songInfo.bottom
                     anchors.bottom: playbackControls.top
                     anchors.horizontalCenter: parent.horizontalCenter
 
@@ -198,6 +205,7 @@ Item {
 
                 Item {
                     id: playbackControls
+                    visible: root.mediaAvailable
                     width: parent.width
                     height: 50
                     anchors.bottom: parent.bottom
@@ -528,6 +536,47 @@ Item {
             }
             onExited: {
                 if (player.devicesExpanded)
+                    player.dropdownButtonExited();
+            }
+        }
+    }
+
+    Rectangle {
+        id: lyricsSettingsButton
+        width: 40
+        height: 40
+        radius: 20
+        x: player.isRightEdge ? Theme.spacingM : parent.width - 40 - Theme.spacingM
+        y: 295
+        visible: !!root.lyricsService
+        color: lyricsSettingsArea.containsMouse || player.lyricsExpanded ? player.accentPressed : Theme.withAlpha(player.accentPressed, 0)
+        border.color: Theme.outlineStrong
+        border.width: 1
+        z: 100
+        Accessible.name: I18n.trFor("lyrics", "Lyrics settings")
+        Accessible.role: Accessible.Button
+
+        DankIcon {
+            anchors.centerIn: parent
+            name: player.lyricsExpanded ? "close" : "lyrics"
+            size: 18
+            color: Theme.surfaceText
+        }
+
+        MouseArea {
+            id: lyricsSettingsArea
+            anchors.fill: parent
+            hoverEnabled: true
+            cursorShape: Qt.PointingHandCursor
+            onClicked: {
+                if (player.lyricsExpanded)
+                    player.hideDropdowns();
+                else
+                    player.triggerLyricsDropdown();
+            }
+            onEntered: player.dropdownButtonEntered()
+            onExited: {
+                if (player.lyricsExpanded)
                     player.dropdownButtonExited();
             }
         }

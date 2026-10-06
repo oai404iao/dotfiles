@@ -2,10 +2,18 @@
 // Missing translations stay empty; no machine translation is requested.
 var _cache = ({});
 var _gen = 0;
+var _pendingRequests = [];
 
 function clearCache() {
     _cache = ({});
+    cancelPending();
+}
+
+function cancelPending() {
     _gen++;
+    var pending = _pendingRequests.slice();
+    for (var i = 0; i < pending.length; i++)
+        pending[i]();
 }
 
 function parseLrc(text) {
@@ -74,17 +82,32 @@ function withTranslations(original, translated) {
     return lines;
 }
 
-function preferredText(line) {
-    return line && line.text ? (line.translation || line.text) : "";
+function preferredText(line, translationsEnabled) {
+    return line && line.text ? ((translationsEnabled !== false && line.translation) || line.text) : "";
 }
 
 function _getJson(url, headers, onJson, onFail) {
     var xhr = new XMLHttpRequest();
     var settled = false;
+    var cancel = null;
+    var forget = function () {
+        var index = _pendingRequests.indexOf(cancel);
+        if (index !== -1)
+            _pendingRequests.splice(index, 1);
+    };
+    cancel = function () {
+        if (settled)
+            return;
+        settled = true;
+        forget();
+        xhr.abort();
+    };
+    _pendingRequests.push(cancel);
     var fail = function () {
         if (settled)
             return;
         settled = true;
+        forget();
         onFail();
     };
     xhr.onreadystatechange = function () {
@@ -102,6 +125,7 @@ function _getJson(url, headers, onJson, onFail) {
             return;
         }
         settled = true;
+        forget();
         onJson(result);
     };
     xhr.onerror = fail;
@@ -113,11 +137,13 @@ function _getJson(url, headers, onJson, onFail) {
     xhr.send();
 }
 
-function _fetchNetease(title, artist, ok, fail) {
-    var query = encodeURIComponent((title + " " + artist).trim());
+function _fetchNetease(ctx, ok, fail) {
+    var query = encodeURIComponent((ctx.title + " " + ctx.artist).trim());
     var headers = { "Referer": "https://music.163.com", "User-Agent": "Mozilla/5.0" };
     var searchUrl = "https://music.163.com/api/search/get?type=1&limit=1&s=" + query;
     _getJson(searchUrl, headers, function (res) {
+        if (ctx.gen !== _gen)
+            return;
         var songs = res && res.result && res.result.songs;
         if (!songs || songs.length === 0 || songs[0].id === undefined) {
             fail();
@@ -169,14 +195,15 @@ function _tryChain(order, i, ctx) {
             next();
     };
     if (order[i] === "netease")
-        _fetchNetease(ctx.title, ctx.artist, ok, next);
+        _fetchNetease(ctx, ok, next);
     else
         _fetchLrclib(ctx.title, ctx.artist, ctx.album, ctx.duration, ok, next);
 }
 
 function fetchLyrics(source, title, artist, album, duration, onResult) {
     // Even a cache hit must invalidate a previous in-flight track request.
-    var myGen = ++_gen;
+    cancelPending();
+    var myGen = _gen;
     var key = JSON.stringify([source, title, artist, album, duration]);
     if (Object.prototype.hasOwnProperty.call(_cache, key)) {
         onResult(_cache[key]);

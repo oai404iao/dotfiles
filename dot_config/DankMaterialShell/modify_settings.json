@@ -37,7 +37,7 @@ settings.update({
         "screenPreferences": ["all"],
         "showOnLastDisplay": True,
         "leftWidgets": ["launcherButton", "workspaceSwitcher", "focusedWindow"],
-        "centerWidgets": ["music", "lyrics", "clock", "weather"],
+        "centerWidgets": ["music", "clock", "weather"],
         "rightWidgets": [
             "systemTray", "clipboard", "cpuUsage", "memUsage",
             "notificationButton", "battery", "controlCenterButton",

@@ -17,16 +17,17 @@ scratch_root.mkdir(parents=True, exist_ok=True)
 task = Path(tempfile.mkdtemp(prefix="check-dms-media-lyrics.", dir=scratch_root))
 source = task / "source"
 data = task / "data"
-chrome = source / prepare.CHROME_PATH
-chrome.parent.mkdir(parents=True)
-chrome.write_text("approved chrome fixture\n")
+for relative in prepare.OVERLAYS:
+    target = source / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(f"approved {target.name} fixture\n")
 (source / "shell.qml").write_text("approved shell fixture\n")
 (source / "VERSION").write_text("v1.6.2\n")
 (source / "untouched.qml").write_text("keep this file\n")
 originals = {p.relative_to(source): p.read_bytes() for p in source.rglob("*") if p.is_file()}
 
 assert prepare.VERSION == "v1.6.2"
-assert set(prepare.BASE_HASHES) == {"shell.qml", prepare.CHROME_PATH}
+assert set(prepare.BASE_HASHES) == {"shell.qml", *prepare.OVERLAYS}
 assert all(len(value) == 64 for value in prepare.BASE_HASHES.values())
 prepare.BASE_HASHES = {
     relative: hashlib.sha256((source / relative).read_bytes()).hexdigest()
@@ -35,9 +36,10 @@ prepare.BASE_HASHES = {
 generation = prepare.prepare(source, data, task / "builds")
 current = data / "dms-media-lyrics/current"
 assert current.resolve() == generation
-assert (generation / prepare.CHROME_PATH).read_bytes() == (
-    repo / "scripts/dms-media-lyrics/MediaPlayerDashChrome.qml"
-).read_bytes()
+for relative in prepare.OVERLAYS:
+    assert (generation / relative).read_bytes() == (
+        repo / "scripts/dms-media-lyrics" / Path(relative).name
+    ).read_bytes()
 assert (generation / "untouched.qml").read_bytes() == (source / "untouched.qml").read_bytes()
 assert (generation / ".dms-version").read_text() == "dms v1.6.2\n"
 assert (generation / "MEDIA-LYRICS-LICENSE").read_bytes() == (
@@ -60,9 +62,10 @@ def expect_rejected():
 (source / "VERSION").write_text("v1.7.0\n")
 expect_rejected()
 (source / "VERSION").write_text("v1.6.2\n")
-chrome.write_text("unexpected core changes\n")
-expect_rejected()
-chrome.write_bytes(originals[Path(prepare.CHROME_PATH)])
+for relative in prepare.BASE_HASHES:
+    (source / relative).write_text("unexpected core changes\n")
+    expect_rejected()
+    (source / relative).write_bytes(originals[Path(relative)])
 link = source / "external.qml"
 link.symlink_to(task / "outside")
 expect_rejected()
@@ -116,4 +119,24 @@ assert result.stdout.splitlines() == ["unset", "run", "-d"]
 assert "version mismatch" in result.stderr
 env["XDG_DATA_HOME"] = str(task / "missing-data")
 assert launch().stdout.splitlines() == ["unset", "run", "-d"]
+media = (repo / "scripts/dms-media-lyrics/Media.qml").read_text()
+assert media.index("id: mediaInfo") < media.index("id: mediaControls") < media.index("id: textContainer")
+assert 'PluginService.pluginDaemonInstances["lyrics"]' in media
+chrome = (repo / "scripts/dms-media-lyrics/MediaPlayerDashChrome.qml").read_text()
+assert 'PluginService.pluginDaemonInstances["lyrics"]' in chrome
+assert "BarWidgetService.getWidget" not in chrome
+assert "id: lyricsSettingsButton" in chrome
+assert "settingsView" not in chrome
+assert "lyricsSettingsOpen" not in chrome
+assert "player.triggerLyricsDropdown()" in chrome
+overlay = (repo / "scripts/dms-media-lyrics/MediaDropdownOverlay.qml").read_text()
+assert "root.lyricsService?.settingsView" in overlay
+assert "return lyricsSettingsPanel;" in overlay
+assert "root.clampX(root.isRightEdge ? root.anchorPos.x : root.anchorPos.x - width, width)" in overlay
+tab = (repo / "scripts/dms-media-lyrics/MediaPlayerTab.qml").read_text()
+assert "dropdownAnchor(chromeLoader.item.lyricsSettingsButton)" in tab
+assert "lyricsExpanded = false;" in tab
+dash = (repo / "scripts/dms-media-lyrics/DankDashPopout.qml").read_text()
+assert "onShowLyricsDropdown:" in dash
+assert "availableBounds: Qt.rect(0, 0, width, height)" in dash
 print(f"DMS media overlay offline checks passed (retained fixtures: {task})")

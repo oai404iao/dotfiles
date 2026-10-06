@@ -21,9 +21,9 @@
 - Niri 使用模块化配置和可选择的显示器配置档案。
 - Niri 桌面可在 init 时选择完整的 `dms` 或现有 `custom` 组件组合。
   [方案切换与所有权说明](docs/desktop-shells.md)涵盖 GUI 偏好的保留和两套启动流程的隔离。
-- DMS 包含本地维护的[双语歌词插件](docs/desktop-shells.md#bilingual-lyrics)：
-  bar 优先显示现成译文，弹窗显示原文和译文，不调用 AI 翻译。
-  可选的本地 DMS 界面补丁会检查版本，并把同一份歌词嵌入原生媒体页。
+- DMS 包含本地维护的[双语歌词服务](docs/desktop-shells.md#bilingual-lyrics)。
+  检查版本的本地界面补丁将歌词整合进音乐组件和原生媒体页，
+  共用歌词/译文显示开关，不调用 AI 翻译。
 - Niri 设备上的 GNOME Keyring D-Bus 激活统一使用软件包提供的 systemd
   用户服务；[密钥环数据及备份只留在本机](docs/desktop.md#desktop-keyring)。
 - 为 Matugen 与 Waypaper 提供初始状态，同时避免后续 apply 覆盖应用生成值。

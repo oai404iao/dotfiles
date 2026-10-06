@@ -4,6 +4,27 @@ import vm from "node:vm";
 
 const source = readFileSync(new URL("../dot_config/DankMaterialShell/plugins/lyrics/LyricsFetcher.js", import.meta.url), "utf8");
 
+const catalog = JSON.parse(readFileSync(new URL("../dot_config/DankMaterialShell/plugins/lyrics/translations/zh_CN.json", import.meta.url), "utf8"));
+const localizedFiles = [
+    "../dot_config/DankMaterialShell/plugins/lyrics/LyricsSettings.qml",
+    "../dot_config/DankMaterialShell/plugins/lyrics/LyricsService.qml",
+    "../scripts/dms-media-lyrics/MediaPlayerDashChrome.qml",
+];
+const terms = new Set();
+for (const path of localizedFiles) {
+    const qml = readFileSync(new URL(path, import.meta.url), "utf8");
+    assert.doesNotMatch(qml, /[\u3400-\u9fff]/u, "UI strings belong in the locale catalog");
+    for (const match of qml.matchAll(/I18n\.trFor\("lyrics", "([^"]+)"\)/g))
+        terms.add(match[1]);
+}
+assert.deepEqual(Object.keys(catalog).sort(), [...terms].sort(), "Chinese catalog must cover all plugin UI terms, without stale entries");
+for (const term of terms) {
+    assert.deepEqual(Object.keys(catalog[term]), [term]);
+    assert.equal(typeof catalog[term][term], "string");
+    assert.ok(catalog[term][term].trim());
+    assert.ok(!catalog[term][term].includes(term), "Do not append English source text to the translation");
+}
+
 function fixture() {
     const requests = [];
     class FakeRequest {
@@ -18,6 +39,10 @@ function fixture() {
         }
         send() {
             requests.push(this);
+        }
+        abort() {
+            this.aborted = true;
+            this.onerror();
         }
         reply(body, status = 200) {
             this.status = status;
@@ -66,6 +91,8 @@ assert.equal(api.withTranslations("[00:10]original", "[00:10.2]译文")[0].trans
 assert.equal(api.withTranslations("[00:01]original", "unsynced translation")[0].translation, "");
 assert.equal(api.preferredText({ text: "original", translation: "译文" }), "译文");
 assert.equal(api.preferredText({ text: "original", translation: "" }), "original");
+assert.equal(api.preferredText({ text: "original", translation: "译文" }, false), "original");
+assert.equal(api.preferredText({ text: "original", translation: "译文" }, true), "译文");
 assert.equal(api.preferredText({ text: "", translation: "stray" }), "");
 assert.equal(api.preferredText(null), "");
 
@@ -182,6 +209,27 @@ for (const provider of ["netease_only", "lrclib_only"]) {
     assert.equal(oldCalls, 0);
     api.fetchLyrics("netease", "missing artist", "", "", 0, value => assert.deepEqual(plain(value), []));
     assert.equal(requests.length, 2);
+}
+
+{
+    const { api, requests } = fixture();
+    let calls = 0;
+    api.fetchLyrics("netease", "title", "artist", "", 0, () => { calls++; });
+    api.cancelPending();
+    assert.equal(requests[0].aborted, true);
+    requests[0].reply({ result: { songs: [{ id: 123 }] } });
+    assert.equal(requests.length, 1, "cancelled search must not start a lyric request");
+    assert.equal(calls, 0);
+
+    api.fetchLyrics("netease", "title", "artist", "", 0, () => { calls++; });
+    requests[1].reply({ result: { songs: [{ id: 123 }] } });
+    assert.equal(requests.length, 3);
+    api.cancelPending();
+    assert.equal(requests[2].aborted, true);
+    requests[2].reply({}, 503);
+    assert.equal(requests.length, 3, "cancelled lyric request must not start provider fallback");
+    assert.equal(calls, 0);
+    assert.equal(api._pendingRequests.length, 0);
 }
 
 console.log("DMS bilingual lyrics offline checks passed");

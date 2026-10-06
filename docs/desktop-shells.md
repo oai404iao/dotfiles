@@ -65,8 +65,9 @@ available and otherwise runs the stock DMS shell.
   preference, including machine-specific outputs, wallpaper, network, and
   battery settings. Applying again restores only the five owned fields;
   pre-seeding this file bypasses DMS's first-launch wizard.
-- DankBar uses `centerWidgets` for music, bilingual lyrics, date/time, and
-  weather in that order.
+- DankBar uses `centerWidgets` for music, date/time, and weather in that order.
+  In the customized shell, music contains visualization, playback controls,
+  and the current lyric (or song title and artist) within one pill.
   Click or hover opens the tabbed DankDash panel; hover popouts use a 450 ms
   delay. The left/right sections retain the launcher, workspaces, focused
   window, and system status without duplicate music or weather widgets.
@@ -75,7 +76,7 @@ available and otherwise runs the stock DMS shell.
 - Chezmoi owns the maintained `plugins/lyrics/` source, including its MIT
   license. Plugin enablement and preferences in `plugin_settings.json`,
   downloaded plugins, and plugin lockfiles remain machine-local.
-- The native media-page customization is prepared from the reviewed
+- The native media widget/page customization is prepared from the reviewed
   `scripts/dms-media-lyrics/` source. Its complete generated DMS tree under
   `$XDG_DATA_HOME/dms-media-lyrics/` is machine-local, not a managed package.
 - `~/.config/niri/dms/{binds,outputs,layout,cursor,colors,alttab,windowrules}.kdl`
@@ -126,7 +127,7 @@ those are only seeded on a new file, not changed in an existing file.
 
 ### Bilingual lyrics
 
-The maintained plugin is based on
+The maintained lyrics service is based on
 [Gm-aaa/dms-lyrics](https://github.com/Gm-aaa/dms-lyrics), commit
 `2cea21b36a18ca83a930550e067088856f5d8863` (upstream 0.3.0).
 Its original MIT license is deployed alongside the locally modified sources.
@@ -136,10 +137,25 @@ directory; update the reviewed source and tests here instead.
 - Spotify and other MPRIS players supply playback metadata and position.
 - NetEase is queried first for synchronized original lyrics and its supplied
   `tlyric` translation. LRCLIB is the original-only fallback.
-- The bar prefers each line's translation, falling back to the original.
-  The popout shows original and translated lines together. Its `LyricsView`
-  component and model are shared with the customized native media page;
-  opening that page does not start another lyric fetcher.
+- A single DMS daemon plugin supplies all displays; there is no separate
+  lyrics bar widget or popout. The customized music widget prefers each
+  line's supplied translation, then original lyrics, then song title/artist
+  during instrumental gaps or when no lyrics are available.
+- The native media page shows original and translated lines together using
+  the service's `LyricsView` and model, without starting another fetcher.
+- Its right-side lyrics button opens an external settings panel through the
+  same overlay as the native volume/device controls, leaving lyrics visible.
+  `showLyrics`
+  controls the bar and page together and stops fetching while disabled.
+  `showTranslation` switches both views to originals only when disabled.
+  Preferences are saved in DMS's machine-local `plugin_settings.json`.
+- Settings labels follow DMS's UI locale through `I18n.trFor` and the
+  plugin-local `translations/zh_CN.json` catalog. English source strings are
+  the fallback; UI language selection does not change lyric translations.
+- The translation selector lists only what the current provider supplied.
+  NetEase exposes one `tlyric` without a language tag, labelled **Provider
+  translation**, not an invented language list. With no translated lines,
+  the settings show an unavailable message instead of a selector.
 - Translations match original timestamps within 200 ms, nearest pairs first,
   without reusing a translation or carrying it forward to unrelated lines.
   Missing, unsynchronized, and duplicate translations are omitted.
@@ -148,11 +164,11 @@ directory; update the reviewed source and tests here instead.
   only in memory; availability and translated coverage depend on the provider.
   NetEase retains the upstream first-search-result selection, so alternative
   recordings or ambiguous titles can still return mismatched lyrics.
-- Width, source priority, and instrumental-gap presentation remain configurable
-  in DMS's plugin settings. Choosing LRCLIB first can bypass NetEase translations.
+- Text width and source priority remain configurable in the lyrics settings.
+  Choosing LRCLIB first can bypass NetEase translations.
 
-On a fresh DMS machine, apply the reviewed plugin and bar targets, then enable
-the plugin locally:
+On a fresh DMS machine, prepare the native overlay below, apply the reviewed
+plugin and bar targets, then enable the service locally:
 
 ```sh
 mkdir -p ~/.config/DankMaterialShell/plugins
@@ -165,25 +181,31 @@ dms ipc call plugins status lyrics
 ```
 
 Back up any pre-existing `plugins/lyrics/` directory and settings before
-applying. No full shell restart is normally needed for installation. After
+applying. When migrating from the standalone widget, remove only its old
+`LyricsWidget.qml` after backing it up and confirming it is the managed
+version. The `lyrics` entry is no longer part of `centerWidgets`. After
 source updates, use `dms ipc call plugins reload lyrics`; if an imported
 JavaScript file remains cached, restart DMS while unlocked.
 
 #### Native media-page overlay
 
-`scripts/dms-media-lyrics/MediaPlayerDashChrome.qml` is a maintained derivative
+The QML files in `scripts/dms-media-lyrics/` are maintained derivatives
 of DMS **v1.6.2**, commit `2db7646fe3ab47fddfdb8723f2da07d61a0d47ac`.
 The upstream MIT license is included beside it. It keeps DankDash's tabs,
 progress bar, transport, player selection, volume, and output controls. When
-the lyrics widget on the same display has lyrics, it places compact artwork
+the shared lyrics service has lyrics enabled and available, it places compact artwork
 and song metadata on the left and a scrolling bilingual view on the right.
-With no lyrics or without the enabled plugin, it uses the original layout.
+With no lyrics or without the enabled service, it uses the original layout.
+The settings button stays available while lyric display is disabled, so the
+user can turn it back on. Settings float outside the main panel on the same
+side as native audio menus, with their shared dismissal and screen-edge bounds.
+They do not replace the lyrics area.
 
 DMS 1.6.2 has no plugin slot for this native page. The preparation script
 copies a trusted, pristine shell tree, verifies its version and the hashes of
-`shell.qml` and the original media chrome, then replaces **only** the media
-chrome in the copy. It never edits `/usr/bin/dms`, package files, or the
-read-only extracted shell. Source input must be trusted; the two hashes are
+`shell.qml` and all five original media/dropdown components, then replaces
+**only** those five components in the copy. It never edits `/usr/bin/dms`, package files, or the
+read-only extracted shell. Source input must be trusted; these hashes are
 compatibility guards, not a full-tree authenticity check.
 
 For the installed embedded-shell build, obtain its extraction path from
@@ -218,8 +240,8 @@ After a DMS package upgrade, stop the old shell and launch through
 `dms-with-lyrics` again: a version mismatch falls back to stock DMS.
 Do **not** rely on `dms restart` alone for this check, because an existing
 supervisor retains its old environment. Re-review/rebase the overlay and
-hashes before preparing for a new DMS version. Plugin-only lyrics still work
-without this native-page customization.
+hashes before preparing for a new DMS version. Stock DMS remains usable after
+fallback, but displaying these integrated lyrics requires the custom overlay.
 
 To return to stock immediately, run `dms kill`, then
 `env -u DMS_SHELL_DIR /usr/bin/dms run -d`. To make that permanent, restore the
@@ -342,6 +364,13 @@ reports a skip; the desktop profile inventory checks still run.
 `tests/check-dms-media-lyrics.sh` checks offline overlay preparation, source
 version/hash rejection, generation preservation, and launcher fallback using
 fake DMS commands. It never starts a real shell.
+`tests/check-dms-lyrics-qml.sh` uses Qt 6's test runner when available to
+instantiate the real lyrics service/view offscreen. Stubbed MPRIS and lyric
+responses test startup, player removal, display preferences while paused,
+language availability, disabled fetching, and shared view updates without
+connecting to the real desktop or network. It also exercises the real media
+overlay's external positioning, screen bounds, blur, hover tracking, and
+settings availability without a player.
 
 Run `./tests/check-source.sh` and `git diff --check` before applying.
 

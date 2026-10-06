@@ -78,11 +78,13 @@ dms_only = {
     ".local/bin/dms-with-lyrics",
 }
 lyrics_files = {
-    "plugin.json", "LyricsWidget.qml", "LyricsView.qml", "LyricsSettings.qml", "LyricsFetcher.js", "LICENSE",
+    "plugin.json", "LyricsService.qml", "LyricsView.qml", "LyricsSettings.qml", "LyricsFetcher.js", "LICENSE",
+    "translations/zh_CN.json",
 }
 lyrics_dir = ".config/DankMaterialShell/plugins/lyrics"
 dms_only |= {f"{lyrics_dir}/{name}" for name in lyrics_files}
-assert {p.name for p in (repo / "dot_config/DankMaterialShell/plugins/lyrics").iterdir()} == lyrics_files
+lyrics_source = repo / "dot_config/DankMaterialShell/plugins/lyrics"
+assert {p.relative_to(lyrics_source).as_posix() for p in lyrics_source.rglob("*") if p.is_file()} == lyrics_files
 targets = [
     ".config/niri", ".config/kitty", ".config/gtk-3.0", ".config/gtk-4.0",
     ".config/fcitx5/conf/classicui.conf",
@@ -155,7 +157,7 @@ for shell in ("custom", "dms"):
             assert bar[0]["widgetTransparency"] == 1
             assert bar[0]["screenPreferences"] == ["all"]
             assert bar[0]["leftWidgets"] == ["launcherButton", "workspaceSwitcher", "focusedWindow"]
-            assert bar[0]["centerWidgets"] == ["music", "lyrics", "clock", "weather"]
+            assert bar[0]["centerWidgets"] == ["music", "clock", "weather"]
             assert bar[0]["rightWidgets"] == [
                 "systemTray", "clipboard", "cpuUsage", "memUsage",
                 "notificationButton", "battery", "controlCenterButton",
@@ -165,8 +167,12 @@ for shell in ("custom", "dms"):
             assert not any(key.startswith("island") and key != "island" for key in bar[0])
             manifest = json.loads((home / lyrics_dir / "plugin.json").read_text())
             assert manifest["id"] == "lyrics"
-            assert manifest["capabilities"] == ["dankbar-widget"]
-            assert manifest["component"] == "./LyricsWidget.qml"
+            assert manifest["type"] == "daemon"
+            assert manifest["capabilities"] == []
+            assert manifest["component"] == "./LyricsService.qml"
+            for key in ("showLyrics", "showTranslation"):
+                assert manifest["settings_schema"][key]["default"] is True
+            assert manifest["settings_schema"]["translationLanguage"]["default"] == "source"
             for name in lyrics_files:
                 assert (home / lyrics_dir / name).read_bytes() == (
                     repo / "dot_config/DankMaterialShell/plugins/lyrics" / name

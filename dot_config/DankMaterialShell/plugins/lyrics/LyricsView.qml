@@ -8,6 +8,7 @@ ListView {
     id: root
 
     property int activeIndex: -1
+    property bool showTranslation: true
 
     clip: true
     currentIndex: activeIndex
@@ -54,7 +55,7 @@ ListView {
             StyledText {
                 text: lyricDelegate.translation
                 textFormat: Text.PlainText
-                visible: text !== ""
+                visible: root.showTranslation && text !== ""
                 width: parent.width
                 font.pixelSize: Theme.fontSizeSmall
                 color: lyricDelegate.isActive ? Theme.surfaceText : Theme.surfaceVariantText

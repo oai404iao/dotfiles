@@ -1,15 +1,13 @@
 {
     "id": "lyrics",
     "name": "Bilingual Lyrics",
-    "description": "Prefer supplied Netease translations in DankBar; show original and translated lyrics in the popout",
-    "version": "0.3.0-local.1",
+    "description": "Shared synced lyrics and display settings for the customized native media widget and page",
+    "version": "0.4.0-local.1",
     "author": "gmaaa",
     "icon": "lyrics",
-    "type": "widget",
-    "capabilities": [
-        "dankbar-widget"
-    ],
-    "component": "./LyricsWidget.qml",
+    "type": "daemon",
+    "capabilities": [],
+    "component": "./LyricsService.qml",
     "settings": "./LyricsSettings.qml",
     "settings_schema": {
         "lyricsSource": {
@@ -22,13 +20,21 @@
             "minimum": 80,
             "maximum": 600
         },
-        "gapMode": {
+        "showLyrics": {
+            "type": "boolean",
+            "default": true
+        },
+        "showTranslation": {
+            "type": "boolean",
+            "default": true
+        },
+        "translationLanguage": {
             "type": "string",
-            "default": "dots"
+            "default": "source"
         }
     },
     "requires": [],
-    "requires_dms": ">=1.4.0",
+    "requires_dms": ">=1.6.2",
     "permissions": [
         "settings_read",
         "settings_write",
