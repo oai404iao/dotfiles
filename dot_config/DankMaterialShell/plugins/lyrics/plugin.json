@@ -1,0 +1,37 @@
+{
+    "id": "lyrics",
+    "name": "Bilingual Lyrics",
+    "description": "Prefer supplied Netease translations in DankBar; show original and translated lyrics in the popout",
+    "version": "0.3.0-local.1",
+    "author": "gmaaa",
+    "icon": "lyrics",
+    "type": "widget",
+    "capabilities": [
+        "dankbar-widget"
+    ],
+    "component": "./LyricsWidget.qml",
+    "settings": "./LyricsSettings.qml",
+    "settings_schema": {
+        "lyricsSource": {
+            "type": "string",
+            "default": "netease"
+        },
+        "maxWidth": {
+            "type": "integer",
+            "default": 280,
+            "minimum": 80,
+            "maximum": 600
+        },
+        "gapMode": {
+            "type": "string",
+            "default": "dots"
+        }
+    },
+    "requires": [],
+    "requires_dms": ">=1.4.0",
+    "permissions": [
+        "settings_read",
+        "settings_write",
+        "network"
+    ]
+}

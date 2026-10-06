@@ -51,14 +51,18 @@ secrets/
 .local/share/fcitx5/rime/
 .config/btop/btop.log*
 
-# DMS owns other mutable preferences, clipboard data, plugins, and generated themes.
+# Only the maintained lyrics plugin is declarative; other DMS plugins and state stay local.
 .cache/DankMaterialShell/
 .local/state/DankMaterialShell/
 .local/share/DankMaterialShell/
+.local/share/dms-media-lyrics/
 .config/DankMaterialShell/.firstlaunch
 .config/DankMaterialShell/clsettings.json
 .config/DankMaterialShell/plugin_settings.json
-.config/DankMaterialShell/plugins*
+.config/DankMaterialShell/plugins.json
+.config/DankMaterialShell/plugins.lock.json
+.config/DankMaterialShell/plugins/*
+!.config/DankMaterialShell/plugins/lyrics
 .config/DankMaterialShell/.repos/
 .config/DankMaterialShell/themes/
 .config/DankMaterialShell/backups/
@@ -171,6 +175,7 @@ secrets/
 .local/share/fcitx5/themes/Matugen/
 {{- else }}
 .config/DankMaterialShell/
+.local/bin/dms-with-lyrics
 .config/niri/dms/
 .config/kitty/dank-theme.conf
 .config/kitty/dank-tabs.conf

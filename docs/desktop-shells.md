@@ -48,7 +48,9 @@ for the other profile. Keeping both package sets installed is supported.
 
 Do not run DankInstall or `dms setup --force` over this configuration. Chezmoi
 already supplies the compositor integration. DMS starts **only** through
-`spawn-at-startup "dms" "run"`; do not also enable `dms.service`.
+`spawn-at-startup "dms-with-lyrics" "run"`; do not also enable `dms.service`.
+The launcher uses the prepared, version-matched media-page overlay when
+available and otherwise runs the stock DMS shell.
 
 ## Configuration ownership
 
@@ -63,12 +65,19 @@ already supplies the compositor integration. DMS starts **only** through
   preference, including machine-specific outputs, wallpaper, network, and
   battery settings. Applying again restores only the five owned fields;
   pre-seeding this file bypasses DMS's first-launch wizard.
-- DankBar uses `centerWidgets` for music, date/time, and weather in that order.
+- DankBar uses `centerWidgets` for music, bilingual lyrics, date/time, and
+  weather in that order.
   Click or hover opens the tabbed DankDash panel; hover popouts use a 450 ms
   delay. The left/right sections retain the launcher, workspaces, focused
   window, and system status without duplicate music or weather widgets.
   The bar background is transparent and its shadow is disabled; individual
   widget backgrounds remain opaque.
+- Chezmoi owns the maintained `plugins/lyrics/` source, including its MIT
+  license. Plugin enablement and preferences in `plugin_settings.json`,
+  downloaded plugins, and plugin lockfiles remain machine-local.
+- The native media-page customization is prepared from the reviewed
+  `scripts/dms-media-lyrics/` source. Its complete generated DMS tree under
+  `$XDG_DATA_HOME/dms-media-lyrics/` is machine-local, not a managed package.
 - `~/.config/niri/dms/{binds,outputs,layout,cursor,colors,alttab,windowrules}.kdl`
   are create-only. DMS owns subsequent edits. Output selection and familiar
   window bindings are seeded from the same templates as custom mode. DMS
@@ -85,7 +94,7 @@ already supplies the compositor integration. DMS starts **only** through
   foreground, background, selection, tabs, and links still follow DMS. This
   does not enable the legacy user Matugen templates. Existing DMS installations
   can select **Neutral** and **Terminals - Always use Dark Theme** in Settings;
-  the seed does not reset existing preferences outside the four owned fields.
+  the seed does not reset existing preferences outside the five owned fields.
 - Chezmoi merges Qt6ct's `Appearance` palette path
   (`colors/matugen.conf` under this machine's home), custom palette, Adwaita
   icon theme, Fusion style, and `Fonts` settings. Other sections and keys
@@ -107,13 +116,115 @@ already supplies the compositor integration. DMS starts **only** through
   execute these even when user templates are disabled.
 - Custom-only files become ignored in DMS mode, not deleted. CopyQ history
   remains untouched and is not imported into DMS. DMS clipboard data,
-  notifications, night-mode/wallpaper session state, plugins, and caches stay
-  machine-local; never recursively add these directories to chezmoi.
+  notifications, night-mode/wallpaper session state, downloaded plugins, and
+  caches stay machine-local; never recursively add these directories to chezmoi.
 
 If DMS was already configured before adopting this profile, back up and review
 its current settings before applying the modifier. In particular, check
 `runUserMatugenTemplates`, idle/lock settings, and any custom power commands:
 those are only seeded on a new file, not changed in an existing file.
+
+### Bilingual lyrics
+
+The maintained plugin is based on
+[Gm-aaa/dms-lyrics](https://github.com/Gm-aaa/dms-lyrics), commit
+`2cea21b36a18ca83a930550e067088856f5d8863` (upstream 0.3.0).
+Its original MIT license is deployed alongside the locally modified sources.
+Do not use a registry update or the upstream installer to overwrite this
+directory; update the reviewed source and tests here instead.
+
+- Spotify and other MPRIS players supply playback metadata and position.
+- NetEase is queried first for synchronized original lyrics and its supplied
+  `tlyric` translation. LRCLIB is the original-only fallback.
+- The bar prefers each line's translation, falling back to the original.
+  The popout shows original and translated lines together. Its `LyricsView`
+  component and model are shared with the customized native media page;
+  opening that page does not start another lyric fetcher.
+- Translations match original timestamps within 200 ms, nearest pairs first,
+  without reusing a translation or carrying it forward to unrelated lines.
+  Missing, unsynchronized, and duplicate translations are omitted.
+- No AI service, Spotify API key, or extra daemon is used. Public lyric
+  providers receive the song metadata used for matching. Results are cached
+  only in memory; availability and translated coverage depend on the provider.
+  NetEase retains the upstream first-search-result selection, so alternative
+  recordings or ambiguous titles can still return mismatched lyrics.
+- Width, source priority, and instrumental-gap presentation remain configurable
+  in DMS's plugin settings. Choosing LRCLIB first can bypass NetEase translations.
+
+On a fresh DMS machine, apply the reviewed plugin and bar targets, then enable
+the plugin locally:
+
+```sh
+mkdir -p ~/.config/DankMaterialShell/plugins
+chezmoi apply --exclude=scripts,encrypted \
+  ~/.config/DankMaterialShell/plugins/lyrics \
+  ~/.config/DankMaterialShell/settings.json
+dms ipc call plugin-scan scan
+dms ipc call plugins enable lyrics
+dms ipc call plugins status lyrics
+```
+
+Back up any pre-existing `plugins/lyrics/` directory and settings before
+applying. No full shell restart is normally needed for installation. After
+source updates, use `dms ipc call plugins reload lyrics`; if an imported
+JavaScript file remains cached, restart DMS while unlocked.
+
+#### Native media-page overlay
+
+`scripts/dms-media-lyrics/MediaPlayerDashChrome.qml` is a maintained derivative
+of DMS **v1.6.2**, commit `2db7646fe3ab47fddfdb8723f2da07d61a0d47ac`.
+The upstream MIT license is included beside it. It keeps DankDash's tabs,
+progress bar, transport, player selection, volume, and output controls. When
+the lyrics widget on the same display has lyrics, it places compact artwork
+and song metadata on the left and a scrolling bilingual view on the right.
+With no lyrics or without the enabled plugin, it uses the original layout.
+
+DMS 1.6.2 has no plugin slot for this native page. The preparation script
+copies a trusted, pristine shell tree, verifies its version and the hashes of
+`shell.qml` and the original media chrome, then replaces **only** the media
+chrome in the copy. It never edits `/usr/bin/dms`, package files, or the
+read-only extracted shell. Source input must be trusted; the two hashes are
+compatibility guards, not a full-tree authenticity check.
+
+For the installed embedded-shell build, obtain its extraction path from
+`qs list --all` while stock DMS is running, then:
+
+```sh
+python3 scripts/prepare-dms-media-lyrics.py /path/to/pristine/extracted/dms-shell
+chezmoi apply --exclude=scripts,encrypted \
+  ~/.local/bin/dms-with-lyrics \
+  ~/.config/niri/conf.d/40-session.kdl \
+  ~/.config/DankMaterialShell/plugins/lyrics
+```
+
+The helper and updated Niri startup entry take effect on the next login.
+To switch immediately, first save work and ensure the session is unlocked;
+`dms kill` briefly removes the shell, then launch its replacement:
+
+```sh
+dms kill
+~/.local/bin/dms-with-lyrics run -d
+```
+
+Run the replacement with the desktop session's locale, not the English
+interactive-shell locale, to preserve the UI language and date/time format.
+
+The supervisor receives `DMS_SHELL_DIR`, so subsequent `dms restart` retains
+the prepared tree and `dms ipc` still reaches the current instance. Do not
+launch a second shell. Preparation retains previous generations and scratch
+workspaces; cleanup is manual.
+
+After a DMS package upgrade, stop the old shell and launch through
+`dms-with-lyrics` again: a version mismatch falls back to stock DMS.
+Do **not** rely on `dms restart` alone for this check, because an existing
+supervisor retains its old environment. Re-review/rebase the overlay and
+hashes before preparing for a new DMS version. Plugin-only lyrics still work
+without this native-page customization.
+
+To return to stock immediately, run `dms kill`, then
+`env -u DMS_SHELL_DIR /usr/bin/dms run -d`. To make that permanent, restore the
+Niri startup source to `spawn-at-startup "dms" "run"` and apply that explicit
+target. Neither rollback requires deleting the prepared trees.
 
 ### Idle and lock defaults
 
@@ -223,6 +334,14 @@ behavior, verifies selective DMS/Qt6ct merges, GTK import switching, and
 generated-file preservation, and
 excludes runtime state. It does not start DMS, lock the screen, change services,
 or access the real credential backend.
+
+`tests/check-dms-lyrics.sh` uses Node.js when available to test lyric parsing,
+translation alignment, provider fallback, caching, and stale requests with
+fake HTTP responses. It never queries real music services. Without Node.js it
+reports a skip; the desktop profile inventory checks still run.
+`tests/check-dms-media-lyrics.sh` checks offline overlay preparation, source
+version/hash rejection, generation preservation, and launcher fallback using
+fake DMS commands. It never starts a real shell.
 
 Run `./tests/check-source.sh` and `git diff --check` before applying.
 

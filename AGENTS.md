@@ -54,6 +54,17 @@ Root `dot_*` files map to home-directory files such as `~/.zshenv` and
   manage their own dependencies.
 - Do not edit caches, downloaded plugins, package installations, histories,
   sessions, databases, or generated runtime state into source control.
+- `dot_config/DankMaterialShell/plugins/lyrics/` is a maintained source
+  exception, not a downloaded plugin cache. Preserve its upstream MIT license
+  and documented revision; test changes with `tests/check-dms-lyrics.sh` and
+  `tests/check-desktop-profiles.sh`. Other DMS plugins, enablement/preferences,
+  and lockfiles remain machine-local.
+- `scripts/dms-media-lyrics/` maintains the version-pinned native media-page
+  overlay. Prepare it offline with `scripts/prepare-dms-media-lyrics.py`;
+  never patch the installed package or its read-only runtime extraction.
+  Generated shell trees under `$XDG_DATA_HOME/dms-media-lyrics/` stay ignored.
+  Niri starts `dms-with-lyrics`, which falls back to stock DMS if no matching
+  prepared tree exists. Run `tests/check-dms-media-lyrics.sh` for this path.
 - Preserve lockfiles unless the task explicitly updates dependencies. In
   particular, do not regenerate `dot_config/nvim/lazy-lock.json` incidentally.
 - Pi npm declarations in `modify_private_settings.json` are pinned and require

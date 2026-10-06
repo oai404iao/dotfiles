@@ -75,7 +75,14 @@ dms_only = {
     ".config/kitty/dank-theme.conf", ".config/gtk-3.0/dank-colors.css",
     ".config/kitty/dms-ansi.conf",
     ".config/gtk-4.0/dank-colors.css", ".config/qt6ct/qt6ct.conf",
+    ".local/bin/dms-with-lyrics",
 }
+lyrics_files = {
+    "plugin.json", "LyricsWidget.qml", "LyricsView.qml", "LyricsSettings.qml", "LyricsFetcher.js", "LICENSE",
+}
+lyrics_dir = ".config/DankMaterialShell/plugins/lyrics"
+dms_only |= {f"{lyrics_dir}/{name}" for name in lyrics_files}
+assert {p.name for p in (repo / "dot_config/DankMaterialShell/plugins/lyrics").iterdir()} == lyrics_files
 targets = [
     ".config/niri", ".config/kitty", ".config/gtk-3.0", ".config/gtk-4.0",
     ".config/fcitx5/conf/classicui.conf",
@@ -87,6 +94,8 @@ def managed(command, env):
 def apply(home, env, command, shell):
     paths = targets + ([
         ".config/DankMaterialShell/settings.json", ".config/qt6ct/qt6ct.conf",
+        lyrics_dir,
+        ".local/bin/dms-with-lyrics",
     ] if shell == "dms" else [])
     for path in paths:
         (home / path).parent.mkdir(parents=True, exist_ok=True)
@@ -117,7 +126,7 @@ for shell in ("custom", "dms"):
         kitty = (home / ".config/kitty/kitty.conf").read_text()
         classicui = (home / ".config/fcitx5/conf/classicui.conf").read_text()
         if shell == "dms":
-            assert session.count('spawn-at-startup "dms" "run"') == 1
+            assert session.count('spawn-at-startup "dms-with-lyrics" "run"') == 1
             assert not re.search(r'waybar|mako|awww|copyq|swayidle|swaylock|gammarelay', session + binds)
             assert '"audio" "micmute"' in binds
             assert '"lock" "lockAndOutputsOff"' in binds
@@ -146,7 +155,7 @@ for shell in ("custom", "dms"):
             assert bar[0]["widgetTransparency"] == 1
             assert bar[0]["screenPreferences"] == ["all"]
             assert bar[0]["leftWidgets"] == ["launcherButton", "workspaceSwitcher", "focusedWindow"]
-            assert bar[0]["centerWidgets"] == ["music", "clock", "weather"]
+            assert bar[0]["centerWidgets"] == ["music", "lyrics", "clock", "weather"]
             assert bar[0]["rightWidgets"] == [
                 "systemTray", "clipboard", "cpuUsage", "memUsage",
                 "notificationButton", "battery", "controlCenterButton",
@@ -154,6 +163,14 @@ for shell in ("custom", "dms"):
             assert bar[0]["hoverPopouts"] is True
             assert bar[0]["hoverPopoutDelay"] == 450
             assert not any(key.startswith("island") and key != "island" for key in bar[0])
+            manifest = json.loads((home / lyrics_dir / "plugin.json").read_text())
+            assert manifest["id"] == "lyrics"
+            assert manifest["capabilities"] == ["dankbar-widget"]
+            assert manifest["component"] == "./LyricsWidget.qml"
+            for name in lyrics_files:
+                assert (home / lyrics_dir / name).read_bytes() == (
+                    repo / "dot_config/DankMaterialShell/plugins/lyrics" / name
+                ).read_bytes()
             qt6ct = configparser.ConfigParser(interpolation=None)
             qt_file = home / ".config/qt6ct/qt6ct.conf"
             qt6ct.read(qt_file)
@@ -314,8 +331,11 @@ for shell in ("custom", "dms"):
 ignored = run(command + ["execute-template", "--file", str(repo / ".chezmoiignore")], env)
 for path in (
     ".local/state/DankMaterialShell/", ".cache/DankMaterialShell/",
+    ".local/share/dms-media-lyrics/",
     ".config/DankMaterialShell/clsettings.json", ".config/DankMaterialShell/plugin_settings.json",
     ".config/DankMaterialShell/notification_history.json", ".config/quickshell/",
+    ".config/DankMaterialShell/plugins.json", ".config/DankMaterialShell/plugins.lock.json",
+    ".config/DankMaterialShell/plugins/*", "!.config/DankMaterialShell/plugins/lyrics",
 ):
     assert path in ignored.splitlines()
 

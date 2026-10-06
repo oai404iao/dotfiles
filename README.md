@@ -26,6 +26,10 @@ credentials and mutable application state out of Git.
 - Niri desktops choose a complete `dms` shell or the existing `custom`
   component stack during init. [Profile switching and ownership](docs/desktop-shells.md)
   preserve GUI preferences and keep the two startup paths separate.
+- DMS includes a maintained [bilingual lyrics plugin](docs/desktop-shells.md#bilingual-lyrics):
+  supplied translations in the bar, original/translated lines in the popout,
+  and no AI translation calls. An optional, version-checked local DMS overlay
+  embeds the same lyrics in the native media page.
 - On Niri machines, GNOME Keyring D-Bus activation uses the packaged systemd
   user service; [keyring data and backups stay machine-local](docs/desktop.md#desktop-keyring).
 - Matugen and Waypaper generated state is bootstrapped without being reset on
