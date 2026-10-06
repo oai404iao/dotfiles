@@ -55,13 +55,20 @@ already supplies the compositor integration. DMS starts **only** through
 - Chezmoi owns Niri's main include graph, common input/window rules, profile
   startup, Kitty includes, GTK imports, and the Fcitx5 theme selector.
 - Chezmoi merges `~/.config/DankMaterialShell/settings.json`: it owns the
-  complete `barConfigs` (Island bar), `cornerRadius=16`,
+  complete `barConfigs` (DankBar with DankDash), `barElevationEnabled=false`,
+  `cornerRadius=16`,
   `widgetColorMode=default`, and `runningAppsCurrentWorkspace=true`. On a
   missing file it also seeds wallpaper-based colors, native clipboard paste,
   Adwaita Sans, and the idle policy below. Existing files keep every other
   preference, including machine-specific outputs, wallpaper, network, and
-  battery settings. Applying again restores only the four owned fields;
+  battery settings. Applying again restores only the five owned fields;
   pre-seeding this file bypasses DMS's first-launch wizard.
+- DankBar uses `centerWidgets` for music, date/time, and weather in that order.
+  Click or hover opens the tabbed DankDash panel; hover popouts use a 450 ms
+  delay. The left/right sections retain the launcher, workspaces, focused
+  window, and system status without duplicate music or weather widgets.
+  The bar background is transparent and its shadow is disabled; individual
+  widget backgrounds remain opaque.
 - `~/.config/niri/dms/{binds,outputs,layout,cursor,colors,alttab,windowrules}.kdl`
   are create-only. DMS owns subsequent edits. Output selection and familiar
   window bindings are seeded from the same templates as custom mode. DMS

@@ -138,11 +138,22 @@ for shell in ("custom", "dms"):
             assert settings["cornerRadius"] == 16
             assert settings["widgetColorMode"] == "default"
             assert settings["runningAppsCurrentWorkspace"] is True
+            assert settings["barElevationEnabled"] is False
             bar = settings["barConfigs"]
             assert len(bar) == 1
-            assert bar[0]["island"] is True
+            assert bar[0]["island"] is False
+            assert bar[0]["transparency"] == 0
+            assert bar[0]["widgetTransparency"] == 1
             assert bar[0]["screenPreferences"] == ["all"]
             assert bar[0]["leftWidgets"] == ["launcherButton", "workspaceSwitcher", "focusedWindow"]
+            assert bar[0]["centerWidgets"] == ["music", "clock", "weather"]
+            assert bar[0]["rightWidgets"] == [
+                "systemTray", "clipboard", "cpuUsage", "memUsage",
+                "notificationButton", "battery", "controlCenterButton",
+            ]
+            assert bar[0]["hoverPopouts"] is True
+            assert bar[0]["hoverPopoutDelay"] == 450
+            assert not any(key.startswith("island") and key != "island" for key in bar[0])
             qt6ct = configparser.ConfigParser(interpolation=None)
             qt_file = home / ".config/qt6ct/qt6ct.conf"
             qt6ct.read(qt_file)
@@ -171,6 +182,7 @@ for shell in ("custom", "dms"):
             settings["cornerRadius"] = 8
             settings["widgetColorMode"] = "colorful"
             settings["runningAppsCurrentWorkspace"] = False
+            settings["barElevationEnabled"] = True
             settings_file.write_text(json.dumps(settings))
             qt_file.write_text(
                 "; local comment\n[Appearance]\nicon_theme=breeze\ncustom_palette=false\n"
@@ -186,6 +198,7 @@ for shell in ("custom", "dms"):
             assert updated["cornerRadius"] == 16
             assert updated["widgetColorMode"] == "default"
             assert updated["runningAppsCurrentWorkspace"] is True
+            assert updated["barElevationEnabled"] is False
             assert updated["acLockTimeout"] == 600
             assert updated["futurePreference"] is True
             assert updated["networkPreference"] == "ethernet"
@@ -233,7 +246,8 @@ settings = json.loads(settings_file.read_text())
 assert settings["networkPreference"] == "ethernet"
 assert settings["futurePreference"] is True
 assert "acLockTimeout" not in settings
-assert settings["barConfigs"][0]["island"] is True
+assert settings["barConfigs"][0]["island"] is False
+assert settings["barElevationEnabled"] is False
 assert settings["cornerRadius"] == 16
 assert settings["widgetColorMode"] == "default"
 assert settings["runningAppsCurrentWorkspace"] is True
