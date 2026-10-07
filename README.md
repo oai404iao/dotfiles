@@ -43,8 +43,9 @@ credentials and mutable application state out of Git.
 - Pi model and Telegram credentials come from Bitwarden through `rbw`.
 - Pi codemode is enabled alongside direct tools (`on`, not `only`); see
   [compatibility and child-agent limits](docs/pi.md#codemode).
-- Pi subagent 1.0.0 uses six asynchronous plaintext tools and a tree-wide
-  concurrency limit of 4; see the [breaking migration](docs/pi.md#subagent-100-migration).
+- Pi Codex tools 4.1.1 and subagent 1.0.1 are pinned. Subagent uses six
+  asynchronous plaintext tools, a tree-wide concurrency limit of 4, and a
+  120-second default mailbox wait; see the [migration guide](docs/pi.md#subagent-100-migration).
 - [Agent delegation guidance](docs/pi.md#agent-delegation-guidance) defines
   scoped assignments and explicit coverage, verification, and gaps in scout/reviewer reports.
 - Global agent instructions are managed for Pi first, with retained per-task

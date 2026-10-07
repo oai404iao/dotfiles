@@ -38,8 +38,8 @@ declared; applying settings stops loading it without deleting its local checkout
 
 Disabled packages and their configuration are not managed.
 
-Codex tools 4.1.0 keeps the existing configuration paths, but its pinned schemas
-come from `pi-codex-runtime@0.5.0`. GPT-6 Astra/Sol/Luna deliberately retain
+Codex tools 4.1.1 keeps the existing configuration paths, but its pinned schemas
+come from `pi-codex-runtime@1.0.0`. GPT-6 Astra/Sol/Luna deliberately retain
 Lite, automatic WebSocket transport, prewarm, standalone search, and native
 Responses compaction rather than adopting the new Standard/SSE defaults.
 Astra needs explicit fields: its bundled defaults override inherited values
@@ -47,10 +47,20 @@ even when `extends` points to the Lite profile. Image generation and default
 Fast mode remain disabled. Deprecated `responses.endpoint` overrides are
 removed; Pi's provider API and base URL own routing.
 
-Subagent is pinned to **1.0.0**, using the asynchronous Codex multi-agent v2
+The removed `directImageApiFallback` property is no longer managed, including
+its former `false` value. Profiles already select standalone image generation
+and Responses `compaction_trigger`, not the removed hosted-image or unary
+compaction paths. `/fast` now changes session state without rewriting the
+configured default; children follow the main session's selection.
+Historical opaque checkpoints remain protected; unrecognized custom-profile
+hashes fail closed rather than silently converting history to text.
+
+Subagent is pinned to **1.0.1**, using the asynchronous Codex multi-agent v2
 runtime. Its six tools are model-only (not callable from native codemode);
 the managed scout/reviewer allowlists enable codemode alongside their existing
-ordinary tools. See the
+ordinary tools. Mailbox waits now default to 120 seconds, with 300 seconds
+recommended for longer tasks; incoming activity still wakes the caller early.
+This is a plugin default, not a new `subagent.json` setting. See the
 [subagent migration](#subagent-100-migration) before updating an existing install.
 Telegram keeps its existing credential template and notification settings.
 These configuration checks do not establish live endpoint compatibility.
@@ -97,7 +107,7 @@ Review only explicit safe targets and privately back up existing files first:
 ```sh
 chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/subagent.json
 chezmoi apply ~/.config/pi/agent/subagent.json
-pi install npm:@oai404iao/pi-subagent@1.0.0 --no-approve
+pi install npm:@oai404iao/pi-subagent@1.0.1 --no-approve
 ```
 
 The Pi install command updates that package declaration without resetting other
