@@ -97,5 +97,30 @@ settings.update({
     "runningAppsCurrentWorkspace": True,
 })
 
+tether_enabled = {{ if and .graphical .niri (eq (get . "desktopShell" | default "custom") "dms") (get . "tether" | default false) }}True{{ else }}False{{ end }}
+if tether_enabled:
+    rules = settings.get("notificationRules", [])
+    if not isinstance(rules, list) or any(not isinstance(rule, dict) for rule in rules):
+        raise ValueError("notificationRules must be an array of objects")
+
+    def tether_rule(rule):
+        pattern = rule.get("pattern")
+        return (
+            rule.get("field") == "desktopEntry"
+            and rule.get("matchType") == "exact"
+            and isinstance(pattern, str)
+            and pattern.casefold() == "tether-gtk"
+        )
+
+    settings["notificationRules"] = [{
+        "enabled": True,
+        "field": "desktopEntry",
+        "pattern": "tether-gtk",
+        "matchType": "exact",
+        "action": "no_history",
+        "urgency": "default",
+        "bypassDnd": False,
+    }] + [rule for rule in rules if not tether_rule(rule)]
+
 json.dump(settings, sys.stdout, ensure_ascii=False, indent=2)
 sys.stdout.write("\n")

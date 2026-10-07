@@ -63,6 +63,7 @@ fi
 "$repo_dir/tests/check-desktop.sh"
 "$repo_dir/tests/check-desktop-apps.sh"
 "$repo_dir/tests/check-desktop-profiles.sh"
+"$repo_dir/tests/check-tether.sh"
 "$repo_dir/tests/check-dms-lyrics.sh"
 "$repo_dir/tests/check-dms-lyrics-qml.sh"
 "$repo_dir/tests/check-dms-media-lyrics.sh"

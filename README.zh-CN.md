@@ -24,6 +24,9 @@
 - DMS 包含本地维护的[双语歌词服务](docs/desktop-shells.md#bilingual-lyrics)。
   检查版本的本地界面补丁将歌词整合进音乐组件和原生媒体页，
   共用歌词/译文显示开关，不调用 AI 翻译。
+- 可选的 [Tether 蓝牙 iPhone 通知](docs/tether.md)整合到 DMS，不开放 Wi-Fi
+  或剪贴板访问，禁用消息/联系人持久化，并设置不写入通知历史的规则。
+  配对状态只留在本机。
 - Niri 设备上的 GNOME Keyring D-Bus 激活统一使用软件包提供的 systemd
   用户服务；[密钥环数据及备份只留在本机](docs/desktop.md#desktop-keyring)。
 - 为 Matugen 与 Waypaper 提供初始状态，同时避免后续 apply 覆盖应用生成值。
@@ -124,6 +127,7 @@ Telegram 扩展自身不支持解析命令，因此 chezmoi 会将 Bitwarden 中
 | `graphical` | 布尔值 | 启用图形应用配置 |
 | `niri` | 布尔值 | 启用 Niri 及桌面会话所有权管理 |
 | `desktopShell` | `custom`、`dms` | 选择 Niri 桌面方案；未设置时保留 `custom` |
+| `tether` | 布尔值，默认 `false` | 仅在图形化 Niri/DMS 设备启用蓝牙 iPhone 通知配置；安装及服务启用仍需手动完成 |
 | `niriOutputProfile` | `auto`、命名档案 | 选择渲染后的显示器配置 |
 | `work` | 布尔值 | 工作设备元数据 |
 | `sshAgent` | 布尔值 | 启用 rbw SSH 客户端和公钥选择器 |
@@ -332,6 +336,7 @@ chezmoi add ~/.config/example/config
 
 - [桌面配置所有权与依赖](docs/desktop.md)
 - [DMS/custom 桌面方案与切换](docs/desktop-shells.md)
+- [可选的 Tether 蓝牙 iPhone 通知](docs/tether.md)
 - [可选的递归删除保护](docs/deletion-safety.md)
 - [Pi 配置与凭据](docs/pi.md)
 - [SSH identity 与 rbw-agent](docs/ssh.md)

@@ -7,6 +7,7 @@
 {{-   $sshInboundIdentity = .sshInboundIdentity -}}
 {{- end -}}
 {{- $safeRm := false -}}
+{{- $tether := get . "tether" | default false -}}
 {{- $desktopShell := get . "desktopShell" | default "custom" -}}
 {{- if not (has $desktopShell (list "custom" "dms")) -}}
 {{-   fail "desktopShell must be custom or dms" -}}
@@ -76,6 +77,17 @@ secrets/
 .config/qt6ct/colors/
 .local/share/fcitx5/themes/dms/
 .config/niri/dms/*.bak*
+
+# Tether owns device selection, credentials, retention data, and service enablement.
+.config/tether/*
+!.config/tether/bluetooth.json
+.local/share/tether/
+.local/state/tether/
+.config/systemd/user/default.target.wants/tetherd.service
+{{- if not (and .graphical .niri (eq $desktopShell "dms") $tether) }}
+.config/tether/
+.config/systemd/user/tetherd.service.d/
+{{- end }}
 
 # Skill payloads and CLI lock state are owned by npx skills.
 .agents/skills/

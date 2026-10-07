@@ -29,6 +29,9 @@ credentials and mutable application state out of Git.
 - DMS includes a maintained [bilingual lyrics service](docs/desktop-shells.md#bilingual-lyrics).
   A version-checked local overlay integrates it into the music widget and
   native media page, with shared lyric/translation controls and no AI calls.
+- Optional [Tether Bluetooth iPhone notifications](docs/tether.md) integrate
+  with DMS without Wi-Fi or clipboard access, with message/contact retention
+  disabled and a no-history notification rule. Pairing stays machine-local.
 - On Niri machines, GNOME Keyring D-Bus activation uses the packaged systemd
   user service; [keyring data and backups stay machine-local](docs/desktop.md#desktop-keyring).
 - Matugen and Waypaper generated state is bootstrapped without being reset on
@@ -136,6 +139,7 @@ config:
 | `graphical` | boolean | Enables graphical application configuration |
 | `niri` | boolean | Enables Niri and desktop session ownership |
 | `desktopShell` | `custom`, `dms` | Selects the Niri desktop shell; missing values retain `custom` |
+| `tether` | boolean, default `false` | Opts into Bluetooth iPhone notifications only on graphical Niri/DMS machines; setup and service enablement remain manual |
 | `niriOutputProfile` | `auto`, named profile | Selects rendered output config |
 | `work` | boolean | Work-machine metadata |
 | `sshAgent` | boolean | Enables the rbw SSH client and selector files |
@@ -358,6 +362,7 @@ secrets belong in `.chezmoiignore` or the appropriate external secret backend.
 
 - [Desktop ownership and dependencies](docs/desktop.md)
 - [DMS/custom desktop profiles and switching](docs/desktop-shells.md)
+- [Optional Tether Bluetooth iPhone notifications](docs/tether.md)
 - [Optional recoverable recursive deletion](docs/deletion-safety.md)
 - [Pi configuration and credentials](docs/pi.md)
 - [SSH identities and rbw-agent](docs/ssh.md)

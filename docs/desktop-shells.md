@@ -65,6 +65,11 @@ available and otherwise runs the stock DMS shell.
   preference, including machine-specific outputs, wallpaper, network, and
   battery settings. Applying again restores only the five owned fields;
   pre-seeding this file bypasses DMS's first-launch wizard.
+- With the optional `tether=true` capability, the modifier also prepends an
+  owned `no_history` rule for the exact `tether-gtk` desktop entry, preserving
+  unrelated notification rules. Live notifications remain visible; previous
+  history is not purged. See [Bluetooth iPhone notifications](tether.md) for
+  manual setup, isolation, ownership, and disabling before a profile switch.
 - DankBar uses `centerWidgets` for music, date/time, and weather in that order.
   In the customized shell, music contains visualization, playback controls,
   and the current lyric (or song title and artist) within one pill.

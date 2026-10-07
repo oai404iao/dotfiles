@@ -309,10 +309,11 @@ for shell in ("dms", "custom"):
         ["chezmoi", "--config", str(empty), "--source", str(repo),
          "execute-template", "--init", "--promptChoice",
          f"Machine role=laptop,Default shell=zsh,Desktop shell: DMS or custom components={shell},Niri output profile=auto,SSH authorized_keys identity=none",
-         "--promptBool", "Graphical machine=true,Use niri=true,Work machine=false,Use rbw SSH agent=false,Use recoverable rm wrapper=false",
+         "--promptBool", "Graphical machine=true,Use niri=true,Use Tether iPhone notifications=false,Work machine=false,Use rbw SSH agent=false,Use recoverable rm wrapper=false",
          "--file", str(repo / ".chezmoi.toml.tmpl")], env,
     )
     assert tomllib.loads(rendered)["data"]["desktopShell"] == shell
+    assert tomllib.loads(rendered)["data"]["tether"] is False
 
 # Switching replaces only managed CSS imports, not unrelated custom CSS.
 home, env, command = fixture("switch", "dms")

@@ -1,0 +1,55 @@
+#!/usr/bin/env python3
+import json
+import sys
+
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError("Duplicate JSON key")
+        result[key] = value
+    return result
+
+
+def invalid_constant(value):
+    raise ValueError("Non-finite JSON number")
+
+
+raw = sys.stdin.read()
+config = json.loads(
+    raw, object_pairs_hook=unique_object, parse_constant=invalid_constant
+) if raw.strip() else {}
+if not isinstance(config, dict):
+    raise ValueError("Tether configuration must be a JSON object")
+
+# Invalid runtime types can make Tether skip the retention policy.
+for key, expected in {
+    "device_address": str,
+    "auth_strategy": str,
+    "adapter": str,
+    "enabled": bool,
+    "config_version": int,
+    "lock_away_seconds": int,
+    "lock_command": str,
+}.items():
+    if key in config and type(config[key]) is not expected:
+        raise ValueError(f"Tether {key} has an invalid type")
+
+config.setdefault("config_version", 2)
+config.update({
+    "ancs_enabled": True,
+    "ancs_content_enabled": True,
+    "desktop_popups_enabled": True,
+    "popup_previews_enabled": True,
+    "retention": "none",
+    "group_messages_enabled": False,
+    "calls_enabled": False,
+    "airpods_enabled": False,
+    "airpods_pause": "never",
+    "airpods_handoff": False,
+    "lock_on_away": False,
+})
+
+json.dump(config, sys.stdout, ensure_ascii=False, indent=2, allow_nan=False)
+sys.stdout.write("\n")
