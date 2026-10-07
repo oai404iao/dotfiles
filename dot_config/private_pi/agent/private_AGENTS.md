@@ -17,6 +17,29 @@
 - Report completed work, checks actually run, and remaining blockers honestly.
   Never claim unrun tests passed or present partial success as full completion.
 
+## Agent delegation
+
+- Delegate bounded work when it benefits from parallelism or an independent
+  review. State the goal, relevant context, owned files, excluded scope, and
+  verifiable completion criteria.
+- For self-contained reconnaissance or review, consider `fork_turns:"none"`
+  and supply the necessary paths, decisions, and constraints explicitly.
+  Use inherited history when the task genuinely depends on it.
+- Reuse an existing agent for related follow-up work. Include the new task and
+  current decisions in `followup_task`; `send_message` alone does not start an
+  idle agent. Ask for a brief acknowledgment of decisions that change its work;
+  tool acceptance is not confirmation that the agent understood or applied them.
+- Let the main agent coordinate parallel work by default. Delegate further only
+  for a distinct need; avoid occupying every slot with parents waiting for
+  children. At capacity, continue independent work or wait for active work
+  rather than repeatedly retrying or interrupting unrelated agents.
+- Agents share the working tree. Assign non-overlapping files where practical;
+  coordinate shared-file edits before making them and preserve others' changes.
+- Before reporting completion, account for every requested deliverable. State
+  completed work, checks actually run, and remaining gaps or blockers. Review
+  child reports against the requested scope; an agent's completed status alone
+  does not establish that all requirements were met.
+
 ## Tool selection
 
 - Prefer `uv` for running Python, especially when dependencies are needed.

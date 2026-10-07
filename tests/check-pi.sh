@@ -66,6 +66,10 @@ if not expected_ignored <= ignore_lines:
 instructions = (source_dir / "private_AGENTS.md").read_text()
 for required in (
     "## Coding principles",
+    "## Agent delegation",
+    'fork_turns:"none"',
+    "`followup_task`",
+    "Agents share the working tree.",
     "## Tool selection",
     "uv run python",
     "uv run --with <package> python ...",
@@ -195,6 +199,13 @@ for name in ("scout", "reviewer"):
         raise SystemExit(f"Pi {name} ordinary-tool ceiling changed unexpectedly")
     if "Do not edit files." not in text:
         raise SystemExit(f"Pi {name} lost its read-only instructions")
+    report_sections = {
+        "scout": ("Coverage", "Locations", "Constraints", "Uncertainty"),
+        "reviewer": ("Coverage", "Findings", "Verification", "Gaps"),
+    }
+    for section in report_sections[name]:
+        if f"**{section}:**" not in text:
+            raise SystemExit(f"Pi {name} report is missing {section}")
 
 package_sources = {
     package if isinstance(package, str) else package["source"]

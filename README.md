@@ -42,6 +42,8 @@ credentials and mutable application state out of Git.
   [compatibility and child-agent limits](docs/pi.md#codemode).
 - Pi subagent 1.0.0 uses six asynchronous plaintext tools and a tree-wide
   concurrency limit of 4; see the [breaking migration](docs/pi.md#subagent-100-migration).
+- [Agent delegation guidance](docs/pi.md#agent-delegation-guidance) defines
+  scoped assignments and explicit coverage, verification, and gaps in scout/reviewer reports.
 - Global agent instructions are managed for Pi first, with retained per-task
   scratch directories under `~/.local/state/agents/tmp/` instead of `/tmp`.
 - [Global skills](docs/skills.md) use a manifest and manual `pnpm dlx skills` installer;

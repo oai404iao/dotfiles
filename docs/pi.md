@@ -111,6 +111,32 @@ Restart Pi after replacing the installed package, or use `/reload` once no child
 work needs preserving. Do not test migration by making paid model calls or sending
 Telegram notifications.
 
+## Agent delegation guidance
+
+The managed global instructions define bounded tasks, file ownership, explicit
+completion criteria, and confirmation of decisions that change delegated work.
+Independent reconnaissance or review can use `fork_turns:"none"` with a
+self-contained brief; related follow-ups reuse an agent with the latest task and
+decisions. Message acceptance is not evidence that a decision was implemented.
+
+Scout reports coverage, exact locations, constraints, and uncertainty without
+expanding into implementation or a full audit. Reviewer reports coverage,
+severity-ranked findings, actual verification, and gaps. Both remain read-only;
+unreviewed requirements must be explicit rather than hidden behind a completed
+run status. These are instruction-level expectations, not enforced permissions
+or a guarantee of complete review.
+
+The main agent normally coordinates parallel work. Nested delegation needs a
+distinct purpose; shared-file edits require coordination. The existing model
+choices, thinking levels, tool ceilings, package pins, and runtime limits are
+unchanged. No queue or new plugin setting is introduced.
+
+To deploy this guidance, review and privately back up the explicit targets
+before applying only `~/.config/pi/agent/AGENTS.md`,
+`~/.config/pi/agent/agents/scout.md`, and
+`~/.config/pi/agent/agents/reviewer.md`. Reload or restart Pi when existing child
+work no longer needs preserving, then spawn new children.
+
 ## Codemode
 
 Managed settings enable Pi's built-in codemode with
