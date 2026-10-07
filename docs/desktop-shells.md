@@ -88,6 +88,9 @@ available and otherwise runs the stock DMS shell.
   are create-only. DMS owns subsequent edits. Output selection and familiar
   window bindings are seeded from the same templates as custom mode. DMS
   Settings can reassign/remove bindings without leaving a second copy active.
+  Their `create_empty_` attributes preserve empty fragments as well as edits:
+  DMS writes an empty cursor fragment for defaults, and Niri still requires
+  every included file to exist. Plain `create_` can delete these empty files.
   Input configuration remains in the common `conf.d/10-input.kdl`.
 - Kitty's `dank-theme.conf` / `dank-tabs.conf` and GTK's `dank-colors.css`
   receive create-only fallbacks; DMS generates subsequent palettes. DMS mode

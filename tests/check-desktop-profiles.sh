@@ -69,14 +69,19 @@ custom_only = {
     ".config/niri/conf.d/20-outputs.kdl", ".config/niri/colors.kdl",
     ".config/niri/conf.d/60-binds.kdl",
 }
+dms_kdl_names = ("alttab", "binds", "colors", "cursor", "layout", "outputs", "windowrules")
+dms_kdl_targets = {f".config/niri/dms/{name}.kdl" for name in dms_kdl_names}
+assert {path.name for path in (repo / "dot_config/niri/dms").iterdir()} == {
+    f"create_empty_{name}.kdl" + (".tmpl" if name in ("binds", "colors", "outputs") else "")
+    for name in dms_kdl_names
+}
 dms_only = {
-    ".config/DankMaterialShell/settings.json", ".config/niri/dms/outputs.kdl",
-    ".config/niri/dms/layout.kdl", ".config/niri/dms/colors.kdl",
+    ".config/DankMaterialShell/settings.json",
     ".config/kitty/dank-theme.conf", ".config/gtk-3.0/dank-colors.css",
     ".config/kitty/dms-ansi.conf",
     ".config/gtk-4.0/dank-colors.css", ".config/qt6ct/qt6ct.conf",
     ".local/bin/dms-with-lyrics",
-}
+} | dms_kdl_targets
 lyrics_files = {
     "plugin.json", "LyricsService.qml", "LyricsView.qml", "LyricsSettings.qml", "LyricsFetcher.js", "LICENSE",
     "translations/zh_CN.json",
@@ -103,6 +108,45 @@ def apply(home, env, command, shell):
         (home / path).parent.mkdir(parents=True, exist_ok=True)
     run(command + ["apply", "--force", "--exclude", "scripts,encrypted"]
         + [str(home / path) for path in paths], env)
+
+home, env, command = fixture("dms-generated-fragments", "dms")
+niri_dir = home / ".config/niri"
+run(command + ["apply", "--exclude", "scripts,encrypted", str(niri_dir)], env,
+    stdin=subprocess.DEVNULL)
+generated = [home / path for path in sorted(dms_kdl_targets)]
+seeded = {path: path.read_bytes() for path in generated}
+assert all(seeded.values())
+
+def apply_fragments(paths):
+    output = run(
+        command + ["apply", "--exclude", "scripts,encrypted", *(str(path) for path in paths)],
+        env, stdin=subprocess.DEVNULL,
+    )
+    assert not output, output
+
+for _ in range(2):
+    apply_fragments(generated)
+    assert {path: path.read_bytes() for path in generated} == seeded
+if shutil.which("niri"):
+    run(["niri", "validate", "--config", str(niri_dir / "config.kdl")], env)
+for path in generated:
+    path.write_text(f"// application-owned {path.name}\n")
+nonempty = {path: path.read_bytes() for path in generated}
+for _ in range(2):
+    apply_fragments(generated)
+    assert {path: path.read_bytes() for path in generated} == nonempty
+
+# DMS can legitimately generate zero bytes; create_ alone would delete these includes.
+for path in generated:
+    path.write_bytes(b"")
+    for _ in range(2):
+        apply_fragments([path])
+        assert path.is_file() and path.read_bytes() == b""
+for _ in range(2):
+    apply_fragments(generated)
+    assert all(path.is_file() and path.read_bytes() == b"" for path in generated)
+if shutil.which("niri"):
+    run(["niri", "validate", "--config", str(niri_dir / "config.kdl")], env)
 
 for shell in ("custom", "dms"):
     for output in ("auto", "laptop-dual-1080p", "desktop-single-4k"):
