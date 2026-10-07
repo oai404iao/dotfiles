@@ -183,6 +183,19 @@ if scout_frontmatter.get("model") != "deepseek/deepseek-flash":
 if scout_frontmatter.get("thinking") != "high":
     raise SystemExit("Pi scout thinking level is not high")
 
+for name in ("scout", "reviewer"):
+    text = (source_dir / f"exact_agents/private_{name}.md").read_text()
+    frontmatter = {
+        key.strip(): value.strip()
+        for line in text.split("---", 2)[1].splitlines()
+        if ":" in line
+        for key, value in [line.split(":", 1)]
+    }
+    if frontmatter.get("tools") != "read, grep, find, ls, bash":
+        raise SystemExit(f"Pi {name} ordinary-tool ceiling changed unexpectedly")
+    if "Do not edit files." not in text:
+        raise SystemExit(f"Pi {name} lost its read-only instructions")
+
 package_sources = {
     package if isinstance(package, str) else package["source"]
     for package in settings["packages"]
@@ -191,7 +204,7 @@ expected_npm_packages = {
     "npm:@juicesharp/rpiv-ask-user-question@2.12.0",
     "npm:@oai404iao/pi-telegram-notify@0.6.0",
     "npm:@oai404iao/pi-codex-minimal-tools@4.1.0",
-    "npm:@oai404iao/pi-subagent@0.7.0",
+    "npm:@oai404iao/pi-subagent@1.0.0",
 }
 if package_sources != expected_npm_packages or len(settings["packages"]) != len(expected_npm_packages):
     raise SystemExit("unexpected Pi package inventory or unpinned versions")
@@ -240,6 +253,8 @@ for forbidden in (
 ):
     if any(path.name == forbidden for path in source_dir.rglob("*")):
         raise SystemExit(f"generated Pi state is managed unexpectedly: {forbidden}")
+if any(path.is_dir() and path.name.endswith(".subagents") for path in source_dir.rglob("*")):
+    raise SystemExit("subagent tree stores belong under the ignored Pi sessions directory")
 
 if shutil.which("chezmoi"):
     execute_template = [
@@ -265,7 +280,7 @@ if shutil.which("chezmoi"):
         )
         rendered = load_json(result.stdout)
         package = (
-            "pi-subagent@0.7.0"
+            "pi-subagent@1.0.0"
             if relative == "private_subagent.json.tmpl"
             else "pi-codex-runtime@0.5.0"
         )
@@ -278,11 +293,24 @@ if shutil.which("chezmoi"):
                 "enableRunInBackground",
                 "reportDelivery",
                 "syncBundledAgents",
+                "runtimeMode",
+                "maxConcurrentBackgroundRuns",
+                "maxIdleRuntimes",
+                "backgroundProtocol",
             }
-            if rendered.get("runtimeMode") != "foreground":
-                raise SystemExit("Pi subagent runtime is not foreground-only")
             if retired_keys & rendered.keys():
                 raise SystemExit("Pi subagent config retains retired settings")
+            expected_subagent = {
+                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.0.0/config.schema.json",
+                "agentScope": "user",
+                "maxDepth": 3,
+                "maxConcurrentAgents": 4,
+                "inheritExtensions": True,
+                "maxOutputBytes": 51200,
+                "openAIIdentity": True,
+            }
+            if rendered != expected_subagent:
+                raise SystemExit("Pi subagent v1 asynchronous runtime configuration changed unexpectedly")
         elif relative == "extensions/pi-codex-minimal-tools/private_config.json.tmpl":
             deprecated_keys = {
                 "nativeProviderTools",

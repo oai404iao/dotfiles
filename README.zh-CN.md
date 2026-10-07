@@ -33,6 +33,8 @@
 - Pi 模型与 Telegram 凭据通过 `rbw` 从 Bitwarden 获取。
 - Pi codemode 与直接工具调用并存（`on`，非 `only`）；参见
   [兼容性与子代理限制](docs/pi.md#codemode)。
+- Pi subagent 1.0.0 使用六个异步明文工具，全树并发上限为 4；参见
+  [破坏性更新迁移说明](docs/pi.md#subagent-100-migration)。
 - 全局 agent 指令首先支持 Pi；临时文件按任务存放于
   `~/.local/state/agents/tmp/`，用后保留，避免使用 `/tmp`。
 - [全局 skills](docs/skills.md) 通过清单和手动 `pnpm dlx skills` 脚本安装；

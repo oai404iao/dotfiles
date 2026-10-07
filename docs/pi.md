@@ -13,7 +13,7 @@ chezmoi owns the declarative files required to reproduce the current Pi setup:
 - global agent instructions (`AGENTS.md`)
 - custom providers and models
 - key bindings
-- bundled subagent definitions and configuration
+- user-maintained subagent definitions and configuration
 - Codex-tool, subagent, and Telegram extension configuration
 
 Files are installed with mode `0600`; `~/.config/pi` remains mode `0700`.
@@ -23,7 +23,8 @@ The following generated or mutable data is deliberately not managed:
 - `auth.json`, `trust.json`, and `models-store.json`
 - `npm/`, `git/`, downloaded binaries, and package installation IDs
 - `.pi-subagent/` manifests and extension runtime state
-- sessions, recovery fragments, caches, and logs
+- sessions (including `<rootSessionId>.subagents/<treeId>/` control stores),
+  recovery fragments, caches, and logs
 
 Package declarations in `settings.json` remain the source of truth for
 reinstalling Pi packages. `"npmCommand": ["pnpm"]` makes Pi use pnpm for package
@@ -46,14 +47,68 @@ even when `extends` points to the Lite profile. Image generation and default
 Fast mode remain disabled. Deprecated `responses.endpoint` overrides are
 removed; Pi's provider API and base URL own routing.
 
-Subagent remains foreground-only. Its tools are now model-only (not callable
-from native codemode); the managed scout/reviewer tool allowlists are unchanged.
+Subagent is pinned to **1.0.0**, using the asynchronous Codex multi-agent v2
+runtime. Its six tools are model-only (not callable from native codemode);
+the managed scout/reviewer ordinary-tool allowlists are unchanged. See the
+[subagent migration](#subagent-100-migration) before updating an existing install.
 Telegram keeps its existing credential template and notification settings.
 These configuration checks do not establish live endpoint compatibility.
 
 Shared skills under `~/.agents/skills/` are installed separately with
 `pnpm dlx skills`; only their [manifest and manual installer](skills.md) are managed
 here, not the downloaded contents or CLI lock state.
+
+## Subagent 1.0.0 migration
+
+The managed `subagent.json` no longer contains `runtimeMode`. Foreground mode is
+removed, not renamed. `maxConcurrentAgents: 4` limits active child runs across
+the whole root tree; root does not count. Depth remains 3, with extension
+inheritance, the optional OpenAI identity lifecycle, and the 51200-byte output
+cap preserved.
+
+Other retired settings (`maxConcurrentBackgroundRuns`, `maxIdleRuntimes`,
+`defaultBackground`, `enableRunInBackground`, `backgroundProtocol`,
+`reportDelivery`, `syncBundledAgents`) must not remain in the new configuration.
+The old descriptor format is not resumed or migrated; retain historical sessions
+and start new agents.
+
+| Previous call | New contract |
+| --- | --- |
+| `subagent` / `subagent_fork` | `spawn_agent(task_name, message, agent_type?, fork_turns?)`; returns a path without waiting for completion. |
+| `agent`, `prompt`, context objects | Optional `agent_type`, plaintext `message`, and `fork_turns:"all"|"none"` (default: all completed turns). |
+| UUID / `subagent_id` / `agent_id` controls | `target` path; use canonical paths for peers, without `../` or trailing slash. |
+| Enqueue then `followup_task` | `followup_task(target, message)` carries the new task itself. |
+| Child `report` | `send_message(target, message)` to the parent. |
+| Read answers from `wait_agent` | Wait for mailbox activity; answers arrive separately in attributed context messages. |
+
+The remaining controls are `interrupt_agent(target)` and
+`list_agents(path_prefix?)`. Ordinary messages do not start idle agents. Task
+names use lowercase letters, digits and underscores, without hyphens.
+Collaboration controls are provided by the runtime even with an ordinary-tool
+ceiling, so scout/reviewer definitions need no new control-tool entries.
+
+The tree store and child JSONL files remain under
+`~/.local/state/pi/agent/sessions/`, already excluded by `.chezmoiignore`.
+No new configuration target or runtime-state directory belongs in Git.
+
+Review only explicit safe targets and privately back up existing files first:
+
+```sh
+chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/subagent.json
+chezmoi apply ~/.config/pi/agent/subagent.json
+pi install npm:@oai404iao/pi-subagent@1.0.0 --no-approve
+```
+
+The Pi install command updates that package declaration without resetting other
+machine-local settings. If local settings differ from the managed source,
+review those differences before applying `settings.json`: its modifier also
+owns model selection, the enabled-model list and codemode defaults. Do not apply
+the whole Pi directory merely to upgrade subagent; that can overwrite local
+agent overrides or render Telegram credentials.
+
+Restart Pi after replacing the installed package, or use `/reload` once no child
+work needs preserving. Do not test migration by making paid model calls or sending
+Telegram notifications.
 
 ## Codemode
 
@@ -63,11 +118,11 @@ This adds JavaScript tool batching and output filtering without hiding direct
 tool calls. Other codemode options, such as `inlineBudget`, remain machine-local.
 See the [Pi codemode reference](https://github.com/earendil-works/pi/blob/main/packages/coding-agent/docs/codemode.md).
 
-The installed Pi 1.0.2 and pinned extension sources were checked for compatibility:
+The pinned extension sources were checked against Pi's native codemode contract:
 
 - Codex tools preserves codemode when reconciling its active tools.
-- Subagent orchestration is `model-only`: call it directly, not through
-  `tools.subagent()`. The managed scout/reviewer allowlists do not include
+- Subagent orchestration is `model-only`: call `spawn_agent` and the other five
+  controls directly, not through `tools.spawn_agent()`. The managed scout/reviewer allowlists do not include
   codemode, so this change enables it in the parent, not those children.
 - Ask-user-question 2.12.0 still uses default `direct` exposure, so it is also
   script-callable. Prefer direct questions; parallel dialogs and cancellation
