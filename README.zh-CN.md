@@ -33,8 +33,9 @@
 - Pi 模型与 Telegram 凭据通过 `rbw` 从 Bitwarden 获取。
 - Pi codemode 与直接工具调用并存（`on`，非 `only`）；参见
   [兼容性与子代理限制](docs/pi.md#codemode)。
-- Pi subagent 1.0.0 使用六个异步明文工具，全树并发上限为 4；参见
-  [破坏性更新迁移说明](docs/pi.md#subagent-100-migration)。
+- Pi 固定使用 Codex tools 4.1.1 和 subagent 1.0.1。Subagent 使用六个异步
+  明文工具，全树并发上限为 4，邮箱默认等待 120 秒；参见
+  [迁移说明](docs/pi.md#subagent-100-migration)。
 - [Agent 派工说明](docs/pi.md#agent-delegation-guidance) 要求明确任务范围，并在
   scout/reviewer 报告中列出覆盖范围、实际验证和未完成项。
 - 全局 agent 指令首先支持 Pi；临时文件按任务存放于

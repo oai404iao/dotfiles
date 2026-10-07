@@ -214,8 +214,8 @@ package_sources = {
 expected_npm_packages = {
     "npm:@juicesharp/rpiv-ask-user-question@2.12.0",
     "npm:@oai404iao/pi-telegram-notify@0.6.0",
-    "npm:@oai404iao/pi-codex-minimal-tools@4.1.0",
-    "npm:@oai404iao/pi-subagent@1.0.0",
+    "npm:@oai404iao/pi-codex-minimal-tools@4.1.1",
+    "npm:@oai404iao/pi-subagent@1.0.1",
 }
 if package_sources != expected_npm_packages or len(settings["packages"]) != len(expected_npm_packages):
     raise SystemExit("unexpected Pi package inventory or unpinned versions")
@@ -291,9 +291,9 @@ if shutil.which("chezmoi"):
         )
         rendered = load_json(result.stdout)
         package = (
-            "pi-subagent@1.0.0"
+            "pi-subagent@1.0.1"
             if relative == "private_subagent.json.tmpl"
-            else "pi-codex-runtime@0.5.0"
+            else "pi-codex-runtime@1.0.0"
         )
         schema = "models" if relative.endswith("private_models.json.tmpl") else "config"
         if rendered.get("$schema") != f"https://unpkg.com/@oai404iao/{package}/{schema}.schema.json":
@@ -312,7 +312,7 @@ if shutil.which("chezmoi"):
             if retired_keys & rendered.keys():
                 raise SystemExit("Pi subagent config retains retired settings")
             expected_subagent = {
-                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.0.0/config.schema.json",
+                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.0.1/config.schema.json",
                 "agentScope": "user",
                 "maxDepth": 3,
                 "maxConcurrentAgents": 4,
@@ -324,6 +324,7 @@ if shutil.which("chezmoi"):
                 raise SystemExit("Pi subagent v1 asynchronous runtime configuration changed unexpectedly")
         elif relative == "extensions/pi-codex-minimal-tools/private_config.json.tmpl":
             deprecated_keys = {
+                "directImageApiFallback",
                 "nativeProviderTools",
                 "openaiTransport",
                 "openaiWebSocketPrewarm",
