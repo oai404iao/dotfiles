@@ -1,7 +1,7 @@
 ---
 name: reviewer
 description: Review changes for correctness, regressions, and missing tests
-tools: read, grep, find, ls, bash
+tools: read, grep, find, ls, bash, codemode
 thinking: high
 ---
 

@@ -49,7 +49,8 @@ removed; Pi's provider API and base URL own routing.
 
 Subagent is pinned to **1.0.0**, using the asynchronous Codex multi-agent v2
 runtime. Its six tools are model-only (not callable from native codemode);
-the managed scout/reviewer ordinary-tool allowlists are unchanged. See the
+the managed scout/reviewer allowlists enable codemode alongside their existing
+ordinary tools. See the
 [subagent migration](#subagent-100-migration) before updating an existing install.
 Telegram keeps its existing credential template and notification settings.
 These configuration checks do not establish live endpoint compatibility.
@@ -122,8 +123,12 @@ The pinned extension sources were checked against Pi's native codemode contract:
 
 - Codex tools preserves codemode when reconciling its active tools.
 - Subagent orchestration is `model-only`: call `spawn_agent` and the other five
-  controls directly, not through `tools.spawn_agent()`. The managed scout/reviewer allowlists do not include
-  codemode, so this change enables it in the parent, not those children.
+  controls directly, not through `tools.spawn_agent()`. The managed scout/reviewer
+  allowlists explicitly include `codemode`, enabling batching and filtering
+  within each child's tool ceiling without adding editing tools. Their
+  read-only instructions remain unchanged; the existing `bash` tool is not a
+  filesystem sandbox. The child runtime loads codemode with `models: false`,
+  so its default implementation does not expose the `models` API.
 - Ask-user-question 2.12.0 still uses default `direct` exposure, so it is also
   script-callable. Prefer direct questions; parallel dialogs and cancellation
   inside scripts have not been validated. This is why `on`, not `only`, is used.
@@ -135,8 +140,11 @@ their side effects are not rolled back on failure. This is not an OS sandbox.
 Interactive dialogs, live provider requests, and Telegram delivery are not
 covered by the offline checks.
 
-After reviewing and applying the explicit settings target, use `/reload` or
-restart Pi. CLI `--tools`/`--no-tools` overrides can prevent activation; a
+After reviewing and backing up existing targets, apply only
+`~/.config/pi/agent/settings.json`, `~/.config/pi/agent/agents/scout.md`, and
+`~/.config/pi/agent/agents/reviewer.md` as needed. Use `/reload` or restart Pi,
+and spawn new children rather than expecting existing agents' fixed tool
+permissions to change. CLI `--tools`/`--no-tools` overrides can prevent activation; a
 project's plain-name `defaultTools` list can also replace the user selection.
 
 ## Global agent instructions

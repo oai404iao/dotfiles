@@ -191,7 +191,7 @@ for name in ("scout", "reviewer"):
         if ":" in line
         for key, value in [line.split(":", 1)]
     }
-    if frontmatter.get("tools") != "read, grep, find, ls, bash":
+    if frontmatter.get("tools") != "read, grep, find, ls, bash, codemode":
         raise SystemExit(f"Pi {name} ordinary-tool ceiling changed unexpectedly")
     if "Do not edit files." not in text:
         raise SystemExit(f"Pi {name} lost its read-only instructions")

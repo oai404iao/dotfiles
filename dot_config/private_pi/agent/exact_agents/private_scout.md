@@ -1,7 +1,7 @@
 ---
 name: scout
 description: Fast read-only codebase reconnaissance with compressed findings
-tools: read, grep, find, ls, bash
+tools: read, grep, find, ls, bash, codemode
 model: deepseek/deepseek-flash
 thinking: high
 ---
