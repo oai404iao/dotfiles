@@ -26,26 +26,32 @@ for relative in prepare.OVERLAYS:
 (source / "untouched.qml").write_text("keep this file\n")
 originals = {p.relative_to(source): p.read_bytes() for p in source.rglob("*") if p.is_file()}
 
-assert prepare.VERSION == "v1.6.2"
+assert prepare.SUPPORTED_VERSIONS == ("v1.6.2", "v1.6.3")
 assert set(prepare.BASE_HASHES) == {"shell.qml", *prepare.OVERLAYS}
 assert all(len(value) == 64 for value in prepare.BASE_HASHES.values())
 prepare.BASE_HASHES = {
     relative: hashlib.sha256((source / relative).read_bytes()).hexdigest()
     for relative in prepare.BASE_HASHES
 }
-generation = prepare.prepare(source, data, task / "builds")
 current = data / "dms-media-lyrics/current"
-assert current.resolve() == generation
-for relative in prepare.OVERLAYS:
-    assert (generation / relative).read_bytes() == (
-        repo / "scripts/dms-media-lyrics" / Path(relative).name
+generations = {}
+for version in prepare.SUPPORTED_VERSIONS:
+    (source / "VERSION").write_text(f"{version}\n")
+    originals[Path("VERSION")] = (source / "VERSION").read_bytes()
+    generation = prepare.prepare(source, data, task / "builds")
+    generations[version] = generation
+    assert current.resolve() == generation
+    for relative in prepare.OVERLAYS:
+        assert (generation / relative).read_bytes() == (
+            repo / "scripts/dms-media-lyrics" / Path(relative).name
+        ).read_bytes()
+    assert (generation / "untouched.qml").read_bytes() == (source / "untouched.qml").read_bytes()
+    assert (generation / "VERSION").read_text() == f"{version}\n"
+    assert (generation / ".dms-version").read_text() == f"dms {version}\n"
+    assert (generation / "MEDIA-LYRICS-LICENSE").read_bytes() == (
+        repo / "scripts/dms-media-lyrics/LICENSE"
     ).read_bytes()
-assert (generation / "untouched.qml").read_bytes() == (source / "untouched.qml").read_bytes()
-assert (generation / ".dms-version").read_text() == "dms v1.6.2\n"
-assert (generation / "MEDIA-LYRICS-LICENSE").read_bytes() == (
-    repo / "scripts/dms-media-lyrics/LICENSE"
-).read_bytes()
-assert {p.relative_to(source): p.read_bytes() for p in source.rglob("*") if p.is_file()} == originals
+    assert {p.relative_to(source): p.read_bytes() for p in source.rglob("*") if p.is_file()} == originals
 
 
 def expect_rejected():
@@ -59,22 +65,26 @@ def expect_rejected():
     assert current.resolve() == old_target
 
 
-(source / "VERSION").write_text("v1.7.0\n")
-expect_rejected()
-(source / "VERSION").write_text("v1.6.2\n")
-for relative in prepare.BASE_HASHES:
-    (source / relative).write_text("unexpected core changes\n")
+for version in ("v1.6.4", "v1.7.0"):
+    (source / "VERSION").write_text(f"{version}\n")
     expect_rejected()
-    (source / relative).write_bytes(originals[Path(relative)])
+for version in prepare.SUPPORTED_VERSIONS:
+    (source / "VERSION").write_text(f"{version}\n")
+    for relative in prepare.BASE_HASHES:
+        (source / relative).write_text("unexpected core changes\n")
+        expect_rejected()
+        (source / relative).write_bytes(originals[Path(relative)])
 link = source / "external.qml"
 link.symlink_to(task / "outside")
 expect_rejected()
 link.unlink()
 next_generation = prepare.prepare(source, data, task / "builds")
-assert next_generation != generation
+assert next_generation not in generations.values()
 assert current.resolve() == next_generation
-assert generation.is_dir()
-assert len(list((task / "builds").glob("*/shell/shell.qml"))) == 2
+for version, generation in generations.items():
+    assert generation.is_dir()
+    assert (generation / ".dms-version").read_text() == f"dms {version}\n"
+assert len(list((task / "builds").glob("*/shell/shell.qml"))) == 3
 
 blocked_data = task / "blocked"
 (blocked_data / "dms-media-lyrics/current").mkdir(parents=True)
@@ -112,11 +122,18 @@ def launch():
     )
 
 
-assert launch().stdout.splitlines() == [str(current), "run", "-d"]
-env["FAKE_DMS_VERSION"] = "dms v1.7.0"
-result = launch()
-assert result.stdout.splitlines() == ["unset", "run", "-d"]
-assert "version mismatch" in result.stderr
+for version, generation in generations.items():
+    current.unlink()
+    current.symlink_to(generation)
+    for installed in (*prepare.SUPPORTED_VERSIONS, "v1.6.4", "v1.7.0"):
+        env["FAKE_DMS_VERSION"] = f"dms {installed}"
+        result = launch()
+        if installed == version:
+            assert result.stdout.splitlines() == [str(current), "run", "-d"]
+            assert not result.stderr
+        else:
+            assert result.stdout.splitlines() == ["unset", "run", "-d"]
+            assert "version mismatch" in result.stderr
 env["XDG_DATA_HOME"] = str(task / "missing-data")
 assert launch().stdout.splitlines() == ["unset", "run", "-d"]
 media = (repo / "scripts/dms-media-lyrics/Media.qml").read_text()

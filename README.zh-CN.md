@@ -22,8 +22,11 @@
 - Niri 桌面可在 init 时选择完整的 `dms` 或现有 `custom` 组件组合。
   [方案切换与所有权说明](docs/desktop-shells.md)涵盖 GUI 偏好的保留和两套启动流程的隔离。
 - DMS 包含本地维护的[双语歌词服务](docs/desktop-shells.md#bilingual-lyrics)。
-  检查版本的本地界面补丁将歌词整合进音乐组件和原生媒体页，
+  适配 DMS 1.6.2/1.6.3 且检查版本的本地界面补丁将歌词整合进音乐组件和原生媒体页，
   共用歌词/译文显示开关，不调用 AI 翻译。
+  DMS 配置的 apply 会提醒缺失的运行依赖、未准备或版本不匹配的界面补丁；
+  不会自动安装软件包或重启桌面。
+  升级 DMS 后，需从对应版本的原始源码树重新准备界面补丁。
 - 可选的 [Tether 蓝牙 iPhone 通知](docs/tether.md)整合到 DMS，不开放 Wi-Fi
   或剪贴板访问，禁用消息/联系人持久化，并设置不写入通知历史的规则。
   配对状态只留在本机。
@@ -34,6 +37,8 @@
   同时保留输入方案和应用状态。
 - LazyVim 配置包含根据经过验证的本地插件检出重建的锁文件。
 - Pi 模型与 Telegram 凭据通过 `rbw` 从 Bitwarden 获取。
+  modifier 在 Pi 的 `npm/pnpm-workspace.yaml` 中管理三个精确版本的构建授权；
+  其余 npm 安装状态仍保持忽略。
 - Pi codemode 与直接工具调用并存（`on`，非 `only`）；参见
   [兼容性与子代理限制](docs/pi.md#codemode)。
 - Pi 固定使用 Codex tools 4.1.1 和 subagent 1.0.1。Subagent 使用六个异步
@@ -237,6 +242,9 @@ rbw config unset lock_timeout
 
 根据机器用途安装对应的 Shell、桌面、Neovim 和 Pi 依赖。锁定的 Pi 扩展要求
 Pi 0.99.1 或更高版本、Node.js 22.19 或更高版本；不再需要本地扩展 checkout。
+升级 Pi 主程序后需完全退出并重启；`/reload` 不能更新运行中的 SDK。
+若 `spawn_agent` 报 `createCodemodeExtension` 缺失，参见
+[子代理启动排障](docs/pi.md#createcodemodeextension-is-not-a-function)。
 
 ### 4. 验证源码
 

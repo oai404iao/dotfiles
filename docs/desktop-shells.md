@@ -33,13 +33,23 @@ niri = true
 desktopShell = "dms" # or "custom"
 ```
 
-The DMS integration was checked against Arch's DMS 1.6.2 and Niri 26.04.
+The DMS integration targets Arch's DMS 1.6.2/1.6.3 and Niri 26.04.
 Install separately; inspect any system upgrade transaction before accepting:
 
 ```sh
-sudo pacman -Syu --needed dms-shell-niri dgop matugen wtype qt6ct \
+sudo pacman -Syu --needed dms-shell dgop matugen wtype qt6ct \
   adw-gtk-theme adwaita-icon-theme
 ```
+
+Arch's unified [`extra/dms-shell` package](https://archlinux.org/packages/extra/x86_64/dms-shell/)
+replaces `dms-shell-niri` and `dms-shell-hyprland` (also `dms-shell-bin`).
+During a reviewed full upgrade, answer **Y** to either legacy-package
+replacement prompt, or both if both appear. Do not reinstall the old split
+packages or remove them manually first. Chezmoi still supplies Niri integration;
+this package replacement does not require switching desktop profiles.
+The native lyrics overlay supports DMS 1.6.2 and 1.6.3. After upgrading,
+prepare it again from the matching pristine shell tree; an old 1.6.2 tree
+still falls back to stock on 1.6.3. Do not bypass its version/hash checks.
 
 Quickshell and accountsservice are pulled in as dependencies. Existing shared
 desktop dependencies still apply. Cava and qt6-multimedia enable visualization
@@ -51,6 +61,17 @@ already supplies the compositor integration. DMS starts **only** through
 `spawn-at-startup "dms-with-lyrics" "run"`; do not also enable `dms.service`.
 The launcher uses the prepared, version-matched media-page overlay when
 available and otherwise runs the stock DMS shell.
+
+The `run_after_check-dms-lyrics.sh.tmpl` apply hook runs only when `graphical`,
+`niri`, and `desktopShell="dms"` are selected. It checks for `dms` and `qs`,
+then checks the launcher's `current/shell.qml` and `.dms-version` contract
+under `${XDG_DATA_HOME:-$HOME/.local/share}/dms-media-lyrics/`. Missing
+dependencies, missing/incomplete preparation, version mismatches, or a failed
+`dms version` produce actionable stderr reminders without failing apply.
+Python is checked only when preparation is needed. Healthy setups stay silent;
+unresolved reminders repeat on later applies. The hook does not install,
+download, prepare, restart, or inspect/change local plugin enablement.
+Applies using `--exclude=scripts` skip these reminders as well.
 
 ## Configuration ownership
 
@@ -198,7 +219,11 @@ JavaScript file remains cached, restart DMS while unlocked.
 #### Native media-page overlay
 
 The QML files in `scripts/dms-media-lyrics/` are maintained derivatives
-of DMS **v1.6.2**, commit `2db7646fe3ab47fddfdb8723f2da07d61a0d47ac`.
+of DMS **v1.6.2**, commit `2db7646fe3ab47fddfdb8723f2da07d61a0d47ac`,
+also reviewed against **v1.6.3**, commit
+`4a87e8227daf0840b3376fd5e7f891f5900165a6`. Both releases have identical
+`shell.qml` and five original media/dropdown components, so they share the
+same overlay and exact source hashes. Other versions remain rejected.
 The upstream MIT license is included beside it. It keeps DankDash's tabs,
 progress bar, transport, player selection, volume, and output controls. When
 the shared lyrics service has lyrics enabled and available, it places compact artwork
@@ -209,12 +234,31 @@ user can turn it back on. Settings float outside the main panel on the same
 side as native audio menus, with their shared dismissal and screen-edge bounds.
 They do not replace the lyrics area.
 
-DMS 1.6.2 has no plugin slot for this native page. The preparation script
+DMS 1.6.2/1.6.3 has no plugin slot for this native page. The preparation script
 copies a trusted, pristine shell tree, verifies its version and the hashes of
 `shell.qml` and all five original media/dropdown components, then replaces
 **only** those five components in the copy. It never edits `/usr/bin/dms`, package files, or the
 read-only extracted shell. Source input must be trusted; these hashes are
 compatibility guards, not a full-tree authenticity check.
+
+Always use the complete tree from the installed, supported DMS version.
+The helper records that input version in `.dms-version`; do not relabel an
+old generated tree to pass the launcher check. Preparing from 1.6.3 preserves
+its upstream fixes outside the five replaced components.
+
+**Why not a plugin-only implementation?** The fetcher already is a daemon
+plugin. DMS 1.6.3 supports separate plugin widgets/popouts, but its
+[native media page](https://github.com/AvengeMedia/DankMaterialShell/blob/v1.6.3/quickshell/Modules/DankDash/MediaPlayerTab.qml)
+selects built-in chrome directly, without a plugin insertion point.
+A standalone lyrics widget would avoid the overlay but change the current
+integrated experience. Retain the daemon plus small overlay for these releases.
+
+The upstream 1.7 beta introduces native lyrics and
+[lyrics-provider plugins](https://danklinux.com/docs/1.7/dankmaterialshell/plugin-development).
+That is a candidate for retiring the overlay after a stable upgrade, not a
+1.6.3 API. Verify bilingual original/translation display and provider behavior
+before migrating; feature parity is not established. Do not install the beta
+or replace the existing daemon just to bypass the version guard.
 
 For the installed embedded-shell build, obtain its extraction path from
 `qs list --all` while stock DMS is running, then:
@@ -370,8 +414,12 @@ translation alignment, provider fallback, caching, and stale requests with
 fake HTTP responses. It never queries real music services. Without Node.js it
 reports a skip; the desktop profile inventory checks still run.
 `tests/check-dms-media-lyrics.sh` checks offline overlay preparation, source
-version/hash rejection, generation preservation, and launcher fallback using
-fake DMS commands. It never starts a real shell.
+version/hash rejection, generation preservation, and exact-version launcher
+selection for both supported releases using fake DMS commands. It also checks
+cross-version fallback rather than treating 1.6.2 and 1.6.3 trees as interchangeable.
+When chezmoi is available, it renders the apply hook
+across profiles and checks silent healthy setups, missing dependencies/trees,
+version mismatches, and command failures. It never starts a real shell.
 `tests/check-dms-lyrics-qml.sh` uses Qt 6's test runner when available to
 instantiate the real lyrics service/view offscreen. Stubbed MPRIS and lyric
 responses test startup, player removal, display preferences while paused,
@@ -386,4 +434,4 @@ References:
 [installation](https://danklinux.com/docs/dankmaterialshell/installation),
 [Niri integration](https://danklinux.com/docs/dankmaterialshell/compositors),
 [application themes](https://danklinux.com/docs/dankmaterialshell/application-themes),
-and [DMS v1.6.2 source](https://github.com/AvengeMedia/DankMaterialShell/tree/v1.6.2).
+and [DMS v1.6.2 → v1.6.3 changes](https://github.com/AvengeMedia/DankMaterialShell/compare/v1.6.2...v1.6.3).

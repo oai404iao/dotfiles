@@ -21,7 +21,8 @@ Files are installed with mode `0600`; `~/.config/pi` remains mode `0700`.
 The following generated or mutable data is deliberately not managed:
 
 - `auth.json`, `trust.json`, and `models-store.json`
-- `npm/`, `git/`, downloaded binaries, and package installation IDs
+- npm installation state (except its build policy below), `git/`, downloaded
+  binaries, and package installation IDs
 - `.pi-subagent/` manifests and extension runtime state
 - sessions (including `<rootSessionId>.subagents/<treeId>/` control stores),
   recovery fragments, caches, and logs
@@ -32,7 +33,8 @@ lookup and installation; the `npm:` source prefix still identifies registry
 packages. npm packages are pinned to their adopted versions.
 The pinned extensions require Pi 0.99.1 or newer and Node.js 22.19 or newer.
 Upgrade the system-managed Pi package
-(`pacman -S pi`) before applying these declarations.
+(`sudo pacman -Syu pi`) before applying these declarations, then fully exit and
+restart Pi so the process uses the upgraded host SDK.
 No local extension checkout is required. The tree-continue package is no longer
 declared; applying settings stops loading it without deleting its local checkout.
 
@@ -68,6 +70,49 @@ These configuration checks do not establish live endpoint compatibility.
 Shared skills under `~/.agents/skills/` are installed separately with
 `pnpm dlx skills`; only their [manifest and manual installer](skills.md) are managed
 here, not the downloaded contents or CLI lock state.
+
+## pnpm build approvals
+
+Pi installs user npm packages under `~/.config/pi/agent/npm`. Chezmoi manages
+only that directory's `pnpm-workspace.yaml` build policy, not `package.json`,
+the lockfile, `node_modules`, or installation state. Its modifier preserves
+unrelated settings and approvals while replacing selectors for these packages
+with exact reviewed versions:
+
+- `@google/genai@2.21.0`
+- `esbuild@0.28.2`
+- `protobufjs@7.6.6`
+
+This is not a global pnpm policy and does not approve builds in project-local
+or temporary Pi installs. It neither allows all builds nor disables build
+checking. Other versions require a new review; package pins do not pin every
+transitive dependency. Existing unrelated machine-local policies remain intact.
+See pnpm's [build policy reference](https://pnpm.io/settings/build#allowbuilds).
+
+Back up the existing workspace file privately, then review and apply only
+this non-secret policy target:
+
+```sh
+chezmoi diff --skip-secrets --exclude=encrypted \
+  ~/.config/pi/agent/npm/pnpm-workspace.yaml
+chezmoi apply --exclude=scripts,encrypted \
+  ~/.config/pi/agent/npm/pnpm-workspace.yaml
+```
+
+The modifier accepts one YAML mapping without document markers, rejecting
+malformed or ambiguous input instead of discarding it. Applying the policy
+does not install packages or run their scripts. A subsequent Pi package install
+reads the approvals. If an earlier install skipped builds, deliberately rebuild
+after reviewing the installed versions:
+
+```sh
+pnpm --dir ~/.config/pi/agent/npm rebuild @google/genai esbuild protobufjs
+```
+
+That command executes dependency code; it is not part of the offline checks or
+an apply hook. The checks cover policy merging, idempotence, invalid input,
+the managed-file exception, and pnpm 12 reading a fixture policy, not real
+dependency builds or live Pi startup.
 
 ## Subagent 1.0.0 migration
 
@@ -120,6 +165,34 @@ agent overrides or render Telegram credentials.
 Restart Pi after replacing the installed package, or use `/reload` once no child
 work needs preserving. Do not test migration by making paid model calls or sending
 Telegram notifications.
+
+### `createCodemodeExtension is not a function`
+
+This error occurs during child-runtime creation, before the child can execute
+its task. Check the host Pi version first: subagent 1.0.1 requires Pi 0.99.1 or
+newer, including its SDK factories. A newer `pi-coding-agent` dependency under
+`agent/npm/node_modules` does not upgrade the running host; Pi maps extension
+SDK imports to its own implementation.
+
+For the system-managed Arch installation:
+
+```sh
+command -v pi
+pacman -Q pi
+sudo pacman -Syu pi
+```
+
+Finish the full upgrade, then exit the old Pi process and start Pi again.
+`/reload` reloads extensions, not the running host SDK; retrying `spawn_agent`
+inside an outdated process will not fix missing exports. Keep existing
+sessions and create a new child after restarting. Do not delete session or npm
+state, patch installed extension files, or disable codemode to mask this error:
+the child runtime creates its codemode factory regardless of the active tool list.
+
+If it persists after a full restart, check whether `command -v pi` selects a
+different installation from the one upgraded, then inspect that host's SDK and
+the installed subagent version. Repository configuration checks alone do not
+verify the running process.
 
 ## Agent delegation guidance
 

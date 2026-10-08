@@ -71,8 +71,8 @@ pipewire-pulse         # PulseAudio-compatible desktop audio.
 wireplumber            # wpctl and PipeWire session manager.
 power-profiles-daemon  # Waybar power-profile widget / desktop service.
 
-# Niri + DMS: dms-shell-niri pulls dms-shell, Quickshell and accountsservice.
-dms-shell-niri         # DMS compositor integration and shell executable.
+# Niri + DMS: dms-shell pulls Quickshell and accountsservice.
+dms-shell              # Unified DMS package; compositor integration is managed here.
 dgop                   # DMS process/resource monitoring.
 wtype                  # DMS native clipboard paste.
 qt6ct                  # DMS-generated Qt palette.

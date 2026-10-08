@@ -1,0 +1,33 @@
+#!/bin/sh
+set -eu
+
+exec chezmoi --config /dev/null --config-format toml execute-template --with-stdin '
+{{- if regexMatch "(?m)^(---|\\.\\.\\.)([ \\t\\r]|$)" .chezmoi.stdin -}}
+{{-   fail "Pi pnpm workspace must be one mapping without YAML document markers" -}}
+{{- end -}}
+{{- $settings := dict -}}
+{{- if ne (trim .chezmoi.stdin) "" -}}
+{{-   $settings = fromYaml .chezmoi.stdin -}}
+{{-   if not (kindIs "map" $settings) -}}
+{{-     fail "Pi pnpm workspace must be a YAML mapping" -}}
+{{-   end -}}
+{{- end -}}
+{{- $builds := dict -}}
+{{- if hasKey $settings "allowBuilds" -}}
+{{-   $builds = get $settings "allowBuilds" -}}
+{{-   if not (kindIs "map" $builds) -}}
+{{-     fail "Pi pnpm allowBuilds must be a YAML mapping" -}}
+{{-   end -}}
+{{- end -}}
+{{- $approved := dict "@google/genai" "2.21.0" "esbuild" "0.28.2" "protobufjs" "7.6.6" -}}
+{{- range $package, $version := $approved -}}
+{{-   range $selector := keys $builds -}}
+{{-     if or (eq $selector $package) (hasPrefix (printf "%s@" $package) $selector) -}}
+{{-       $_ := unset $builds $selector -}}
+{{-     end -}}
+{{-   end -}}
+{{-   $_ := set $builds (printf "%s@%s" $package $version) true -}}
+{{- end -}}
+{{- $_ := set $settings "allowBuilds" $builds -}}
+{{ $settings | toYaml -}}
+'

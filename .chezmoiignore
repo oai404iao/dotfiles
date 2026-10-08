@@ -130,7 +130,8 @@ secrets/
 .config/pi/agent/trust.json
 .config/pi/agent/models-store.json
 .config/pi/agent/external-thinking.json
-.config/pi/agent/npm/
+.config/pi/agent/npm/*
+!.config/pi/agent/npm/pnpm-workspace.yaml
 .config/pi/agent/git/
 .config/pi/agent/bin/
 .config/pi/agent/pi-codex-minimal-tools/

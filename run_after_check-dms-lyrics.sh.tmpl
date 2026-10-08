@@ -1,0 +1,45 @@
+{{- if and .graphical .niri (eq (get . "desktopShell" | default "custom") "dms") -}}
+#!/bin/sh
+set -eu
+
+missing_packages=
+if ! command -v dms >/dev/null 2>&1; then
+    missing_packages="$missing_packages dms-shell"
+fi
+if ! command -v qs >/dev/null 2>&1; then
+    missing_packages="$missing_packages quickshell"
+fi
+if [ -n "$missing_packages" ]; then
+    printf '%s\n' "DMS lyrics: missing runtime dependencies; review and run: sudo pacman -Syu --needed$missing_packages" >&2
+fi
+
+# Keep the launcher contract: current/shell.qml and a matching .dms-version.
+shell_dir="${XDG_DATA_HOME:-$HOME/.local/share}/dms-media-lyrics/current"
+if [ -f "$shell_dir/shell.qml" ] && [ -r "$shell_dir/.dms-version" ] &&
+    { IFS= read -r expected_version < "$shell_dir/.dms-version"; } 2>/dev/null &&
+    [ -n "$expected_version" ]
+then
+    if ! command -v dms >/dev/null 2>&1; then
+        exit 0
+    fi
+    if ! actual_version=$(dms version 2>/dev/null) || [ -z "$actual_version" ]; then
+        printf '%s\n' "DMS lyrics: cannot verify the prepared overlay; check 'dms version', then retry apply." >&2
+        exit 0
+    fi
+    if [ "$actual_version" = "$expected_version" ]; then
+        exit 0
+    fi
+    printf '%s\n' "DMS lyrics: prepared overlay version mismatch; stock DMS will be used. Re-review/rebase the overlay for the installed version before preparing again (docs/desktop-shells.md)." >&2
+else
+    printf '%s\n' "DMS lyrics: prepared overlay missing or incomplete; prepare it before launching DMS." >&2
+fi
+
+if ! command -v python3 >/dev/null 2>&1; then
+    printf '%s\n' "DMS lyrics: preparation needs Python; review and run: sudo pacman -Syu --needed python" >&2
+fi
+printf '%s\n' \
+    'DMS lyrics: with a trusted, pristine supported shell tree (locate via qs list --all while stock DMS runs), prepare manually:' \
+    '  python3 "$(chezmoi source-path)/scripts/prepare-dms-media-lyrics.py" /path/to/pristine/extracted/dms-shell' \
+    '  See docs/desktop-shells.md#bilingual-lyrics for supported versions and local plugin enablement.' >&2
+exit 0
+{{- end }}

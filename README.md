@@ -27,8 +27,11 @@ credentials and mutable application state out of Git.
   component stack during init. [Profile switching and ownership](docs/desktop-shells.md)
   preserve GUI preferences and keep the two startup paths separate.
 - DMS includes a maintained [bilingual lyrics service](docs/desktop-shells.md#bilingual-lyrics).
-  A version-checked local overlay integrates it into the music widget and
-  native media page, with shared lyric/translation controls and no AI calls.
+  A version-checked local overlay for DMS 1.6.2/1.6.3 integrates it into the music
+  widget and native media page, with shared lyric/translation controls and no AI calls.
+  DMS-profile applies warn about missing runtime dependencies or an unprepared/
+  mismatched overlay; they never install packages or restart the shell.
+  After upgrading DMS, prepare a new overlay from that version's pristine tree.
 - Optional [Tether Bluetooth iPhone notifications](docs/tether.md) integrate
   with DMS without Wi-Fi or clipboard access, with message/contact retention
   disabled and a no-history notification rule. Pairing stays machine-local.
@@ -41,6 +44,8 @@ credentials and mutable application state out of Git.
 - LazyVim configuration includes a lockfile reconstructed from verified local
   plugin checkouts.
 - Pi model and Telegram credentials come from Bitwarden through `rbw`.
+  A modifier manages three exact-version build approvals in Pi's
+  `npm/pnpm-workspace.yaml`; all other npm installation state stays ignored.
 - Pi codemode is enabled alongside direct tools (`on`, not `only`); see
   [compatibility and child-agent limits](docs/pi.md#codemode).
 - Pi Codex tools 4.1.1 and subagent 1.0.1 are pinned. Subagent uses six
@@ -256,6 +261,9 @@ rbw config unset lock_timeout
 Install the selected shell, desktop, Neovim, and Pi dependencies appropriate
 for the machine. The pinned Pi extensions require Pi 0.99.1 or newer and
 Node.js 22.19 or newer; no local extension checkout is required.
+After upgrading the Pi host, fully restart it; `/reload` cannot update its SDK.
+See [subagent startup troubleshooting](docs/pi.md#createcodemodeextension-is-not-a-function)
+if `spawn_agent` reports a missing `createCodemodeExtension`.
 
 ### 4. Validate the source
 

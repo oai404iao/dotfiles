@@ -11,6 +11,7 @@ import pathlib
 import shutil
 import subprocess
 import sys
+import tempfile
 
 source_dir = pathlib.Path(sys.argv[1])
 repo_dir = source_dir.parents[2]
@@ -18,6 +19,7 @@ repo_dir = source_dir.parents[2]
 expected = {
     "private_AGENTS.md",
     "modify_private_settings.json",
+    "npm/modify_private_pnpm-workspace.yaml",
     "private_models.json",
     "private_keybindings.json",
     "private_subagent.json.tmpl",
@@ -44,7 +46,8 @@ expected_ignored = {
     ".config/pi/agent/trust.json",
     ".config/pi/agent/models-store.json",
     ".config/pi/agent/external-thinking.json",
-    ".config/pi/agent/npm/",
+    ".config/pi/agent/npm/*",
+    "!.config/pi/agent/npm/pnpm-workspace.yaml",
     ".config/pi/agent/git/",
     ".config/pi/agent/bin/",
     ".config/pi/agent/pi-codex-minimal-tools/",
@@ -63,6 +66,8 @@ if not expected_ignored <= ignore_lines:
     raise SystemExit(
         f"missing Pi ignore rules: {sorted(expected_ignored - ignore_lines)}"
     )
+if ".config/pi/agent/npm/" in ignore_lines:
+    raise SystemExit("Pi pnpm build policy is hidden by a directory-wide ignore")
 
 instructions = (source_dir / "private_AGENTS.md").read_text()
 for required in (
@@ -285,6 +290,109 @@ if shutil.which("chezmoi"):
         "execute-template",
         "--file",
     ]
+    build_modifier = source_dir / "npm/modify_private_pnpm-workspace.yaml"
+    if not os.access(build_modifier, os.X_OK):
+        raise SystemExit("Pi pnpm build policy modifier must be executable")
+    subprocess.run(["sh", "-n", str(build_modifier)], check=True)
+    approved_builds = {
+        "@google/genai@2.21.0": True,
+        "esbuild@0.28.2": True,
+        "protobufjs@7.6.6": True,
+    }
+
+    def modify_build_policy(old):
+        return subprocess.run(
+            [str(build_modifier)], input=old, text=True, capture_output=True
+        )
+
+    def parse_yaml(text):
+        result = subprocess.run(
+            [*execute_template[:-1], "--with-stdin",
+             "{{ .chezmoi.stdin | fromYaml | toJson }}"],
+            input=text, text=True, capture_output=True, check=True,
+        )
+        return load_json(result.stdout)
+
+    fresh_policy = modify_build_policy("")
+    if fresh_policy.returncode or parse_yaml(fresh_policy.stdout) != {"allowBuilds": approved_builds}:
+        raise SystemExit("Pi pnpm fresh policy must approve only three exact versions")
+    existing_policy = """allowBuilds:
+  '@google/genai': true
+  'esbuild@>=0.1.0': true
+  protobufjs: '?'
+  esbuild: false
+  unrelated: false
+  other@1.0.0: true
+futureSetting:
+  preserve: [one, two]
+strictDepBuilds: true
+"""
+    modified = modify_build_policy(existing_policy)
+    if modified.returncode or parse_yaml(modified.stdout) != {
+        "allowBuilds": {**approved_builds, "unrelated": False, "other@1.0.0": True},
+        "futureSetting": {"preserve": ["one", "two"]},
+        "strictDepBuilds": True,
+    }:
+        raise SystemExit("Pi pnpm policy must narrow owned selectors and preserve other settings")
+    for valid in (fresh_policy.stdout, modified.stdout):
+        repeated = modify_build_policy(valid)
+        if repeated.returncode or repeated.stdout != valid:
+            raise SystemExit("Pi pnpm build policy modifier is not idempotent")
+    for invalid in (
+        "null", "[]", "true", "scalar", "allowBuilds: null",
+        "allowBuilds: []", "allowBuilds: true", "allowBuilds: scalar",
+        "allowBuilds: [", "allowBuilds: {}\nallowBuilds: {}",
+        "allowBuilds:\n  esbuild: true\n  esbuild: false",
+        "---\nallowBuilds: {}", "allowBuilds: {}\n---\nother: true",
+        "allowBuilds: {}\n...\nother: true",
+    ):
+        rejected = modify_build_policy(invalid)
+        if rejected.returncode == 0 or rejected.stdout.strip():
+            raise SystemExit("Pi pnpm policy modifier accepted invalid or ambiguous YAML")
+
+    scratch_root = pathlib.Path.home() / ".local/state/agents/tmp"
+    scratch_root.mkdir(parents=True, exist_ok=True)
+    scratch = pathlib.Path(tempfile.mkdtemp(prefix="check-pi-builds.", dir=scratch_root))
+    home = scratch / "home"
+    home.mkdir()
+    fixture_env = {
+        **os.environ, "HOME": str(home), "XDG_CONFIG_HOME": str(home / ".config"),
+        "XDG_DATA_HOME": str(home / ".local/share"),
+        "XDG_STATE_HOME": str(home / ".local/state"),
+        "XDG_CACHE_HOME": str(home / ".cache"), "PNPM_HOME": str(home / ".local/share/pnpm"),
+    }
+    policy_dir = home / ".config/pi/agent/npm"
+    policy_dir.mkdir(parents=True)
+    (policy_dir / "pnpm-workspace.yaml").write_text(fresh_policy.stdout)
+    pnpm = shutil.which("pnpm")
+    if pnpm:
+        version = subprocess.run(
+            [pnpm, "--version"], text=True, capture_output=True, check=True,
+            env=fixture_env,
+        ).stdout.strip()
+        if version.startswith("12."):
+            consumed = subprocess.run(
+                [pnpm, "--dir", str(policy_dir), "config", "get", "--json", "allowBuilds"],
+                text=True, capture_output=True, check=True, env=fixture_env,
+            )
+            if load_json(consumed.stdout) != approved_builds:
+                raise SystemExit("pnpm 12 did not consume the Pi build policy")
+        else:
+            print(f"pnpm 12 policy consumption skipped: found {version}")
+    else:
+        print("pnpm 12 policy consumption skipped: pnpm unavailable")
+    inventory = subprocess.run(
+        ["chezmoi", "--config", "/dev/null", "--config-format", "toml",
+         "--source", str(repo_dir), "--destination", str(home),
+         "--persistent-state", str(scratch / "chezmoi-state.boltdb"),
+         "--override-data", '{"graphical":false,"niri":false}',
+         "managed", "--include=files", "--exclude=encrypted", str(policy_dir)],
+        text=True, capture_output=True, check=True, env=fixture_env,
+    )
+    if inventory.stdout.splitlines() != [".config/pi/agent/npm/pnpm-workspace.yaml"]:
+        raise SystemExit("Only the Pi npm build policy may be managed")
+    print(f"Pi pnpm policy checks passed (retained fixtures: {scratch})")
+
     templates = (
         "private_subagent.json.tmpl",
         "extensions/pi-codex-minimal-tools/private_config.json.tmpl",

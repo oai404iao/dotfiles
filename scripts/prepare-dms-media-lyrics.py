@@ -6,7 +6,8 @@ from pathlib import Path
 import shutil
 import tempfile
 
-VERSION = "v1.6.2"
+SUPPORTED_VERSIONS = ("v1.6.2", "v1.6.3")
+# These reviewed releases have identical shell and overlaid component sources.
 BASE_HASHES = {
     "shell.qml": "e35630e0e47c7ce9530c050ddbf22b9637344081b3aa8ae0163cf3c16aa6ccef",
     "Modules/DankDash/MediaPlayerDashChrome.qml": "b9a1916886d5b946d2aeb29d0cfda20783e7874525f6d982aa22b1bc32d10369",
@@ -24,8 +25,12 @@ def digest(path):
 
 def prepare(source, data_home, scratch_root):
     source = source.resolve(strict=True)
-    if (source / "VERSION").read_text().strip() != VERSION:
-        raise ValueError(f"Expected DMS {VERSION}; refusing to reuse this overlay on another version")
+    version = (source / "VERSION").read_text().strip()
+    if version not in SUPPORTED_VERSIONS:
+        raise ValueError(
+            f"Expected DMS {' or '.join(SUPPORTED_VERSIONS)}; "
+            "refusing to reuse this overlay on another version"
+        )
     for relative, expected in BASE_HASHES.items():
         if digest(source / relative) != expected:
             raise ValueError(f"Unrecognized DMS source: {relative}")
@@ -47,7 +52,7 @@ def prepare(source, data_home, scratch_root):
         target.chmod(0o600)
         shutil.copyfile(overlay / target.name, target)
     shutil.copyfile(overlay / "LICENSE", staging / "MEDIA-LYRICS-LICENSE")
-    (staging / ".dms-version").write_text(f"dms {VERSION}\n")
+    (staging / ".dms-version").write_text(f"dms {version}\n")
 
     runtime.mkdir(parents=True, exist_ok=True)
     generation = runtime / task.name
@@ -64,7 +69,10 @@ def prepare(source, data_home, scratch_root):
 
 def main():
     parser = argparse.ArgumentParser(description="Prepare an offline, version-checked DMS media lyrics overlay.")
-    parser.add_argument("source", type=Path, help="Pristine extracted DMS v1.6.2 shell directory")
+    parser.add_argument(
+        "source", type=Path,
+        help=f"Pristine extracted DMS {' or '.join(SUPPORTED_VERSIONS)} shell directory",
+    )
     args = parser.parse_args()
     home = Path.home()
     data_home = Path(os.environ.get("XDG_DATA_HOME") or home / ".local/share")
