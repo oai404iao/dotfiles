@@ -6,6 +6,7 @@
 {{- $niri := false -}}
 {{- $desktopShell := "custom" -}}
 {{- $tether := false -}}
+{{- $tetherMode := "notifications" -}}
 {{- $niriOutputProfile := "auto" -}}
 {{- if $graphical -}}
 {{-   $niri = promptBoolOnce . "niri" "Use niri" true -}}
@@ -13,10 +14,16 @@
 {{-     $desktopShell = promptChoiceOnce . "desktopShell" "Desktop shell: DMS or custom components" (list "dms" "custom") "custom" -}}
 {{-     if eq $desktopShell "dms" -}}
 {{-       $tether = promptBoolOnce . "tether" "Use Tether iPhone notifications" false -}}
+{{-       if $tether -}}
+{{-         $tetherMode = promptChoiceOnce . "tetherMode" "Tether mode" (list "notifications" "wifi-clipboard") "notifications" -}}
+{{-       end -}}
 {{-     end -}}
 {{-     $outputProfiles := list "auto" "laptop-dual-1080p" "desktop-single-4k" -}}
 {{-     $niriOutputProfile = promptChoiceOnce . "niriOutputProfile" "Niri output profile" $outputProfiles "auto" -}}
 {{-   end -}}
+{{- end -}}
+{{- if not (has $tetherMode (list "notifications" "wifi-clipboard")) -}}
+{{-   fail "tetherMode must be notifications or wifi-clipboard" -}}
 {{- end -}}
 {{- $work := promptBoolOnce . "work" "Work machine" false -}}
 {{- $sshAgent := promptBoolOnce . "sshAgent" "Use rbw SSH agent" (ne $role "server") -}}
@@ -52,6 +59,7 @@ mode = "file"
     niri = {{ $niri }}
     desktopShell = {{ $desktopShell | quote }}
     tether = {{ $tether }}
+    tetherMode = {{ $tetherMode | quote }}
     niriOutputProfile = {{ $niriOutputProfile | quote }}
     work = {{ $work }}
     sshAgent = {{ $sshAgent }}

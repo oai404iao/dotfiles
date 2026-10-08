@@ -29,7 +29,7 @@ dropins = {"10-notification-network.conf", "20-no-clipboard.conf"}
 assert {p.relative_to(tether_source).as_posix() for p in tether_source.rglob("*")} == {
     "modify_private_bluetooth.json",
 }
-assert {p.name for p in dropin_source.iterdir()} == dropins
+assert {p.name for p in dropin_source.iterdir()} == {f"{name}.tmpl" for name in dropins}
 assert not (repo / "dot_config/DankMaterialShell/modify_settings.json").exists()
 dms_source = repo / "dot_config/DankMaterialShell/modify_settings.json.tmpl"
 assert dms_source.is_file()
@@ -37,19 +37,31 @@ assert modifier.read_text().startswith("#!/usr/bin/env python3\n")
 assert dms_source.read_text().startswith("#!/usr/bin/env python3\n")
 compile(modifier.read_text(), str(modifier), "exec")
 
-network = (dropin_source / "10-notification-network.conf").read_text()
-network_lines = [line for line in network.splitlines() if line and not line.startswith("#")]
-assert network_lines == [
-    "[Service]", "ExecStartPre=", "ExecStart=",
-    "ExecStart=/usr/bin/unshare --user --map-current-user --net /usr/bin/tetherd",
-    "PrivateUsers=yes", "UMask=0077",
-]
-clipboard = (dropin_source / "20-no-clipboard.conf").read_text()
-assert [line for line in clipboard.splitlines() if line and not line.startswith("#")] == [
-    "[Service]", "RuntimeDirectory=tether", "RuntimeDirectoryMode=0700",
-    "RuntimeDirectoryPreserve=yes", "Environment=WAYLAND_DISPLAY=wayland-0",
-    "TemporaryFileSystem=%t:rw", "BindPaths=%t/tether", "BindReadOnlyPaths=%t/bus",
-]
+def check_dropins(contents, mode):
+    network = ["[Service]", "ExecStartPre=", "ExecStart="]
+    clipboard = [
+        "[Service]", "RuntimeDirectory=tether", "RuntimeDirectoryMode=0700",
+        "RuntimeDirectoryPreserve=yes",
+    ]
+    if mode in (None, "notifications"):
+        network += [
+            "ExecStart=/usr/bin/unshare --user --map-current-user --net /usr/bin/tetherd",
+            "PrivateUsers=yes",
+        ]
+        clipboard += [
+            "Environment=WAYLAND_DISPLAY=wayland-0", "TemporaryFileSystem=%t:rw",
+            "BindPaths=%t/tether", "BindReadOnlyPaths=%t/bus",
+        ]
+    else:
+        assert mode == "wifi-clipboard"
+        network += ["ExecStart=/usr/bin/tetherd", "PrivateUsers=no"]
+    network += ["UMask=0077"]
+    for name, expected in (
+        ("10-notification-network.conf", network), ("20-no-clipboard.conf", clipboard),
+    ):
+        assert [
+            line for line in contents[name].splitlines() if line and not line.startswith("#")
+        ] == expected, (name, mode, contents[name])
 bluez = repo / "scripts/tether/bluetooth-experimental.conf"
 assert bluez.is_file()
 assert bluez.read_text().splitlines() == [
@@ -138,7 +150,7 @@ for relative in (
     ".chezmoiignore", ".chezmoi.toml.tmpl",
     "dot_config/private_tether/modify_private_bluetooth.json",
     "dot_config/DankMaterialShell/modify_settings.json.tmpl",
-    *(f"dot_config/systemd/user/tetherd.service.d/{name}" for name in sorted(dropins)),
+    *(f"dot_config/systemd/user/tetherd.service.d/{name}.tmpl" for name in sorted(dropins)),
     "scripts/tether/bluetooth-experimental.conf",
 ):
     target = source / relative
@@ -167,7 +179,7 @@ def run(command, env):
     assert result.returncode == 0, f"{command}\n{result.stderr}"
     return result.stdout
 
-def fixture(name, shell="dms", graphical=True, niri=True, tether=True):
+def fixture(name, shell="dms", graphical=True, niri=True, tether=True, mode=None):
     case = task / name
     home = case / "home"
     home.mkdir(parents=True)
@@ -180,6 +192,8 @@ def fixture(name, shell="dms", graphical=True, niri=True, tether=True):
         data["desktopShell"] = shell
     if tether is not None:
         data["tether"] = tether
+    if mode is not None:
+        data["tetherMode"] = mode
     config = case / "chezmoi.toml"
     config.write_text(
         'mode = "file"\n[template]\noptions = ["missingkey=error"]\n[data]\n'
@@ -221,11 +235,12 @@ dms_existing = {
     "futurePreference": {"value": "keep"}, "networkPreference": "ethernet",
     "notificationRules": old_rules,
 }
-for shell, graphical, niri, tether in itertools.product(
+for shell, graphical, niri, tether, mode in itertools.product(
     (None, "custom", "dms"), (False, True), (False, True), (None, False, True),
+    (None, "notifications", "wifi-clipboard"),
 ):
     home, env, command = fixture(
-        f"matrix-{shell}-{graphical}-{niri}-{tether}", shell, graphical, niri, tether,
+        f"matrix-{shell}-{graphical}-{niri}-{tether}-{mode}", shell, graphical, niri, tether, mode,
     )
     inventory = set(run(command + [
         "managed", "--include=files", "--path-style=relative",
@@ -254,6 +269,11 @@ for shell, graphical, niri, tether in itertools.product(
     assert transform(rendered_modifier, after_text) == after_text
     default = strict_json(transform(rendered_modifier, ""))
     if active:
+        check_dropins({
+            name: run(command + [
+                "execute-template", "--file", str(dropin_source / f"{name}.tmpl"),
+            ], env) for name in dropins
+        }, mode)
         assert default["notificationRules"] == [rule]
         for invalid in (None, {}, [None], ["rule"]):
             transform(rendered_modifier, json.dumps({"notificationRules": invalid}), success=False)
@@ -272,36 +292,68 @@ assert stat.S_IMODE(target.parent.stat().st_mode) == 0o700
 assert strict_json(target.read_text()) == fresh
 assert strict_json((home / dms_target).read_text())["notificationRules"] == [rule]
 assert all(not (home / relative).exists() for relative in runtime_sources.values())
-for name in dropins:
-    assert (home / ".config/systemd/user/tetherd.service.d" / name).read_bytes() == (
-        dropin_source / name
-    ).read_bytes()
+check_dropins({name: (home / ".config/systemd/user/tetherd.service.d" / name).read_text()
+               for name in dropins}, None)
 target.write_text(json.dumps(runtime))
 run(command + ["apply", "--force", "--exclude=scripts,encrypted", str(target)], env)
 assert strict_json(target.read_text()) == existing
 assert stat.S_IMODE(target.stat().st_mode) == 0o600
 assert stat.S_IMODE(target.parent.stat().st_mode) == 0o700
 
-for shell, graphical, niri, enabled in (
+config = Path(command[command.index("--config") + 1])
+base_config = config.read_text()
+for mode in ("wifi-clipboard", "notifications", "wifi-clipboard", None):
+    config.write_text(base_config + (f'tetherMode = "{mode}"\n' if mode else ""))
+    targets = [str(home / path) for path in sorted(tether_targets | {dms_target})]
+    run(command + ["apply", "--force", "--exclude=scripts,encrypted", *targets], env)
+    check_dropins({name: (home / ".config/systemd/user/tetherd.service.d" / name).read_text()
+                   for name in dropins}, mode)
+    assert {p.name for p in (home / ".config/systemd/user/tetherd.service.d").iterdir()} == dropins
+    assert strict_json(target.read_text()) == existing
+    assert strict_json((home / dms_target).read_text())["notificationRules"] == [rule]
+    before = {path: (home / path).read_bytes() for path in tether_targets | {dms_target}}
+    run(command + ["apply", "--force", "--exclude=scripts,encrypted", *targets], env)
+    assert before == {path: (home / path).read_bytes() for path in before}
+    assert not run(command + ["diff", "--exclude=scripts,encrypted", *targets], env)
+
+for mode in ("unknown", "", False, 1):
+    for enabled in (False, True):
+        _, invalid_env, invalid_command = fixture(
+            f"invalid-{mode!r}-{enabled}", tether=enabled, mode=mode,
+        )
+        for args in (
+            ["managed", "--include=files"],
+            *(["execute-template", "--file", str(dropin_source / f"{name}.tmpl")]
+              for name in sorted(dropins)),
+        ):
+            result = subprocess.run(invalid_command + args, env=invalid_env, capture_output=True, text=True)
+            assert result.returncode != 0, (mode, enabled, args, result.stdout)
+            assert "tetherMode must be notifications or wifi-clipboard" in result.stderr
+            assert not result.stdout
+
+for (shell, graphical, niri, enabled), mode in itertools.product((
     ("dms", True, True, False), ("dms", True, True, True),
     ("custom", True, True, True), ("dms", True, False, True),
     ("dms", False, True, True),
-):
-    init_home, init_env, _ = fixture(f"init-{shell}-{graphical}-{niri}-{enabled}")
+), (None, "notifications", "wifi-clipboard")):
+    init_home, init_env, _ = fixture(f"init-{shell}-{graphical}-{niri}-{enabled}-{mode}")
     empty = init_home / "empty.toml"
     empty.write_text("")
     rendered = run([
         "chezmoi", "--config", str(empty), "--source", str(source),
         "execute-template", "--init", "--promptChoice",
         f"Machine role=desktop,Default shell=zsh,Desktop shell: DMS or custom components={shell},"
-        "Niri output profile=auto,SSH authorized_keys identity=none",
+        "Niri output profile=auto,SSH authorized_keys identity=none"
+        + (f",Tether mode={mode}" if mode else ""),
         "--promptBool", f"Graphical machine={str(graphical).lower()},Use niri={str(niri).lower()},Work machine=false,"
         "Use rbw SSH agent=false,Use recoverable rm wrapper=false,"
         f"Use Tether iPhone notifications={str(enabled).lower()}",
         "--file", str(source / ".chezmoi.toml.tmpl"),
     ], init_env)
     expected = graphical and niri and shell == "dms" and enabled
-    assert tomllib.loads(rendered)["data"]["tether"] is expected
+    rendered_data = tomllib.loads(rendered)["data"]
+    assert rendered_data["tether"] is expected
+    assert rendered_data["tetherMode"] == (mode if expected and mode else "notifications")
 assert re.search(
     r'promptBoolOnce\s+\.\s+"tether"\s+"Use Tether iPhone notifications"\s+false',
     (repo / ".chezmoi.toml.tmpl").read_text(),

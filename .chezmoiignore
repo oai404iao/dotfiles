@@ -8,6 +8,13 @@
 {{- end -}}
 {{- $safeRm := false -}}
 {{- $tether := get . "tether" | default false -}}
+{{- $tetherMode := "notifications" -}}
+{{- if hasKey . "tetherMode" -}}
+{{-   $tetherMode = .tetherMode -}}
+{{- end -}}
+{{- if not (has $tetherMode (list "notifications" "wifi-clipboard")) -}}
+{{-   fail "tetherMode must be notifications or wifi-clipboard" -}}
+{{- end -}}
 {{- $desktopShell := get . "desktopShell" | default "custom" -}}
 {{- if not (has $desktopShell (list "custom" "dms")) -}}
 {{-   fail "desktopShell must be custom or dms" -}}

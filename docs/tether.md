@@ -1,7 +1,9 @@
-# Bluetooth iPhone notifications with Tether
+# iPhone integration with Tether
 
-This optional Niri/DMS profile forwards iPhone Bluetooth notifications to DMS
-without Wi-Fi transport or desktop clipboard access. It was tested with
+This optional Niri/DMS profile defaults to forwarding iPhone Bluetooth
+notifications without Wi-Fi transport or desktop clipboard access. The explicit
+`wifi-clipboard` mode also enables LAN transport and desktop clipboard access.
+Bluetooth forwarding was tested with
 Tether **0.2.36**, Arch BlueZ **5.87**, DMS **1.6.2**, and an iPhone 14 on
 iOS **27**: BR/EDR, LE, ANCS, and MAP connected, and a real DMS notification
 was confirmed. These are tested versions, not a promise about later releases.
@@ -24,7 +26,12 @@ graphical = true
 niri = true
 desktopShell = "dms"
 tether = true
+tetherMode = "notifications" # or "wifi-clipboard"
 ```
+
+Missing `tetherMode` retains `notifications`; unknown modes are rejected.
+The mode is used only while the Tether capability is active. Wi-Fi mode does
+not enable calls, AirPods, group messaging, or message/contact retention.
 
 The repository owns only:
 
@@ -37,7 +44,9 @@ The repository owns only:
   enable a connection that was locally disabled. Invalid types for known
   runtime fields are rejected because upstream fallback could skip retention.
 - `~/.config/systemd/user/tetherd.service.d/10-notification-network.conf`
-  and `20-no-clipboard.conf`, described below.
+  and `20-no-clipboard.conf`, rendered for the selected mode as described below.
+  Both paths remain managed in both modes so switching replaces the old policy
+  instead of leaving an ignored isolation drop-in behind.
 - One DMS notification rule matching the exact desktop entry `tether-gtk`,
   with `no_history`. The modifier owns and consolidates this exact selector,
   placing it before broad user rules; it preserves unrelated rules and
@@ -56,6 +65,8 @@ directories to chezmoi. Notifications contain personal information: inspect
 existing Bluetooth/DMS settings locally, not in shared diff logs.
 
 ## Isolation and limitations
+
+### `notifications` (default)
 
 The network drop-in clears the vendor `ExecStartPre` (which runs `pkill`) and
 `ExecStart`, then starts:
@@ -88,8 +99,24 @@ outside the unit may still work, but is not covered by the service's isolation.
 This is a narrowly scoped service policy, not protection from other programs
 running as the same user.
 
-**Before every Tether CLI/GUI operation, verify that the sandboxed service is
-active.** The client can auto-start an unsandboxed daemon when no service is
+### `wifi-clipboard` (explicit opt-in)
+
+The same drop-ins run `/usr/bin/tetherd` directly, without the network/user
+namespace or runtime-directory overlays. They retain the cleared vendor
+`ExecStartPre`, private runtime directory, and `UMask=0077`. The daemon inherits
+the user manager's `WAYLAND_DISPLAY` rather than a fixed socket name.
+Tether 0.2.36 also searches runtime-directory Wayland sockets and retries when
+the compositor is not yet available.
+
+This mode intentionally gives Tether the host network and clipboard. Paired
+devices can exchange clipboard contents, including any sensitive text copied
+there; use only trusted devices and networks. The upstream LAN transport also
+supports file transfer: this mode is not a clipboard-only protocol filter.
+Bluetooth's `retention=none` policy is unchanged, but it is not a promise about
+clipboard handling or storage on the phone.
+
+**Before every Tether CLI/GUI operation, verify that the service is active
+with the intended mode.** The client can auto-start an unsandboxed daemon when no service is
 running. Do not use the CLI to recover a failed service before resolving the
 failure.
 
@@ -195,7 +222,8 @@ with `tether --bt-enable on`, again only with the service active.
 
 Verify ANCS/MAP and both Bluetooth bearers with `tether --bt-connection`
 (after the service check), then send a real phone notification and confirm
-its DMS delivery. Verify isolation after each relevant unit/package change:
+its DMS delivery. For `notifications` mode, verify isolation after each
+relevant unit/package change:
 
 ```sh
 pid=$(systemctl --user show --property=MainPID --value tetherd.service)
@@ -212,6 +240,72 @@ do not treat an unreadable identifier as success. Inspect the service's mount
 namespace locally to confirm the compositor socket is hidden. Check that
 message/contact files are not being retained; do not print their contents.
 Offline tests validate configuration, not actual phone permissions or delivery.
+
+## Enable Wi-Fi and clipboard synchronization
+
+Back up the local chezmoi config and both existing drop-ins privately.
+Set `tetherMode = "wifi-clipboard"` under `[data]`, keeping `tether = true`.
+There is no need to reapply DMS or Bluetooth settings just to switch modes:
+
+```sh
+systemctl --user stop tetherd.service
+chezmoi diff --skip-secrets --exclude=encrypted \
+  ~/.config/systemd/user/tetherd.service.d/10-notification-network.conf \
+  ~/.config/systemd/user/tetherd.service.d/20-no-clipboard.conf
+chezmoi apply --exclude=scripts,encrypted \
+  ~/.config/systemd/user/tetherd.service.d/10-notification-network.conf \
+  ~/.config/systemd/user/tetherd.service.d/20-no-clipboard.conf
+systemctl --user daemon-reload
+systemctl --user restart tetherd.service
+systemctl --user is-active --quiet tetherd.service
+```
+
+Unlike Bluetooth-only mode, LAN discovery needs Avahi. Inspect existing
+Avahi/firewall configuration before deliberately enabling its service:
+
+```sh
+sudo systemctl enable --now avahi-daemon.service
+```
+
+Install the official
+[Tether - Linux Companion](https://apps.apple.com/us/app/tether-linux-companion/id6762097135)
+on the iPhone, open it, and allow local-network access. Connect both devices
+to the same trusted LAN; the computer may use Ethernet while the phone uses
+Wi-Fi. Tether uses TCP 5134 for its mutual-TLS connection and UDP 5353 for
+mDNS discovery. If a firewall blocks either, permit only the necessary LAN
+traffic after reviewing its policy; do not disable the firewall or forward
+these ports from the internet. The upstream listener is not automatically
+restricted to one LAN interface.
+
+The App should discover the computer and request pairing. Check the pending
+device and fingerprint before accepting the matching request:
+
+```sh
+systemctl --user is-active --quiet tetherd.service && tether pending
+systemctl --user is-active --quiet tetherd.service && tether accept <fingerprint>
+systemctl --user is-active --quiet tetherd.service && tether status
+```
+
+Keep certificates, trust records, phone addresses and fingerprints out of Git.
+Never accept an unknown device merely because it appears in the pending list.
+`tether status` should report clipboard availability and mDNS advertising;
+after pairing, verify the phone is connected. Confirm the daemon shares the
+host network namespace and can see the active Wayland socket. Test both
+clipboard directions with disposable, non-sensitive text, not the user's
+existing clipboard. The current upstream iOS client
+[disconnects on entering the background](https://github.com/zackb/tether/blob/v0.2.36/apple/Tether/ViewModels/TetherViewModel.swift#L210-L225)
+and resumes discovery/reconnection when active. Keep it in the foreground
+for live clipboard synchronization; Background App Refresh does not change
+that implementation. Sending selected content through the iOS share extension
+is an alternative to opening the main App. Bluetooth notification forwarding
+does not depend on keeping the companion App open.
+
+To return to notification-only operation, set `tetherMode = "notifications"`,
+apply the same two drop-ins, run `systemctl --user daemon-reload`, and restart
+the user service, then repeat the isolation checks above.
+This closes Tether's host-network listener and removes
+clipboard access without deleting Bluetooth bonds or Wi-Fi trust records.
+Avahi is a shared system service; switching modes does not stop it automatically.
 
 ## Disable or change desktop profiles
 

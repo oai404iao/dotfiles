@@ -27,8 +27,9 @@
   DMS 配置的 apply 会提醒缺失的运行依赖、未准备或版本不匹配的界面补丁；
   不会自动安装软件包或重启桌面。
   升级 DMS 后，需从对应版本的原始源码树重新准备界面补丁。
-- 可选的 [Tether 蓝牙 iPhone 通知](docs/tether.md)整合到 DMS，不开放 Wi-Fi
-  或剪贴板访问，禁用消息/联系人持久化，并设置不写入通知历史的规则。
+- 可选的 [Tether 蓝牙 iPhone 通知](docs/tether.md)整合到 DMS，默认不开放 Wi-Fi
+  或剪贴板访问；显式设置 `tetherMode="wifi-clipboard"` 可启用局域网与剪贴板同步。
+  两种模式都禁用消息/联系人持久化，并设置不写入通知历史的规则。
   配对状态只留在本机。
 - Niri 设备上的 GNOME Keyring D-Bus 激活统一使用软件包提供的 systemd
   用户服务；[密钥环数据及备份只留在本机](docs/desktop.md#desktop-keyring)。

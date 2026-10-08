@@ -1,0 +1,18 @@
+{{- $mode := "notifications" -}}
+{{- if hasKey . "tetherMode" -}}
+{{-   $mode = .tetherMode -}}
+{{- end -}}
+{{- if not (has $mode (list "notifications" "wifi-clipboard")) -}}
+{{-   fail "tetherMode must be notifications or wifi-clipboard" -}}
+{{- end -}}
+[Service]
+RuntimeDirectory=tether
+RuntimeDirectoryMode=0700
+RuntimeDirectoryPreserve=yes
+{{ if eq $mode "notifications" -}}
+Environment=WAYLAND_DISPLAY=wayland-0
+# Keep the CLI and notification bus reachable without exposing compositor sockets.
+TemporaryFileSystem=%t:rw
+BindPaths=%t/tether
+BindReadOnlyPaths=%t/bus
+{{ end -}}

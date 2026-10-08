@@ -1,0 +1,19 @@
+{{- $mode := "notifications" -}}
+{{- if hasKey . "tetherMode" -}}
+{{-   $mode = .tetherMode -}}
+{{- end -}}
+{{- if not (has $mode (list "notifications" "wifi-clipboard")) -}}
+{{-   fail "tetherMode must be notifications or wifi-clipboard" -}}
+{{- end -}}
+[Service]
+ExecStartPre=
+ExecStart=
+{{ if eq $mode "notifications" -}}
+# Unlike PrivateNetwork, unshare fails closed if isolation cannot be created.
+ExecStart=/usr/bin/unshare --user --map-current-user --net /usr/bin/tetherd
+PrivateUsers=yes
+{{ else -}}
+ExecStart=/usr/bin/tetherd
+PrivateUsers=no
+{{ end -}}
+UMask=0077

@@ -33,8 +33,10 @@ credentials and mutable application state out of Git.
   mismatched overlay; they never install packages or restart the shell.
   After upgrading DMS, prepare a new overlay from that version's pristine tree.
 - Optional [Tether Bluetooth iPhone notifications](docs/tether.md) integrate
-  with DMS without Wi-Fi or clipboard access, with message/contact retention
-  disabled and a no-history notification rule. Pairing stays machine-local.
+  with DMS without Wi-Fi or clipboard access by default. An explicit
+  `tetherMode="wifi-clipboard"` also enables LAN and clipboard synchronization.
+  Both modes disable message/contact retention and use a no-history
+  notification rule. Pairing stays machine-local.
 - On Niri machines, GNOME Keyring D-Bus activation uses the packaged systemd
   user service; [keyring data and backups stay machine-local](docs/desktop.md#desktop-keyring).
 - Matugen and Waypaper generated state is bootstrapped without being reset on
