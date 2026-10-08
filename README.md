@@ -47,7 +47,8 @@ credentials and mutable application state out of Git.
   asynchronous plaintext tools, a tree-wide concurrency limit of 4, and a
   120-second default mailbox wait; see the [migration guide](docs/pi.md#subagent-100-migration).
 - [Agent delegation guidance](docs/pi.md#agent-delegation-guidance) defines
-  scoped assignments and explicit coverage, verification, and gaps in scout/reviewer reports.
+  scoped assignments: scout/reviewer inspect read-only, while worker executes
+  subtasks with the inherited tool policy and reports changes, verification, and gaps.
 - Global agent instructions are managed for Pi first, with retained per-task
   scratch directories under `~/.local/state/agents/tmp/` instead of `/tmp`.
 - [Global skills](docs/skills.md) use a manifest and manual `pnpm dlx skills` installer;

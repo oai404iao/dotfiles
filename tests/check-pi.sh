@@ -23,6 +23,7 @@ expected = {
     "private_subagent.json.tmpl",
     "exact_agents/private_scout.md",
     "exact_agents/private_reviewer.md",
+    "exact_agents/private_worker.md",
     "extensions/pi-codex-minimal-tools/private_config.json.tmpl",
     "extensions/pi-codex-minimal-tools/private_models.json.tmpl",
     "extensions/pi-telegram-notify/private_config.json.tmpl",
@@ -187,7 +188,7 @@ if scout_frontmatter.get("model") != "deepseek/deepseek-flash":
 if scout_frontmatter.get("thinking") != "high":
     raise SystemExit("Pi scout thinking level is not high")
 
-for name in ("scout", "reviewer"):
+for name in ("scout", "reviewer", "worker"):
     text = (source_dir / f"exact_agents/private_{name}.md").read_text()
     frontmatter = {
         key.strip(): value.strip()
@@ -195,13 +196,20 @@ for name in ("scout", "reviewer"):
         if ":" in line
         for key, value in [line.split(":", 1)]
     }
-    if frontmatter.get("tools") != "read, grep, find, ls, bash, codemode":
-        raise SystemExit(f"Pi {name} ordinary-tool ceiling changed unexpectedly")
-    if "Do not edit files." not in text:
-        raise SystemExit(f"Pi {name} lost its read-only instructions")
+    if frontmatter.get("name") != name or not frontmatter.get("description"):
+        raise SystemExit(f"Pi {name} definition is missing its name or description")
+    if name == "worker":
+        if {"tools", "model", "thinking"} & frontmatter.keys():
+            raise SystemExit("Pi worker must use inherited tool policy, model, and thinking")
+    else:
+        if frontmatter.get("tools") != "read, grep, find, ls, bash, codemode":
+            raise SystemExit(f"Pi {name} ordinary-tool ceiling changed unexpectedly")
+        if "Do not edit files." not in text:
+            raise SystemExit(f"Pi {name} lost its read-only instructions")
     report_sections = {
         "scout": ("Coverage", "Locations", "Constraints", "Uncertainty"),
         "reviewer": ("Coverage", "Findings", "Verification", "Gaps"),
+        "worker": ("Completed", "Verification", "Gaps"),
     }
     for section in report_sections[name]:
         if f"**{section}:**" not in text:

@@ -136,6 +136,15 @@ unreviewed requirements must be explicit rather than hidden behind a completed
 run status. These are instruction-level expectations, not enforced permissions
 or a guarantee of complete review.
 
+Worker executes scoped subtasks, including file edits and verification, and
+reports completed deliverables, actual checks, and remaining gaps. Its definition
+omits `tools`, `model`, and `thinking`: it uses the default child tool policy
+without an additional role-specific ceiling and inherits the caller's model and
+thinking level. With extension inheritance enabled, it uses the same configured
+tool setup as the main agent, subject to inherited ceilings and the plugin's
+[child-runtime limits](#codemode); this is not an exact copy of root-only
+capabilities. Select it with `spawn_agent` using `agent_type: "worker"`.
+
 The main agent normally coordinates parallel work. Nested delegation needs a
 distinct purpose; shared-file edits require coordination. The existing model
 choices, thinking levels, tool ceilings, package pins, and runtime limits are
@@ -146,6 +155,10 @@ before applying only `~/.config/pi/agent/AGENTS.md`,
 `~/.config/pi/agent/agents/scout.md`, and
 `~/.config/pi/agent/agents/reviewer.md`. Reload or restart Pi when existing child
 work no longer needs preserving, then spawn new children.
+
+To add only worker, review and apply the explicit target
+`~/.config/pi/agent/agents/worker.md`, privately backing it up first if it exists.
+Reload or restart Pi before selecting the new agent type.
 
 ## Codemode
 
