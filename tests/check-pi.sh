@@ -162,6 +162,11 @@ if settings.get("defaultThinkingLevel") != "high":
 if settings.get("defaultProvider") != "openai" or settings.get("defaultModel") != "gpt-6-astra":
     raise SystemExit("Pi default model is not openai/gpt-6-astra")
 enabled_models = set(settings.get("enabledModels", []))
+enabled_anthropic_models = {
+    model for model in enabled_models if model.startswith("anthropic/")
+}
+if enabled_anthropic_models != {"anthropic/claude-opus-5-5"}:
+    raise SystemExit("unexpected enabled Anthropic model inventory")
 expected_openai_models = {
     "openai/gpt-5.6-sol",
     "openai/gpt-6-astra",
@@ -238,11 +243,13 @@ if package_sources != expected_npm_packages or len(settings["packages"]) != len(
 
 models = json.loads((source_dir / "private_models.json").read_text())
 providers = models.get("providers", {})
-expected_providers = {"deepseek", "openai", "xai"}
+expected_providers = {"anthropic", "deepseek", "openai", "xai"}
 if set(providers) != expected_providers:
     raise SystemExit("unexpected Pi provider inventory")
 if any("apiKey" in provider for provider in providers.values()):
     raise SystemExit("Pi provider credentials must stay in local auth.json")
+if providers["anthropic"] != {"baseUrl": "https://api.krill-code.net"}:
+    raise SystemExit("Anthropic must override only its endpoint and use Pi's built-in catalog")
 openai = providers["openai"]
 deepseek = providers["deepseek"]
 expected_context_overrides = {

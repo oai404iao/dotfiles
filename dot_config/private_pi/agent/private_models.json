@@ -1,5 +1,8 @@
 {
   "providers": {
+    "anthropic": {
+      "baseUrl": "https://api.krill-code.net"
+    },
     "deepseek": {
       "baseUrl": "https://api.spiredive.com/v1",
       "headers": {

@@ -370,6 +370,12 @@ API-key authentication when Pi offers multiple methods and entering the same
 command reference for each. Do not replace the reference with the retrieved
 value.
 
+`anthropic` uses `https://api.krill-code.net` with Pi's built-in model catalog.
+The enabled-model list includes `anthropic/claude-opus-5-5`; the default remains
+`openai/gpt-6-astra`. Configure its own Krill API-key credential with
+`/login anthropic`, selecting API-key authentication. It does not automatically
+reuse the Spiredive credential.
+
 `auth.json` credentials take precedence over `models.json`. Pi resolves an
 auth-file command on first use and caches the result for the process lifetime.
 Because all three entries use the exact same command, one successful resolution
