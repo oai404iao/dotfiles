@@ -132,8 +132,9 @@ settings_result = subprocess.run(
 settings = load_json(settings_result.stdout)
 if settings.get("lastChangelogVersion") != "preserve-me" or settings.get("futureState") is not True:
     raise SystemExit("Pi settings modifier did not preserve mutable state")
-if settings.get("npmCommand") != ["pnpm"]:
-    raise SystemExit("Pi package manager is not pnpm")
+expected_npm_command = ["pnpm", "--config.node-linker=hoisted"]
+if settings.get("npmCommand") != expected_npm_command:
+    raise SystemExit("Pi packages must use pnpm with a hoisted dependency layout")
 if settings.get("defaultTools") != ["+codemode"]:
     raise SystemExit("Pi codemode must be enabled alongside the default tools")
 if settings.get("codemode") != {
@@ -149,6 +150,8 @@ for old_settings in ("", settings_result.stdout):
         check=True,
     )
     reapplied = load_json(result.stdout)
+    if reapplied.get("npmCommand") != expected_npm_command:
+        raise SystemExit("Pi hoisted dependency layout is not preserved on apply")
     if old_settings:
         if reapplied != settings:
             raise SystemExit("Pi settings modifier is not idempotent")

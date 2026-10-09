@@ -20,7 +20,7 @@ settings.update(
             "openai/gpt-6.1-sol",
             "deepseek/deepseek-flash",
         ],
-        "npmCommand": ["pnpm"],
+        "npmCommand": ["pnpm", "--config.node-linker=hoisted"],
         "packages": [
             "npm:@juicesharp/rpiv-ask-user-question@2.12.0",
             "npm:@oai404iao/pi-telegram-notify@0.6.0",

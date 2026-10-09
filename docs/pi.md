@@ -28,9 +28,13 @@ The following generated or mutable data is deliberately not managed:
   recovery fragments, caches, and logs
 
 Package declarations in `settings.json` remain the source of truth for
-reinstalling Pi packages. `"npmCommand": ["pnpm"]` makes Pi use pnpm for package
-lookup and installation; the `npm:` source prefix still identifies registry
-packages. npm packages are pinned to their adopted versions.
+reinstalling Pi packages. `"npmCommand": ["pnpm", "--config.node-linker=hoisted"]`
+makes Pi use pnpm with a flat dependency layout; the `npm:` source prefix still
+identifies registry packages. Pi's jiti loader resolves imports from extension
+symlink paths without first resolving their real paths. An isolated pnpm layout
+can therefore load stale npm-era siblings or fail to find transitive dependencies.
+The hoisted setting applies only to Pi package operations, not other projects.
+npm packages are pinned to their adopted versions.
 The pinned extensions require Pi 0.99.1 or newer and Node.js 22.19 or newer.
 Upgrade the system-managed Pi package
 (`sudo pacman -Syu pi`) before applying these declarations, then fully exit and
@@ -113,6 +117,41 @@ That command executes dependency code; it is not part of the offline checks or
 an apply hook. The checks cover policy merging, idempotence, invalid input,
 the managed-file exception, and pnpm 12 reading a fixture policy, not real
 dependency builds or live Pi startup.
+
+## Pi package layout migration
+
+Applying settings does not rebuild an existing package installation. Privately
+back up `~/.config/pi/agent/settings.json` and `~/.config/pi/agent/npm/` outside
+chezmoi before migrating, then review and apply only the settings target:
+
+```sh
+chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/settings.json
+chezmoi apply --exclude=scripts,encrypted ~/.config/pi/agent/settings.json
+```
+
+Rebuild the existing lockfile without changing package versions or running
+package lifecycle scripts:
+
+```sh
+cd ~/.config/pi/agent/npm
+pnpm --config.node-linker=hoisted install --offline --frozen-lockfile --ignore-scripts
+```
+
+For an installation created with peer auto-installation disabled, append
+`--config.auto-install-peers=false` if `settings.autoInstallPeers` in
+`pnpm-lock.yaml` is `false`; frozen installs must match that recorded setting.
+Do not discard or regenerate the lockfile to bypass a configuration mismatch.
+`--offline` requires every locked package to be in the local pnpm store. If one
+is missing, retain the backup and explicitly retry without `--offline` to allow
+registry access. pnpm rebuilds the isolated layout and removes stale top-level
+packages. Do not delete just the old Codex sibling directories: an isolated
+layout still leaves jiti unable to resolve their replacements.
+
+Restart Pi after the rebuild and check `/codex-minimal-tools:doctor` on
+`openai/gpt-6.1-sol`: the model profile should no longer be `(none)`, the provider
+shim should be active, and `apply_patch` should be active. The 4.1.1 runtime
+already supplies this model profile; adding it to user `models.json` is not the
+fix. Installation data, lockfiles, and backups remain machine-local and ignored.
 
 ## Subagent 1.0.0 migration
 
