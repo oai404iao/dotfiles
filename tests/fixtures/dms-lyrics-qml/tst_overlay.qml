@@ -287,8 +287,6 @@ TestCase {
         var panel = overlay.activePanel;
         watchSignals();
 
-        // Park the synthetic cursor outside the panel first so the enter edge
-        // is exercised deterministically.
         mouseMove(overlay, 2, 2);
         wait(20);
         enteredSpy.clear();
@@ -297,18 +295,50 @@ TestCase {
 
         mouseMove(panel, panel.width / 2, panel.height / 2);
         wait(20);
-        compare(enteredSpy.count, 1, "hovering the panel must mark it entered");
+        compare(enteredSpy.count, 0, "settings are click-dismissed, not hover-tracked");
         compare(exitedSpy.count, 0);
         compare(closeSpy.count, 0, "hover must never close the settings panel");
 
         mouseMove(panel, panel.width / 2, panel.height - 10);
         wait(20);
-        compare(enteredSpy.count, 1, "moving within the hosted settings must not re-enter");
+        compare(enteredSpy.count, 0);
         compare(exitedSpy.count, 0, "moving within the hosted settings must stay inside");
         compare(closeSpy.count, 0);
 
         mouseMove(overlay, 2, 2);
         wait(20);
-        compare(exitedSpy.count, 1, "leaving the panel must emit panelExited");
+        compare(exitedSpy.count, 0, "leaving settings must not arm a hover dismissal");
+    }
+
+    function test_51_click_inside_panel_margin_is_not_outside() {
+        makeService();
+        makeOverlay({
+            dropdownType: 4,
+            availableBounds: Qt.rect(0, 0, 800, 600),
+            anchorPos: Qt.point(700, 300)
+        });
+        watchSignals();
+        mouseClick(overlay.activePanel, 2, 2);
+        compare(closeSpy.count, 0, "empty panel margins must not dismiss settings");
+        mouseClick(overlay, 2, 2);
+        compare(closeSpy.count, 1, "clicking outside the panel must request dismissal");
+    }
+
+    function test_52_overlay_escape_requests_close_only_for_lyrics() {
+        makeService();
+        makeOverlay({ dropdownType: 4 });
+        watchSignals();
+        hostWindow.requestActivate();
+        tryCompare(hostWindow, "active", true);
+        overlay.forceActiveFocus();
+        tryCompare(overlay, "activeFocus", true);
+        keyClick(Qt.Key_Escape);
+        compare(closeSpy.count, 1);
+
+        overlay.dropdownType = 3;
+        closeSpy.clear();
+        overlay.forceActiveFocus();
+        keyClick(Qt.Key_Escape);
+        compare(closeSpy.count, 0);
     }
 }

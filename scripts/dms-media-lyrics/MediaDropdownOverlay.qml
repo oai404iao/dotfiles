@@ -4,7 +4,7 @@ import qs.Common
 import qs.Services
 import qs.Widgets
 
-Item {
+FocusScope {
     id: root
     visible: dropdownType !== 0
 
@@ -12,6 +12,7 @@ Item {
     LayoutMirroring.childrenInherit: true
 
     property int dropdownType: 0
+    property var transientSurfaceTracker: null
     readonly property var lyricsService: PluginService.pluginDaemonInstances["lyrics"] ?? null
     onLyricsServiceChanged: {
         if (!lyricsService && dropdownType === 4)
@@ -67,6 +68,15 @@ Item {
     signal closeRequested
     signal panelEntered
     signal panelExited
+
+    Keys.onEscapePressed: event => {
+        if (root.dropdownType === 4) {
+            root.closeRequested();
+            event.accepted = true;
+        } else {
+            event.accepted = false;
+        }
+    }
 
     function applyVolume(volume) {
         if (usePlayerVolume) {
@@ -148,6 +158,18 @@ Item {
         blurRadius: Theme.cornerRadius * 2
     }
 
+    MouseArea {
+        anchors.fill: parent
+        z: -1
+        enabled: root.dropdownType === 4
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+        onClicked: mouse => {
+            const pos = lyricsSettingsPanel.mapFromItem(root, mouse.x, mouse.y);
+            if (!lyricsSettingsPanel.contains(pos))
+                root.closeRequested();
+        }
+    }
+
     Rectangle {
         id: lyricsSettingsPanel
         visible: root.dropdownType === 4 && !!root.lyricsService
@@ -173,20 +195,15 @@ Item {
             shadowEnabled: Theme.elevationEnabled
         }
 
-        HoverHandler {
-            onHoveredChanged: {
-                if (hovered)
-                    root.panelAreaEntered();
-                else
-                    root.panelAreaExited();
-            }
-        }
-
         Loader {
             anchors.fill: parent
             anchors.margins: Theme.spacingM
             active: lyricsSettingsPanel.visible
             sourceComponent: root.lyricsService?.settingsView ?? null
+            onLoaded: {
+                item.transientSurfaceTracker = Qt.binding(() => root.transientSurfaceTracker);
+                item.forceActiveFocus(Qt.TabFocusReason);
+            }
         }
     }
 

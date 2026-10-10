@@ -174,6 +174,11 @@ directory; update the reviewed source and tests here instead.
   the service's `LyricsView` and model, without starting another fetcher.
 - Its right-side lyrics button opens an external settings panel through the
   same overlay as the native volume/device controls, leaving lyrics visible.
+  Unlike the hover-dismissed volume/device panels, lyrics settings remain open
+  when the pointer moves away. Click outside, click the lyrics button again,
+  press Escape, or leave the media page to close them. Escape in an open
+  selector closes that selector first. Selectors share the DMS popout's
+  transient-surface tracker for focus ownership and close cleanup.
   `showLyrics`
   controls the bar and page together and stops fetching while disabled.
   `showTranslation` switches both views to originals only when disabled.
@@ -426,7 +431,11 @@ responses test startup, player removal, display preferences while paused,
 language availability, disabled fetching, and shared view updates without
 connecting to the real desktop or network. It also exercises the real media
 overlay's external positioning, screen bounds, blur, hover tracking, and
-settings availability without a player.
+settings availability without a player. The real settings and Dash components
+exercise selector persistence, transient-menu cleanup, explicit dismissal,
+keyboard isolation, and the native controls' hover timeout. Widget mocks model
+menu lifecycle only; native Wayland popup focus and surface behavior still
+require an interactive check.
 
 Run `./tests/check-source.sh` and `git diff --check` before applying.
 

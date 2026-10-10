@@ -7,7 +7,78 @@ import qs.Modules.Plugins
 PluginSettings {
     id: root
     pluginId: "lyrics"
+    property var transientSurfaceTracker: null
     readonly property var lyrics: PluginService.pluginDaemonInstances[pluginId] ?? null
+
+    component TrackedSelectionSetting: Column {
+        id: selection
+
+        required property var settingsHost
+        required property string settingKey
+        required property string label
+        property string description: ""
+        required property var options
+        property string defaultValue: ""
+        property string value: defaultValue
+
+        width: parent.width
+        spacing: Theme.spacingS
+
+        function loadValue() {
+            if (settingsHost && settingsHost.pluginService)
+                value = settingsHost.loadValue(settingKey, defaultValue);
+        }
+
+        Component.onCompleted: loadValue()
+
+        readonly property var optionLabels: {
+            const labels = [];
+            for (let i = 0; i < options.length; i++)
+                labels.push(options[i].label || options[i]);
+            return labels;
+        }
+
+        readonly property var valueToLabel: {
+            const map = {};
+            for (let i = 0; i < options.length; i++) {
+                const opt = options[i];
+                if (typeof opt === "object")
+                    map[opt.value] = opt.label;
+                else
+                    map[opt] = opt;
+            }
+            return map;
+        }
+
+        readonly property var labelToValue: {
+            const map = {};
+            for (let i = 0; i < options.length; i++) {
+                const opt = options[i];
+                if (typeof opt === "object")
+                    map[opt.label] = opt.value;
+                else
+                    map[opt] = opt;
+            }
+            return map;
+        }
+
+        onValueChanged: {
+            if (settingsHost)
+                settingsHost.saveValue(settingKey, value);
+        }
+
+        DankDropdown {
+            width: parent.width
+            text: selection.label
+            description: selection.description
+            currentValue: selection.valueToLabel[selection.value] || selection.value
+            options: selection.optionLabels
+            transientSurfaceTracker: selection.settingsHost.transientSurfaceTracker
+            onValueChanged: newValue => {
+                selection.value = selection.labelToValue[newValue] || newValue;
+            }
+        }
+    }
 
     StyledText {
         text: I18n.trFor("lyrics", "Lyrics settings")
@@ -44,7 +115,8 @@ PluginSettings {
         defaultValue: true
     }
 
-    SelectionSetting {
+    TrackedSelectionSetting {
+        settingsHost: root
         settingKey: "translationLanguage"
         label: I18n.trFor("lyrics", "Available translation")
         description: root.lyrics?.translationAvailable
@@ -65,7 +137,8 @@ PluginSettings {
         wrapMode: Text.WordWrap
     }
 
-    SelectionSetting {
+    TrackedSelectionSetting {
+        settingsHost: root
         settingKey: "lyricsSource"
         label: I18n.trFor("lyrics", "Lyrics source")
         description: I18n.trFor("lyrics", "Choose NetEase first for supplied translations; LRCLIB provides original lyrics only.")

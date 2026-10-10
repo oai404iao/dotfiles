@@ -51,6 +51,8 @@ Item {
     }
     property Component settingsView: Component {
         Flickable {
+            id: settingsFlickable
+            property var transientSurfaceTracker: null
             clip: true
             contentWidth: width
             contentHeight: options.implicitHeight
@@ -60,6 +62,7 @@ Item {
                 id: options
                 width: parent.width
                 pluginService: root.pluginService
+                transientSurfaceTracker: settingsFlickable.transientSurfaceTracker
             }
         }
     }

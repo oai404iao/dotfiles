@@ -7,6 +7,7 @@ DankPopout {
     id: root
 
     layerNamespace: "dms:dash"
+    hoverDismissSuspended: __dropdownType === 4
 
     property bool dashVisible: false
     property var triggerScreen: null
@@ -109,6 +110,7 @@ DankPopout {
     }
 
     function __showLyricsDropdown(pos, rightEdge) {
+        __stopCloseTimer();
         __dropdownAnchor = pos;
         __dropdownRightEdge = rightEdge;
         __dropdownType = 4;
@@ -116,12 +118,19 @@ DankPopout {
 
     function __hideDropdowns() {
         __volumeCloseTimer.stop();
+        const wasLyricsSettings = __dropdownType === 4;
+        if (wasLyricsSettings)
+            root.transientSurfaceTracker.closeAll();
         __dropdownType = 0;
         if (__mediaTabRef && typeof __mediaTabRef.resetDropdownStates === "function")
             __mediaTabRef.resetDropdownStates();
+        if (wasLyricsSettings && contentLoader.item)
+            contentLoader.item.forceActiveFocus();
     }
 
     function __startCloseTimer() {
+        if (__dropdownType === 4)
+            return;
         __volumeCloseTimer.restart();
     }
 
@@ -133,7 +142,7 @@ DankPopout {
         id: __volumeCloseTimer
         interval: 400
         onTriggered: {
-            if (__dropdownType !== 0) {
+            if (__dropdownType !== 0 && __dropdownType !== 4) {
                 __hideDropdowns();
             }
         }
@@ -150,6 +159,7 @@ DankPopout {
             isRightEdge: root.__dropdownRightEdge
             activePlayer: root.__dropdownPlayer
             allPlayers: root.__dropdownPlayers
+            transientSurfaceTracker: root.transientSurfaceTracker
             targetWindow: root.backgroundWindow
             availableBounds: Qt.rect(0, 0, width, height)
             onCloseRequested: root.__hideDropdowns()
@@ -219,8 +229,9 @@ DankPopout {
 
             MouseArea {
                 anchors.fill: parent
-                z: -1
+                z: root.__dropdownType === 4 ? 1 : -1
                 enabled: root.__dropdownType !== 0
+                acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                 onClicked: root.__hideDropdowns()
             }
 
@@ -247,12 +258,22 @@ DankPopout {
 
             Keys.onPressed: function (event) {
                 if (event.key === Qt.Key_Escape) {
+                    if (root.__dropdownType === 4) {
+                        root.__hideDropdowns();
+                        event.accepted = true;
+                        return;
+                    }
                     if (root.currentTabId === "wallpaper" && wallpaperLoader.item?.handleKeyEvent && wallpaperLoader.item.handleKeyEvent(event)) {
                         event.accepted = true;
                         return;
                     }
                     root.dashVisible = false;
                     event.accepted = true;
+                    return;
+                }
+
+                if (root.__dropdownType === 4) {
+                    event.accepted = event.key !== Qt.Key_Tab && event.key !== Qt.Key_Backtab;
                     return;
                 }
 
@@ -292,6 +313,7 @@ DankPopout {
 
             Column {
                 id: contentColumn
+                enabled: root.__dropdownType !== 4
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
