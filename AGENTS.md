@@ -68,8 +68,10 @@ Root `dot_*` files map to home-directory files such as `~/.zshenv` and
   prepared tree exists. Run `tests/check-dms-media-lyrics.sh` for this path.
 - Preserve lockfiles unless the task explicitly updates dependencies. In
   particular, do not regenerate `dot_config/nvim/lazy-lock.json` incidentally.
-- Pi npm declarations in `modify_private_settings.json` are pinned and require
-  Pi 0.99.1 or newer. No local extension checkout is required.
+- Pi npm declarations in `modify_private_settings.json.tmpl` are pinned and
+  require Pi 0.99.1 or newer. Graphical profiles load local notifications through
+  `~/.local/share/pi/extensions/pi-local-notify`; its source symlink is
+  machine-local and ignored. Headless profiles use Telegram.
 - Use a focused development branch and Conventional Commits. Do not mix
   unrelated changes or overwrite an existing dirty worktree.
 - Keep `README.md` and `README.zh-CN.md` semantically synchronized.
@@ -194,9 +196,10 @@ in `.chezmoi.toml.tmpl` and the output template, then run `check-niri.sh`.
 
 ### Pi Configuration
 
-- `modify_private_settings.json` is executable Python stored under a chezmoi
-  modifier name. It must preserve unknown/runtime keys while replacing only
-  declared keys.
+- `modify_private_settings.json.tmpl` renders Python under a chezmoi modifier
+  name. It must preserve unknown/runtime keys while replacing only declared keys.
+  `graphical` selects local notifications or Telegram at apply time; graphical
+  profiles ignore the Telegram config directory without deleting existing files.
 - `private_models.json` omits API credentials. The ignored local `auth.json`
   stores an `rbw` command reference for the shared model key so Pi caches it
   for its process lifetime. Never put a literal key in managed model config.
@@ -399,7 +402,7 @@ not replace trusted commit review.
 | Desktop ownership and dependencies | `docs/desktop.md` |
 | Recursive-removal contract | `docs/deletion-safety.md` |
 | Pi ownership and credential flow | `docs/pi.md` |
-| Pi settings source of truth | `dot_config/private_pi/agent/modify_private_settings.json` |
+| Pi settings source of truth | `dot_config/private_pi/agent/modify_private_settings.json.tmpl` |
 | Pi managed-inventory assertions | `tests/check-pi.sh` |
 | SSH operations and migration | `docs/ssh.md` |
 | Encrypted SSH inventory | `private_dot_ssh/` |

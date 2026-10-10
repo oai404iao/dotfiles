@@ -24,7 +24,11 @@ settings.update(
         "npmCommand": ["pnpm", "--config.node-linker=hoisted"],
         "packages": [
             "npm:@juicesharp/rpiv-ask-user-question@2.12.0",
+{{- if .graphical }}
+            {{ joinPath .chezmoi.homeDir ".local/share/pi/extensions/pi-local-notify" | toJson }},
+{{- else }}
             "npm:@oai404iao/pi-telegram-notify@0.6.0",
+{{- end }}
             "npm:@oai404iao/pi-codex-minimal-tools@4.1.1",
             "npm:@oai404iao/pi-subagent@1.0.1",
         ],

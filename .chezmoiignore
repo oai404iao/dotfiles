@@ -141,6 +141,7 @@ secrets/
 !.config/pi/agent/npm/pnpm-workspace.yaml
 .config/pi/agent/git/
 .config/pi/agent/bin/
+.local/share/pi/extensions/
 .config/pi/agent/pi-codex-minimal-tools/
 .config/pi/agent/.pi-subagent/
 .config/pi/agent/sessions/
@@ -150,6 +151,9 @@ secrets/
 .config/pi/agent/extensions/pi-permission-system/logs/
 .config/pi/agent/workflows/model-tiers.json
 .config/pi/agent/workflows/projects/
+{{- if .graphical }}
+.config/pi/agent/extensions/pi-telegram-notify/
+{{- end }}
 
 # Optional recoverable recursive-removal wrapper.
 {{- if not $safeRm }}

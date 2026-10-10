@@ -37,7 +37,9 @@
 - Satty、btop、Fcitx5 候选框、swaylock-effects 与 GTK 文件管理共享桌面风格，
   同时保留输入方案和应用状态。
 - LazyVim 配置包含根据经过验证的本地插件检出重建的锁文件。
-- Pi 模型与 Telegram 凭据通过 `rbw` 从 Bitwarden 获取。
+- Pi 在图形机器使用 Kitty 本地通知，无桌面机器使用 Telegram。模型及无桌面
+  Telegram 凭据通过 `rbw` 从 Bitwarden 获取，参见
+  [通知配置档案](docs/pi.md#notifications-by-machine-profile)。
   modifier 在 Pi 的 `npm/pnpm-workspace.yaml` 中管理三个精确版本的构建授权；
   其余 npm 安装状态仍保持忽略。
 - Pi codemode 与直接工具调用并存（`on`，非 `only`）；参见
@@ -228,8 +230,8 @@ rbw sync
 Pi 还依赖以下 Bitwarden 条目：
 
 - `pi spiredive api key`
-- `pi telegram bot token`
-- `pi telegram chat id`
+- `pi telegram bot token`（仅无桌面机器）
+- `pi telegram chat id`（仅无桌面机器）
 
 SSH 客户端机器还需要 [docs/ssh.md](docs/ssh.md) 所描述的原生 Bitwarden
 SSH key 集合。使用 rbw 默认的 1 小时空闲锁定超时。已显式配置超时的机器可通过
@@ -242,7 +244,10 @@ rbw config unset lock_timeout
 ### 3. 准备应用的外部依赖
 
 根据机器用途安装对应的 Shell、桌面、Neovim 和 Pi 依赖。锁定的 Pi 扩展要求
-Pi 0.99.1 或更高版本、Node.js 22.19 或更高版本；不再需要本地扩展 checkout。
+Pi 0.99.1 或更高版本、Node.js 22.19 或更高版本。图形机器还需要将
+`~/.local/share/pi/extensions/pi-local-notify` 软链接到可信的本地插件源码，
+参见[本地插件配置](docs/pi.md#notifications-by-machine-profile)。
+无桌面机器不需要本地扩展 checkout。
 升级 Pi 主程序后需完全退出并重启；`/reload` 不能更新运行中的 SDK。
 若 `spawn_agent` 报 `createCodemodeExtension` 缺失，参见
 [子代理启动排障](docs/pi.md#createcodemodeextension-is-not-a-function)。
@@ -268,17 +273,21 @@ chezmoi status --skip-secrets --exclude=encrypted
 chezmoi diff --skip-secrets --exclude=encrypted
 chezmoi apply --interactive --skip-secrets --exclude=encrypted
 
-rbw unlock
-chezmoi apply \
-  "$HOME/.config/pi/agent/extensions/pi-telegram-notify/config.json"
-
 CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh
 chezmoi apply "$HOME/.gitconfig" "$HOME/.config/git"
 chezmoi apply "$HOME/.ssh"
 ```
 
-第一次 apply 会排除秘密模板；`rbw unlock` 后的定向命令会渲染私有 Telegram
-配置，但不会把它显示在 diff 中。后续命令会单独验证并应用 age 加密的 Git
+第一次 apply 会排除秘密模板。仅无桌面机器需要运行以下定向命令，渲染私有
+Telegram 配置且不显示秘密 diff：
+
+```sh
+rbw unlock
+chezmoi apply \
+  "$HOME/.config/pi/agent/extensions/pi-telegram-notify/config.json"
+```
+
+上面的其余命令会单独验证并应用 age 加密的 Git
 与 SSH 元数据；如果机器的两项 SSH 能力均关闭，则省略 SSH apply。
 
 第一次发起模型请求前，需要配置 Pi 已忽略的本机凭据。在 Pi 中分别为

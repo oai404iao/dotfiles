@@ -22,7 +22,8 @@ The following generated or mutable data is deliberately not managed:
 
 - `auth.json`, `trust.json`, and `models-store.json`
 - npm installation state (except its build policy below), `git/`, downloaded
-  binaries, and package installation IDs
+  binaries, package installation IDs, and local plugin links under
+  `~/.local/share/pi/extensions/`
 - `.pi-subagent/` manifests and extension runtime state
 - sessions (including `<rootSessionId>.subagents/<treeId>/` control stores),
   recovery fragments, caches, and logs
@@ -39,8 +40,9 @@ The pinned extensions require Pi 0.99.1 or newer and Node.js 22.19 or newer.
 Upgrade the system-managed Pi package
 (`sudo pacman -Syu pi`) before applying these declarations, then fully exit and
 restart Pi so the process uses the upgraded host SDK.
-No local extension checkout is required. The tree-continue package is no longer
-declared; applying settings stops loading it without deleting its local checkout.
+Graphical machines also require the local notification source link described below.
+The tree-continue package is no longer declared; applying settings stops loading
+it without deleting its local checkout.
 
 Disabled packages and their configuration are not managed.
 
@@ -68,12 +70,70 @@ ordinary tools. Mailbox waits now default to 120 seconds, with 300 seconds
 recommended for longer tasks; incoming activity still wakes the caller early.
 This is a plugin default, not a new `subagent.json` setting. See the
 [subagent migration](#subagent-100-migration) before updating an existing install.
-Telegram keeps its existing credential template and notification settings.
+Headless machines keep the existing Telegram credential template and settings.
 These configuration checks do not establish live endpoint compatibility.
 
 Shared skills under `~/.agents/skills/` are installed separately with
 `pnpm dlx skills`; only their [manifest and manual installer](skills.md) are managed
 here, not the downloaded contents or CLI lock state.
+
+## Notifications by machine profile
+
+Chezmoi's `graphical` machine data selects exactly one notification package:
+
+| Profile | Package |
+| --- | --- |
+| `graphical = true` | `~/.local/share/pi/extensions/pi-local-notify` |
+| `graphical = false` | `npm:@oai404iao/pi-telegram-notify@0.6.0` |
+
+This is an apply-time choice, independent of `niri`, `DISPLAY`, or SSH session
+variables. Change `graphical` deliberately with `chezmoi edit-config` when the
+machine role changes; it also controls other graphical targets.
+
+`~/.local/share/pi/extensions/` is the stable entry directory for local plugins.
+Each machine maintains symlinks there to trusted source checkouts, wherever
+those checkouts live. Pi settings declare individual packages through these
+links; the directory is not automatically scanned. Neither the links nor their
+source code are owned by chezmoi.
+
+On desktops, create the link once, replacing the source placeholder with the
+absolute path to `pi-local-notify` inside your `omp` checkout:
+
+```sh
+mkdir -p -- "$HOME/.local/share/pi/extensions"
+ln -sT -- /absolute/path/to/omp/pi-extensions/pi-local-notify \
+  "$HOME/.local/share/pi/extensions/pi-local-notify"
+```
+
+Do not overwrite an existing entry without inspecting it. If a checkout moves,
+update only its machine-local link, not Pi settings. The package is
+private/local-only and is not installed from npm or copied into chezmoi.
+A missing or dangling link does not fall back to Telegram. It uses Kitty OSC 99
+in an interactive TUI; other terminals and non-interactive modes do not notify.
+The managed tmux configuration already enables `allow-passthrough on`, which
+only passes notifications from visible panes. Unlike Telegram, the local plugin
+notifies settled runs, not blocking questionnaires or approvals.
+
+Graphical profiles ignore the Telegram configuration directory, so applying Pi
+configuration does not retrieve Telegram credentials. Existing Telegram config
+and downloaded packages are retained, not deleted; removing its package
+declaration stops loading it after reload/restart. Independently configured
+project or CLI extensions are outside this selection and can still load it.
+
+To switch an existing machine, privately back up and review
+`~/.config/pi/agent/settings.json`, then apply only that target:
+
+```sh
+chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/settings.json
+chezmoi apply --exclude=scripts,encrypted ~/.config/pi/agent/settings.json
+```
+
+For a headless machine, also back up and apply the explicit Telegram
+`~/.config/pi/agent/extensions/pi-telegram-notify/config.json` target after
+unlocking `rbw`; never display its secret-bearing diff. Restart Pi or use
+`/reload` when child work no longer needs preserving. On Kitty, manually run
+`/local-notify-test` to check delivery and click-to-focus; offline configuration
+checks do not send notifications or establish desktop delivery.
 
 ## pnpm build approvals
 
@@ -388,8 +448,9 @@ or expiry of rbw's default one-hour timeout does not revoke the copy held by
 that process. Exit Pi to discard it. If the first lookup fails, unlock `rbw`
 and restart Pi because failed command results are cached as well.
 
-The Telegram extension does not support command or environment interpolation.
-chezmoi renders its private `config.json` from these Bitwarden entries:
+On headless machines, the Telegram extension does not support command or
+environment interpolation. Chezmoi renders its private `config.json` from these
+Bitwarden entries (not required for desktop notifications):
 
 - `pi telegram bot token`
 - `pi telegram chat id`

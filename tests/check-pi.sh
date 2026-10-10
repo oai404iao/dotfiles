@@ -18,7 +18,7 @@ repo_dir = source_dir.parents[2]
 
 expected = {
     "private_AGENTS.md",
-    "modify_private_settings.json",
+    "modify_private_settings.json.tmpl",
     "npm/modify_private_pnpm-workspace.yaml",
     "private_models.json",
     "private_keybindings.json",
@@ -50,6 +50,7 @@ expected_ignored = {
     "!.config/pi/agent/npm/pnpm-workspace.yaml",
     ".config/pi/agent/git/",
     ".config/pi/agent/bin/",
+    ".local/share/pi/extensions/",
     ".config/pi/agent/pi-codex-minimal-tools/",
     ".config/pi/agent/.pi-subagent/",
     ".config/pi/agent/sessions/",
@@ -113,81 +114,75 @@ for path in source_dir.rglob("*.json"):
     if not path.name.startswith("modify_"):
         load_json(path.read_text())
 
-settings_modifier = source_dir / "modify_private_settings.json"
-compile(settings_modifier.read_text(), str(settings_modifier), "exec")
-settings_result = subprocess.run(
-    [sys.executable, str(settings_modifier)],
-    input=json.dumps({
+settings_modifier = source_dir / "modify_private_settings.json.tmpl"
+telegram_package = "npm:@oai404iao/pi-telegram-notify@0.6.0"
+common_packages = {
+    "npm:@juicesharp/rpiv-ask-user-question@2.12.0",
+    "npm:@oai404iao/pi-codex-minimal-tools@4.1.1",
+    "npm:@oai404iao/pi-subagent@1.0.1",
+}
+expected_defaults = {
+    "defaultProvider": "openai",
+    "defaultModel": "gpt-6-astra",
+    "defaultThinkingLevel": "high",
+    "defaultTools": ["+codemode"],
+    "codemode": {"mode": "on"},
+    "hideThinkingBlock": True,
+    "enabledModels": [
+        "anthropic/claude-opus-5-5",
+        "openai/gpt-5.6-sol",
+        "openai/gpt-6-astra",
+        "openai/gpt-6-luna",
+        "openai/gpt-6.1-sol",
+        "deepseek/deepseek-flash",
+    ],
+    "npmCommand": ["pnpm", "--config.node-linker=hoisted"],
+    "theme": "dark",
+    "sessionDir": "~/.local/state/pi/agent/sessions",
+}
+
+
+def modify_settings(script, old):
+    result = subprocess.run(
+        [sys.executable, "-c", script], input=old,
+        text=True, capture_output=True, check=True,
+    )
+    return load_json(result.stdout)
+
+
+def check_settings(script, notification_package, home):
+    compile(script, str(settings_modifier), "exec")
+    existing = {
         "lastChangelogVersion": "preserve-me",
-        "futureState": True,
+        "futureState": {"preserve": [True, "unknown"]},
         "defaultTools": ["read"],
         "codemode": {"mode": "only", "inlineBudget": 1234, "futureOption": True},
         "npmCommand": ["npm"],
-        "packages": [str(pathlib.Path.home() / "Dev/local/omp/pi-extensions/pi-tree-continue")],
-    }),
-    text=True,
-    capture_output=True,
-    check=True,
-)
-settings = load_json(settings_result.stdout)
-if settings.get("lastChangelogVersion") != "preserve-me" or settings.get("futureState") is not True:
-    raise SystemExit("Pi settings modifier did not preserve mutable state")
-expected_npm_command = ["pnpm", "--config.node-linker=hoisted"]
-if settings.get("npmCommand") != expected_npm_command:
-    raise SystemExit("Pi packages must use pnpm with a hoisted dependency layout")
-if settings.get("defaultTools") != ["+codemode"]:
-    raise SystemExit("Pi codemode must be enabled alongside the default tools")
-if settings.get("codemode") != {
-    "mode": "on", "inlineBudget": 1234, "futureOption": True
-}:
-    raise SystemExit("Pi codemode must preserve unowned options and use on mode")
-for old_settings in ("", settings_result.stdout):
-    result = subprocess.run(
-        [sys.executable, str(settings_modifier)],
-        input=old_settings,
-        text=True,
-        capture_output=True,
-        check=True,
-    )
-    reapplied = load_json(result.stdout)
-    if reapplied.get("npmCommand") != expected_npm_command:
-        raise SystemExit("Pi hoisted dependency layout is not preserved on apply")
-    if old_settings:
-        if reapplied != settings:
+        "packages": [str(home / "Dev/local/omp/pi-extensions/pi-tree-continue")],
+    }
+    for old in ("", json.dumps(existing)):
+        settings = modify_settings(script, old)
+        packages = settings.pop("packages")
+        package_sources = {
+            package if isinstance(package, str) else package["source"]
+            for package in packages
+        }
+        expected_packages = common_packages | {notification_package}
+        if package_sources != expected_packages or len(packages) != len(expected_packages):
+            raise SystemExit("unexpected Pi package inventory or notification overlap")
+        expected = dict(expected_defaults)
+        if old:
+            expected.update({
+                "lastChangelogVersion": existing["lastChangelogVersion"],
+                "futureState": existing["futureState"],
+                "codemode": {**existing["codemode"], "mode": "on"},
+            })
+        if settings != expected:
+            raise SystemExit("Pi settings defaults or preserved mutable state changed")
+        settings["packages"] = packages
+        if modify_settings(script, json.dumps(settings)) != settings:
             raise SystemExit("Pi settings modifier is not idempotent")
-    elif reapplied.get("defaultTools") != ["+codemode"] or reapplied.get("codemode") != {"mode": "on"}:
-        raise SystemExit("Pi codemode is not enabled on a fresh machine")
-if settings.get("defaultThinkingLevel") != "high":
-    raise SystemExit("Pi default thinking level is not high")
-if settings.get("defaultProvider") != "openai" or settings.get("defaultModel") != "gpt-6-astra":
-    raise SystemExit("Pi default model is not openai/gpt-6-astra")
-enabled_models = set(settings.get("enabledModels", []))
-enabled_anthropic_models = {
-    model for model in enabled_models if model.startswith("anthropic/")
-}
-if enabled_anthropic_models != {"anthropic/claude-opus-5-5"}:
-    raise SystemExit("unexpected enabled Anthropic model inventory")
-expected_openai_models = {
-    "openai/gpt-5.6-sol",
-    "openai/gpt-6-astra",
-    "openai/gpt-6-luna",
-    "openai/gpt-6.1-sol",
-}
-enabled_openai_models = {
-    model for model in enabled_models if model.startswith("openai/")
-}
-if enabled_openai_models != expected_openai_models:
-    raise SystemExit("unexpected enabled OpenAI model inventory")
-expected_deepseek_models = {
-    "deepseek/deepseek-flash",
-}
-enabled_deepseek_models = {
-    model for model in enabled_models if model.startswith("deepseek/")
-}
-if enabled_deepseek_models != expected_deepseek_models:
-    raise SystemExit("unexpected enabled DeepSeek model inventory")
-if any(model.startswith("openai/deepseek-") for model in enabled_models):
-    raise SystemExit("DeepSeek models remain enabled under the OpenAI provider")
+    return settings
 
 scout_text = (source_dir / "exact_agents/private_scout.md").read_text()
 scout_frontmatter = {
@@ -227,19 +222,6 @@ for name in ("scout", "reviewer", "worker"):
     for section in report_sections[name]:
         if f"**{section}:**" not in text:
             raise SystemExit(f"Pi {name} report is missing {section}")
-
-package_sources = {
-    package if isinstance(package, str) else package["source"]
-    for package in settings["packages"]
-}
-expected_npm_packages = {
-    "npm:@juicesharp/rpiv-ask-user-question@2.12.0",
-    "npm:@oai404iao/pi-telegram-notify@0.6.0",
-    "npm:@oai404iao/pi-codex-minimal-tools@4.1.1",
-    "npm:@oai404iao/pi-subagent@1.0.1",
-}
-if package_sources != expected_npm_packages or len(settings["packages"]) != len(expected_npm_packages):
-    raise SystemExit("unexpected Pi package inventory or unpinned versions")
 
 models = json.loads((source_dir / "private_models.json").read_text())
 providers = models.get("providers", {})
@@ -362,15 +344,112 @@ strictDepBuilds: true
 
     scratch_root = pathlib.Path.home() / ".local/state/agents/tmp"
     scratch_root.mkdir(parents=True, exist_ok=True)
-    scratch = pathlib.Path(tempfile.mkdtemp(prefix="check-pi-builds.", dir=scratch_root))
-    home = scratch / "home"
+    scratch = pathlib.Path(tempfile.mkdtemp(prefix="check-pi.", dir=scratch_root))
+    home = scratch / 'home with "quotes"'
     home.mkdir()
+    fake_bin = scratch / "bin"
+    fake_bin.mkdir()
+    rbw_log = scratch / "rbw-calls"
+    fake_rbw = fake_bin / "rbw"
+    fake_rbw.write_text(
+        '#!/bin/sh\nset -eu\n'
+        'printf "%s\\n" "$*" >> "$PI_TEST_RBW_LOG"\n'
+        'exec "$PI_TEST_RBW_FIXTURE" "$@"\n'
+    )
+    fake_rbw.chmod(0o700)
     fixture_env = {
         **os.environ, "HOME": str(home), "XDG_CONFIG_HOME": str(home / ".config"),
         "XDG_DATA_HOME": str(home / ".local/share"),
         "XDG_STATE_HOME": str(home / ".local/state"),
         "XDG_CACHE_HOME": str(home / ".cache"), "PNPM_HOME": str(home / ".local/share/pnpm"),
+        "PATH": f"{fake_bin}{os.pathsep}{os.environ['PATH']}",
+        "PI_TEST_RBW_LOG": str(rbw_log),
+        "PI_TEST_RBW_FIXTURE": str(repo_dir / "tests/fixtures/pi/bin/rbw"),
     }
+    chezmoi = [
+        "chezmoi", "--config", "/dev/null", "--config-format", "toml",
+        "--source", str(repo_dir), "--destination", str(home),
+        "--persistent-state", str(scratch / "chezmoi-state.boltdb"),
+    ]
+    agent_dir = home / ".config/pi/agent"
+    settings_target = agent_dir / "settings.json"
+    telegram_target = agent_dir / "extensions/pi-telegram-notify/config.json"
+    telegram_target.parent.mkdir(parents=True)
+    telegram_target.write_text('{"preserveDesktopConfig": true}\n')
+    telegram_target.chmod(0o600)
+    local_package = str(home / ".local/share/pi/extensions/pi-local-notify")
+    profile_scripts = {}
+    profile_settings = {}
+    for graphical, niri in ((False, False), (True, True), (True, False)):
+        profile = (graphical, niri)
+        command = [
+            *chezmoi, "--override-data",
+            json.dumps({"graphical": graphical, "niri": niri}),
+        ]
+        rendered = subprocess.run(
+            [*command, "execute-template", "--file", str(settings_modifier)],
+            text=True, capture_output=True, check=True, env=fixture_env,
+        ).stdout
+        profile_scripts[profile] = rendered
+        profile_settings[profile] = check_settings(
+            rendered, local_package if graphical else telegram_package, home
+        )
+        target_path = subprocess.run(
+            [*command, "target-path", str(settings_modifier)],
+            text=True, capture_output=True, check=True, env=fixture_env,
+        ).stdout.strip()
+        if target_path != str(settings_target):
+            raise SystemExit("Pi settings template changed its destination path")
+        inventory = subprocess.run(
+            [*command, "managed", "--include=files", "--exclude=encrypted", str(agent_dir)],
+            text=True, capture_output=True, check=True, env=fixture_env,
+        ).stdout.splitlines()
+        telegram_managed = ".config/pi/agent/extensions/pi-telegram-notify/config.json" in inventory
+        if telegram_managed == graphical or ".config/pi/agent/settings.json" not in inventory:
+            raise SystemExit("Pi profile managed settings/Telegram inventory is incorrect")
+
+    for desktop in ((True, True), (True, False)):
+        headless = (False, False)
+        for before, after in ((headless, desktop), (desktop, headless)):
+            switched = modify_settings(
+                profile_scripts[after], json.dumps(profile_settings[before])
+            )
+            if switched != profile_settings[after]:
+                raise SystemExit("Pi profile switch lost mutable state or retained the old notifier")
+
+    # Apply only isolated fixtures; desktop rendering must not ask even the fake vault.
+    settings_target.write_text(json.dumps(profile_settings[(False, False)]))
+    for graphical, niri in ((True, True), (False, False), (True, False), (False, False)):
+        old_telegram = telegram_target.read_bytes()
+        rbw_log.write_text("")
+        command = [
+            *chezmoi, "--override-data",
+            json.dumps({"graphical": graphical, "niri": niri}),
+        ]
+        subprocess.run(
+            [*command, "apply", "--force", "--exclude=scripts,encrypted",
+             str(settings_target), str(agent_dir / "extensions")],
+            text=True, capture_output=True, check=True, env=fixture_env,
+        )
+        if load_json(settings_target.read_text()) != profile_settings[(graphical, niri)]:
+            raise SystemExit("Pi applied settings do not match the selected profile")
+        if settings_target.stat().st_mode & 0o777 != 0o600:
+            raise SystemExit("Pi settings target must remain mode 0600")
+        if graphical:
+            if rbw_log.read_text() or telegram_target.read_bytes() != old_telegram:
+                raise SystemExit("Desktop Pi apply accessed rbw or changed the ignored Telegram target")
+        else:
+            if not rbw_log.read_text():
+                raise SystemExit("Headless Pi apply did not render Telegram credentials")
+            telegram = load_json(telegram_target.read_text())
+            if telegram.get("$schema") != "https://unpkg.com/@oai404iao/pi-telegram-notify@0.6.0/config.schema.json":
+                raise SystemExit("Telegram schema version does not match the pinned package")
+            if telegram["botToken"] != "123456:test-token" or telegram["chatId"] != "-123456789":
+                raise SystemExit("Telegram template did not use the fake rbw values")
+        if telegram_target.stat().st_mode & 0o777 != 0o600:
+            raise SystemExit("Pi Telegram target must remain mode 0600")
+    print("Pi notification profiles and isolated apply checks passed")
+
     policy_dir = home / ".config/pi/agent/npm"
     policy_dir.mkdir(parents=True)
     (policy_dir / "pnpm-workspace.yaml").write_text(fresh_policy.stdout)
@@ -511,24 +590,8 @@ strictDepBuilds: true
                         f"{model_id} Codex tool profile is incomplete"
                     )
 
-    fake_env = os.environ.copy()
-    fake_bin = repo_dir / "tests/fixtures/pi/bin"
-    fake_env["PATH"] = f"{fake_bin}{os.pathsep}{fake_env['PATH']}"
-    result = subprocess.run(
-        [
-            *execute_template,
-            str(source_dir / "extensions/pi-telegram-notify/private_config.json.tmpl"),
-        ],
-        text=True,
-        capture_output=True,
-        check=True,
-        env=fake_env,
-    )
-    telegram = load_json(result.stdout)
-    if telegram.get("$schema") != "https://unpkg.com/@oai404iao/pi-telegram-notify@0.6.0/config.schema.json":
-        raise SystemExit("Telegram schema version does not match the pinned package")
-    if telegram["botToken"] != "123456:test-token" or telegram["chatId"] != "-123456789":
-        raise SystemExit("Telegram template did not use the fake rbw values")
+else:
+    print("Pi settings/profile and other template checks skipped: chezmoi unavailable")
 PY
 
 printf '%s\n' "Pi configs passed"

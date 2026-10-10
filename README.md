@@ -45,7 +45,9 @@ credentials and mutable application state out of Git.
   management share the desktop style while preserving input schemes and app state.
 - LazyVim configuration includes a lockfile reconstructed from verified local
   plugin checkouts.
-- Pi model and Telegram credentials come from Bitwarden through `rbw`.
+- Pi uses local Kitty notifications on graphical machines and Telegram on
+  headless machines. Model and headless Telegram credentials come from
+  Bitwarden through `rbw`. See [notification profiles](docs/pi.md#notifications-by-machine-profile).
   A modifier manages three exact-version build approvals in Pi's
   `npm/pnpm-workspace.yaml`; all other npm installation state stays ignored.
 - Pi codemode is enabled alongside direct tools (`on`, not `only`); see
@@ -247,8 +249,8 @@ The private age identity must never enter Git.
 The Pi setup also expects these Bitwarden items:
 
 - `pi spiredive api key`
-- `pi telegram bot token`
-- `pi telegram chat id`
+- `pi telegram bot token` (headless machines only)
+- `pi telegram chat id` (headless machines only)
 
 SSH client machines expect the native Bitwarden SSH key set described in
 [docs/ssh.md](docs/ssh.md). Use rbw's default one-hour inactivity timeout.
@@ -262,7 +264,10 @@ rbw config unset lock_timeout
 
 Install the selected shell, desktop, Neovim, and Pi dependencies appropriate
 for the machine. The pinned Pi extensions require Pi 0.99.1 or newer and
-Node.js 22.19 or newer; no local extension checkout is required.
+Node.js 22.19 or newer. Graphical machines also need
+`~/.local/share/pi/extensions/pi-local-notify` linked to the trusted local plugin
+source; see [local plugin setup](docs/pi.md#notifications-by-machine-profile).
+Headless machines need no local extension checkout.
 After upgrading the Pi host, fully restart it; `/reload` cannot update its SDK.
 See [subagent startup troubleshooting](docs/pi.md#createcodemodeextension-is-not-a-function)
 if `spawn_agent` reports a missing `createCodemodeExtension`.
@@ -291,18 +296,21 @@ chezmoi status --skip-secrets --exclude=encrypted
 chezmoi diff --skip-secrets --exclude=encrypted
 chezmoi apply --interactive --skip-secrets --exclude=encrypted
 
-rbw unlock
-chezmoi apply \
-  "$HOME/.config/pi/agent/extensions/pi-telegram-notify/config.json"
-
 CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh
 chezmoi apply "$HOME/.gitconfig" "$HOME/.config/git"
 chezmoi apply "$HOME/.ssh"
 ```
 
-The first apply excludes secret templates; the targeted command after
-`rbw unlock` renders the private Telegram configuration without showing it in
-a diff. The remaining commands validate and apply age-encrypted Git and SSH
+The first apply excludes secret templates. On headless machines only, render
+the private Telegram configuration without displaying a diff:
+
+```sh
+rbw unlock
+chezmoi apply \
+  "$HOME/.config/pi/agent/extensions/pi-telegram-notify/config.json"
+```
+
+The remaining commands above validate and apply age-encrypted Git and SSH
 metadata separately; omit the SSH apply on a profile where both SSH
 capabilities are disabled.
 
