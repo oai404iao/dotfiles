@@ -50,7 +50,9 @@
 - [Agent 派工说明](docs/pi.md#agent-delegation-guidance) 要求明确任务范围：
   scout/reviewer 负责只读检查，worker 使用继承的工具策略执行子任务，
   并报告改动、实际验证和未完成项。
-- 全局 agent 指令首先支持 Pi；临时文件按任务存放于
+- [全局 Pi 指令](docs/pi.md#global-agent-instructions) 在
+  `my_skills/prompts/pi-global-agents.md` 维护，chezmoi 从 `main` 获取，
+  缓存周期为 24 小时；临时文件按任务存放于
   `~/.local/state/agents/tmp/`，用后保留，避免使用 `/tmp`。
 - [全局 skills](docs/skills.md) 通过清单和手动 `pnpm dlx skills` 脚本安装；
   `~/.agents/skills/` 下的下载内容不纳入本仓库。

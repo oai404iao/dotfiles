@@ -5,6 +5,7 @@ repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 source_dir="$repo_dir/dot_config/private_pi/agent"
 
 python3 - "$source_dir" <<'PY'
+import http.server
 import json
 import os
 import pathlib
@@ -12,12 +13,13 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
+import tomllib
 
 source_dir = pathlib.Path(sys.argv[1])
 repo_dir = source_dir.parents[2]
 
 expected = {
-    "private_AGENTS.md",
     "modify_private_settings.json.tmpl",
     "npm/modify_private_pnpm-workspace.yaml",
     "private_models.json",
@@ -70,31 +72,16 @@ if not expected_ignored <= ignore_lines:
 if ".config/pi/agent/npm/" in ignore_lines:
     raise SystemExit("Pi pnpm build policy is hidden by a directory-wide ignore")
 
-instructions = (source_dir / "private_AGENTS.md").read_text()
-for required in (
-    "## Coding principles",
-    "## Agent delegation",
-    'fork_turns:"none"',
-    "`followup_task`",
-    "Agents share the working tree.",
-    "## Tool selection",
-    "uv run python",
-    "uv run --with <package> python ...",
-    "--no-project",
-    "pnpm dlx <package>",
-    "pnpm exec <command>",
-    "Honor explicit\n  project requirements and canonical scripts;",
-    "Avoid `/tmp`, `/var/tmp`, and bare `mktemp`",
-    '$HOME/.local/state/agents/tmp',
-    'mktemp -d "$scratch_root/task-name.XXXXXXXX"',
-    "umask 077",
-    "Leave task directories and their contents in place after use.",
-    "Do not store credentials in retained scratch files.",
-):
-    if required not in instructions:
-        raise SystemExit(f"missing global agent rule: {required}")
-scratch_example = instructions.split("```sh\n", 1)[1].split("```", 1)[0]
-subprocess.run(["sh", "-n"], input=scratch_example, text=True, check=True)
+external_path = ".config/pi/agent/AGENTS.md"
+external_source = (repo_dir / ".chezmoiexternal.toml").read_text()
+external = tomllib.loads(external_source).get(external_path)
+if external != {
+    "type": "file",
+    "url": "https://raw.githubusercontent.com/oai404iao/my_skills/main/prompts/pi-global-agents.md",
+    "private": True,
+    "refreshPeriod": "24h",
+}:
+    raise SystemExit("Pi global instructions external contract changed unexpectedly")
 
 
 def unique_object(pairs):
@@ -366,6 +353,88 @@ strictDepBuilds: true
         "PI_TEST_RBW_LOG": str(rbw_log),
         "PI_TEST_RBW_FIXTURE": str(repo_dir / "tests/fixtures/pi/bin/rbw"),
     }
+    external_fixture = scratch / "external-source"
+    external_fixture.mkdir()
+    external_payload = scratch / "global-instructions.md"
+    external_target = home / external_path
+    external_target.parent.mkdir(parents=True)
+
+    def write_external_fixture(url):
+        (external_fixture / ".chezmoiexternal.toml").write_text(
+            f"[{json.dumps(external_path)}]\n"
+            f"type = {json.dumps(external['type'])}\n"
+            f"url = {json.dumps(url)}\n"
+            f"private = {str(external['private']).lower()}\n"
+            f"refreshPeriod = {json.dumps(external['refreshPeriod'])}\n"
+        )
+
+    write_external_fixture(external_payload.as_uri())
+    external_command = [
+        "chezmoi", "--config", "/dev/null", "--config-format", "toml",
+        "--source", str(external_fixture), "--destination", str(home),
+        "--persistent-state", str(scratch / "external-state.boltdb"),
+        "--cache", str(scratch / "external-cache"),
+    ]
+
+    def apply_external(refresh, expected_contents):
+        subprocess.run(
+            [*external_command, f"--refresh-externals={refresh}",
+             "apply", "--force", str(external_target)],
+            text=True, capture_output=True, check=True, env=fixture_env,
+        )
+        if external_target.read_text() != expected_contents:
+            raise SystemExit("Pi external instructions deployment, cache, or refresh failed")
+        if external_target.stat().st_mode & 0o777 != 0o600:
+            raise SystemExit("Pi external instructions must remain mode 0600")
+
+    for revision, refresh in (("one", "auto"), ("two", "always")):
+        contents = f"Synthetic global instructions, revision {revision}.\n"
+        external_payload.write_text(contents)
+        apply_external(refresh, contents)
+    external_inventory = subprocess.run(
+        [*external_command, "managed", "--include=files"],
+        text=True, capture_output=True, check=True, env=fixture_env,
+    ).stdout.splitlines()
+    if external_inventory != [external_path]:
+        raise SystemExit("Pi external instructions changed their destination path")
+
+    # file:// bypasses chezmoi's cache; loopback HTTP tests reviewed cached deployment.
+    class ExternalHandler(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            payload = external_payload.read_bytes()
+            self.send_response(200)
+            self.send_header("Content-Length", str(len(payload)))
+            self.end_headers()
+            self.wfile.write(payload)
+
+        def log_message(self, format, *args):
+            pass
+
+    with http.server.ThreadingHTTPServer(("127.0.0.1", 0), ExternalHandler) as server:
+        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
+        server_thread.start()
+        try:
+            write_external_fixture(f"http://127.0.0.1:{server.server_port}/instructions.md")
+            reviewed = "Synthetic reviewed instructions.\n"
+            external_payload.write_text(reviewed)
+            reviewed_diff = subprocess.run(
+                [*external_command, "--refresh-externals=always",
+                 "diff", str(external_target)],
+                text=True, capture_output=True, check=True, env=fixture_env,
+            ).stdout
+            if reviewed.strip() not in reviewed_diff:
+                raise SystemExit("Pi external diff did not review the refreshed instructions")
+            changed = "Synthetic instructions changed after review.\n"
+            external_payload.write_text(changed)
+            apply_external("never", reviewed)
+            apply_external("always", changed)
+        finally:
+            server.shutdown()
+            server_thread.join()
+    if rbw_log.exists():
+        raise SystemExit("Pi external instructions unexpectedly accessed rbw")
+    print("Pi global instructions offline external deployment and refresh checks passed")
+
     chezmoi = [
         "chezmoi", "--config", "/dev/null", "--config-format", "toml",
         "--source", str(repo_dir), "--destination", str(home),
@@ -401,7 +470,7 @@ strictDepBuilds: true
         if target_path != str(settings_target):
             raise SystemExit("Pi settings template changed its destination path")
         inventory = subprocess.run(
-            [*command, "managed", "--include=files", "--exclude=encrypted", str(agent_dir)],
+            [*command, "managed", "--include=files", "--exclude=encrypted,externals", str(agent_dir)],
             text=True, capture_output=True, check=True, env=fixture_env,
         ).stdout.splitlines()
         telegram_managed = ".config/pi/agent/extensions/pi-telegram-notify/config.json" in inventory
@@ -427,7 +496,7 @@ strictDepBuilds: true
             json.dumps({"graphical": graphical, "niri": niri}),
         ]
         subprocess.run(
-            [*command, "apply", "--force", "--exclude=scripts,encrypted",
+            [*command, "apply", "--force", "--exclude=scripts,encrypted,externals",
              str(settings_target), str(agent_dir / "extensions")],
             text=True, capture_output=True, check=True, env=fixture_env,
         )
@@ -475,7 +544,7 @@ strictDepBuilds: true
          "--source", str(repo_dir), "--destination", str(home),
          "--persistent-state", str(scratch / "chezmoi-state.boltdb"),
          "--override-data", '{"graphical":false,"niri":false}',
-         "managed", "--include=files", "--exclude=encrypted", str(policy_dir)],
+         "managed", "--include=files", "--exclude=encrypted,externals", str(policy_dir)],
         text=True, capture_output=True, check=True, env=fixture_env,
     )
     if inventory.stdout.splitlines() != [".config/pi/agent/npm/pnpm-workspace.yaml"]:

@@ -285,8 +285,10 @@ lock state unmanaged; do not duplicate skills under Pi's config directory.
 Run `tests/check-skills.sh` for manifest/installer changes.
 
 The root `AGENTS.md` is repository guidance, not the installed global Pi
-instructions. For the latter, edit
-`dot_config/private_pi/agent/private_AGENTS.md` and follow `docs/pi.md`.
+instructions. For the latter, edit `prompts/pi-global-agents.md` in `my_skills`
+and publish it to that repository's `main`. `.chezmoiexternal.toml` fetches it
+with a 24-hour cache; do not add a second local source file. Follow
+`docs/pi.md#global-agent-instructions` for reviewed refresh and deployment.
 
 ### Git Identities
 

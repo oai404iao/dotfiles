@@ -58,8 +58,10 @@ credentials and mutable application state out of Git.
 - [Agent delegation guidance](docs/pi.md#agent-delegation-guidance) defines
   scoped assignments: scout/reviewer inspect read-only, while worker executes
   subtasks with the inherited tool policy and reports changes, verification, and gaps.
-- Global agent instructions are managed for Pi first, with retained per-task
-  scratch directories under `~/.local/state/agents/tmp/` instead of `/tmp`.
+- [Global Pi instructions](docs/pi.md#global-agent-instructions) are maintained
+  in `my_skills/prompts/pi-global-agents.md`; chezmoi fetches `main` with a
+  24-hour cache. Per-task scratch directories remain under
+  `~/.local/state/agents/tmp/` instead of `/tmp`.
 - [Global skills](docs/skills.md) use a manifest and manual `pnpm dlx skills` installer;
   downloaded contents under `~/.agents/skills/` stay outside this repository.
 - OpenSSH uses age-encrypted public selectors and host metadata while

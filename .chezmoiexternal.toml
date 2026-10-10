@@ -1,0 +1,5 @@
+[".config/pi/agent/AGENTS.md"]
+    type = "file"
+    url = "https://raw.githubusercontent.com/oai404iao/my_skills/main/prompts/pi-global-agents.md"
+    private = true
+    refreshPeriod = "24h"

@@ -10,7 +10,7 @@ Pi uses XDG paths configured by the shared shell profile:
 chezmoi owns the declarative files required to reproduce the current Pi setup:
 
 - global settings and package declarations
-- global agent instructions (`AGENTS.md`)
+- global agent instructions (`AGENTS.md`, fetched from `my_skills/main`)
 - custom providers and models
 - key bindings
 - user-maintained subagent definitions and configuration
@@ -370,12 +370,24 @@ project's plain-name `defaultTools` list can also replace the user selection.
 
 ## Global agent instructions
 
-`dot_config/private_pi/agent/private_AGENTS.md` is the source of truth for
-`~/.config/pi/agent/AGENTS.md` (mode `0600`). Pi loads it from
+[`my_skills/prompts/pi-global-agents.md`](https://github.com/oai404iao/my_skills/blob/main/prompts/pi-global-agents.md)
+is the sole source of truth for `~/.config/pi/agent/AGENTS.md` (mode `0600`).
+Edit it in the `my_skills` checkout, not this repository or the installed copy.
+The root `.chezmoiexternal.toml` downloads that single file from remote `main`;
+there is no second local source file or dependency on a checkout path.
+Pi loads the installed file from
 `PI_CODING_AGENT_DIR` alongside project context files; it does not replace
 repository-specific `AGENTS.md` files. Support currently targets Pi only.
 A local `AGENTS.override.md` in the same directory takes precedence; review
 any such override if the managed rules do not appear.
+
+The external uses a 24-hour cache. This is not a background timer: chezmoi
+refreshes when an operation needs the external and its cache is due, or when
+explicitly requested. Local edits must be published to `my_skills/main` first.
+Following `main` deliberately trades reproducible pins for convenient updates;
+review the fetched instructions before applying them. The first fetch and
+later refreshes need network access. See the
+[chezmoi external reference](https://www.chezmoi.io/reference/special-files/chezmoiexternal-format/).
 
 The instructions prefer `uv` for Python (including one-off dependencies) and
 `pnpm` / `pnpm dlx` over `npm` / `npx`, while preserving explicit project
@@ -402,9 +414,18 @@ To deploy only these instructions, privately back up any existing target first,
 review the explicit target, then apply:
 
 ```sh
-chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/AGENTS.md
-chezmoi apply ~/.config/pi/agent/AGENTS.md
+chezmoi diff --refresh-externals=always --skip-secrets --exclude=scripts,encrypted \
+  ~/.config/pi/agent/AGENTS.md
+chezmoi apply --refresh-externals=never --exclude=scripts,encrypted \
+  ~/.config/pi/agent/AGENTS.md
 ```
+
+The apply uses the reviewed cache instead of fetching a newer `main` between
+review and deployment. Do not refresh that cache concurrently. For a new
+machine or a migration, publish the upstream file before deploying the external
+declaration. `tests/check-pi.sh` checks the declaration and isolated deployment
+with synthetic file and loopback HTTP fixtures, including the reviewed-cache
+workflow; it neither downloads nor validates the live upstream instructions.
 
 Use `/reload` or start a new Pi session to load the updated context file.
 
