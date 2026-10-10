@@ -69,7 +69,7 @@ assert declared["sources"] == [
     {"source": "shadcn/ui", "skills": ["shadcn"]},
     {
         "source": "oai404iao/my_skills",
-        "skills": ["agents-md", "frontend-design", "git-branch-development-workflow"],
+        "skills": ["agents-md", "frontend-design", "development-workflow"],
     },
 ]
 
