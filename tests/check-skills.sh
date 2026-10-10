@@ -74,7 +74,6 @@ assert declared["sources"] == [
     {
         "source": "tavily-ai/skills",
         "skills": [
-            "tavily-cli",
             "tavily-search",
             "tavily-extract",
             "tavily-map",
