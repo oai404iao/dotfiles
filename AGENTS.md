@@ -25,18 +25,24 @@ Treat the repository as public and respect the ownership boundaries below.
 |   |-- bash/ and zsh/       # Shell-specific interactive configuration
 |   |-- git/                 # Path-specific identities and global ignores
 |   |-- nvim/                # LazyVim bootstrap and locked plugin revisions
-|   |-- niri/                # Modular Niri config and output-profile template
+|   |-- niri/                # Modular Niri config and custom/DMS profile adapters
+|   |-- DankMaterialShell/   # Merged settings and maintained lyrics plugin
 |   |-- waybar/              # Bar config and guarded helper scripts
 |   |-- kitty/, fuzzel/      # Terminal and launcher configuration
 |   |-- mako/, matugen/      # Notifications and generated theme templates
 |   |-- waypaper/            # Wallpaper state bootstrap and theme hook
+|   |-- private_tether/      # Optional merged Bluetooth notification policy
 |   `-- private_pi/agent/    # Private-mode declarative Pi configuration
 |-- dot_local/bin/
+|   |-- executable_dms-with-lyrics # Version-matched DMS overlay launcher
 |   `-- executable_rm        # Optional recoverable recursive-removal wrapper
+|-- .chezmoitemplates/       # Shared Niri output and binding templates
+|-- run_after_check-dms-lyrics.sh.tmpl
+|                            # Reminder-only DMS dependency/preparation check
 |-- run_once_before_disable-swayidle-service.sh.tmpl
 |                            # Transfers swayidle ownership to Niri once
-|-- scripts/                 # Source-only age identity backup/restore helpers
-|-- tests/                   # Source, Niri, SSH, safe-rm, and Pi checks
+|-- scripts/                 # Age helpers, skills installer, and DMS overlay sources
+|-- tests/                   # Offline source, rendering, and helper checks
 `-- docs/                    # Configuration and publication operating notes
 ```
 
@@ -69,7 +75,9 @@ Root `dot_*` files map to home-directory files such as `~/.zshenv` and
 - Preserve lockfiles unless the task explicitly updates dependencies. In
   particular, do not regenerate `dot_config/nvim/lazy-lock.json` incidentally.
 - Pi npm declarations in `modify_private_settings.json.tmpl` are pinned and
-  require Pi 0.99.1 or newer. Graphical profiles load local notifications through
+  require Pi 0.99.1 or newer and Node.js 22.19 or newer. Fully restart Pi after
+  upgrading its host; `/reload` does not update the running SDK.
+  Graphical profiles load local notifications through
   `~/.local/share/pi/extensions/pi-local-notify`; its source symlink is
   machine-local and ignored. Headless profiles use Telegram.
 - Use a focused development branch and Conventional Commits. Do not mix
@@ -97,9 +105,9 @@ checking the resulting target path and mode with `chezmoi target-path` and
 `chezmoi status`.
 
 Machine-local data comes from `.chezmoi.toml.tmpl`. Conditional deployment is
-implemented in `.chezmoiignore`; currently `graphical`, `niri`,
-`niriOutputProfile`, and `safeRm` materially affect rendered targets. Prefer
-capability flags over hostname checks.
+implemented in `.chezmoiignore`. Deployment and rendering depend on `graphical`,
+`niri`, `desktopShell`, `tether`, `tetherMode`, `niriOutputProfile`, `sshAgent`,
+`sshInboundIdentity`, and `safeRm`. Prefer capability flags over hostname checks.
 
 ## Build, Test & Development Commands
 
@@ -114,6 +122,12 @@ capability flags over hostname checks.
 ./tests/check-git.sh
 ./tests/check-ssh.sh
 ./tests/check-public.sh
+./tests/check-shell.sh
+./tests/check-rbw.sh
+./tests/check-skills.sh
+./tests/check-desktop-profiles.sh
+./tests/check-tether.sh
+./tests/check-keyring.sh
 CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh
 
 # Patch hygiene
@@ -130,10 +144,12 @@ chezmoi diff --skip-secrets --exclude=encrypted <target>
 chezmoi apply <target>
 ```
 
-`check-source.sh` always checks shell syntax, Git config parsing, all
-locally reachable public history plus pending files, SSH, safe-rm, and Pi
-configuration. Neovim checks run when `nvim` is installed; Niri rendering and
-validation run when both `chezmoi` and `niri` are installed.
+`check-source.sh` invokes shell syntax/environment, rbw, Git, public-history,
+SSH, safe-rm, Pi, skills, desktop applications/profiles, Tether, DMS lyrics/media
+overlay, and keyring checks. Public checks cover all locally reachable history
+plus pending files. Neovim checks run when `nvim` is installed; Niri rendering
+and validation run when both `chezmoi` and `niri` are installed. Some desktop
+render/runtime checks skip when their tools are unavailable; report those skips.
 
 `check-safe-rm.sh` creates marked temporary directories, runs deterministic
 fake-command failure checks plus real GIO Trash operations with isolated
@@ -168,7 +184,8 @@ Git source state
   files that genuinely need versioning; never commit the identity.
 - **Per-machine state:** legacy SSH migration copies, GPG private keys, SSH
   host trust, Pi auth/trust/session data, editor state, caches, logs, and
-  downloaded packages.
+  downloaded packages/skills, Tether pairing data, and desktop keyring databases
+  and backups.
 
 ## Core Patterns
 
@@ -180,6 +197,12 @@ public environment. Do not move
 shell-specific completion, options, bindings, or prompts into the shared
 profile, and do not retrieve secrets during shell startup.
 
+`dot_config/shell/toolchains.sh` owns shared XDG/toolchain paths. pnpm is
+system-package-managed; its user Node.js runtime and global npm tools live
+under `PNPM_HOME`. Do not restore nvm startup loaders; `.chezmoiremove` retires
+the old loaders without uninstalling their runtime or packages. See `README.md`
+for migration, and run `tests/check-shell.sh` for shell environment changes.
+
 ### Generated Desktop State
 
 Matugen color outputs and Waypaper state use `create_` files so a fresh machine
@@ -189,10 +212,40 @@ targets to ordinary overwrite-managed files without an explicit requirement.
 
 ### Niri Profiles
 
-`dot_config/niri/config.kdl` includes ordered `conf.d` modules.
-`20-outputs.kdl.tmpl` is the source of truth for named output profiles. Unknown
-hardware should use `auto`. When adding a profile, update both the choice list
-in `.chezmoi.toml.tmpl` and the output template, then run `check-niri.sh`.
+`dot_config/niri/config.kdl.tmpl` selects the include graph for `desktopShell`
+(`custom` or `dms`; missing values retain `custom`). Shared output and binding
+definitions live in `.chezmoitemplates/niri-{outputs,binds}.kdl`; the profile
+files are adapters. Unknown hardware should use `niriOutputProfile = "auto"`.
+When adding an output profile, update the choice list in `.chezmoi.toml.tmpl`
+and the shared output template, then run `tests/check-niri.sh` and
+`tests/check-desktop-profiles.sh`.
+
+In DMS mode, `dot_config/niri/dms/create_empty_*` fragments are seeds only:
+DMS owns subsequent edits, including empty files. Preserve `create_empty_`
+so Niri's included files are not deleted when empty. DMS starts through
+`dms-with-lyrics`; do not also enable `dms.service`. Custom-only files become
+ignored, not deleted. Before switching an existing machine, follow
+`docs/desktop-shells.md#switch-an-existing-machine` for retained services,
+settings, and palettes. The DMS apply hook only emits preparation reminders;
+it does not install dependencies, prepare the overlay, or restart services.
+
+### Tether and Desktop Keyring
+
+- Tether is opt-in for graphical Niri/DMS profiles. `tetherMode` defaults to
+  `notifications`; `wifi-clipboard` deliberately grants host network and
+  clipboard access. Keep both service drop-ins managed across mode switches,
+  preserve local device/runtime fields in the Bluetooth modifier, and read
+  `docs/tether.md` before changing policy or performing live setup.
+- Verify the intended Tether service is active before using its CLI/GUI:
+  clients can otherwise auto-start an unsandboxed daemon. Changing capabilities
+  only ignores targets; it does not stop an enabled service. Disable the service
+  explicitly before retiring the profile.
+- Desktop keyring activation uses the two managed user D-Bus overrides under
+  `dot_local/share/dbus-1/services/` and the packaged GNOME Keyring unit/socket.
+  Do not add daemon startup commands to Niri or shells, change `SSH_AUTH_SOCK`,
+  restart the session bus, or delete keyrings to repair activation. PAM,
+  service enablement, and keyring migration are manual work described in
+  `docs/desktop.md#desktop-keyring`; databases/backups remain unmanaged.
 
 ### Pi Configuration
 
@@ -201,8 +254,17 @@ in `.chezmoi.toml.tmpl` and the output template, then run `check-niri.sh`.
   `graphical` selects local notifications or Telegram at apply time; graphical
   profiles ignore the Telegram config directory without deleting existing files.
 - `private_models.json` omits API credentials. The ignored local `auth.json`
-  stores an `rbw` command reference for the shared model key so Pi caches it
+  stores the shared `rbw` command reference for `deepseek`, `openai`, and `xai`;
+  `anthropic` uses a separate Krill credential. Pi caches resolved auth commands
   for its process lifetime. Never put a literal key in managed model config.
+- Keep Pi's `npmCommand` hoisted pnpm layout; it addresses extension import
+  resolution and is not a global project policy. Applying settings does not
+  rebuild existing installs. Follow `docs/pi.md#pi-package-layout-migration`
+  without discarding or regenerating the machine-local lockfile.
+- `npm/modify_private_pnpm-workspace.yaml` is the sole managed npm-state
+  exception: it merges exact reviewed build approvals while preserving unrelated
+  settings. Other npm manifests, lockfiles, and packages remain local.
+  Dependency rebuilds execute package code and are not offline checks or hooks.
 - Telegram config is rendered from `rbw` because the extension does not support
   command interpolation. The destination contains plaintext credentials and
   must remain mode `0600`.
@@ -210,6 +272,21 @@ in `.chezmoi.toml.tmpl` and the output template, then run `check-niri.sh`.
 - `tests/check-pi.sh` uses an exact managed-file inventory. Update that
   inventory intentionally whenever a Pi source file is added or removed.
 - Disabled Pi packages and their configuration are not managed.
+
+### Global Skills
+
+`scripts/skills.json` and `scripts/install-skills.py` own installation intent,
+not downloaded skill content. Read `docs/skills.md` when changing selections;
+use `python3 scripts/install-skills.py --dry-run` for offline validation.
+Real installation is an explicit network operation that can replace local
+edits; back them up first. Chezmoi apply never installs skills, and removing
+a manifest entry does not uninstall anything. Keep `~/.agents/skills/` and CLI
+lock state unmanaged; do not duplicate skills under Pi's config directory.
+Run `tests/check-skills.sh` for manifest/installer changes.
+
+The root `AGENTS.md` is repository guidance, not the installed global Pi
+instructions. For the latter, edit
+`dot_config/private_pi/agent/private_AGENTS.md` and follow `docs/pi.md`.
 
 ### Git Identities
 
@@ -400,6 +477,9 @@ not replace trusted commit review.
 | Conditional and state exclusions | `.chezmoiignore` |
 | Full validation entry point | `tests/check-source.sh` |
 | Desktop ownership and dependencies | `docs/desktop.md` |
+| Custom/DMS ownership and switching | `docs/desktop-shells.md` |
+| Tether modes, isolation, and manual setup | `docs/tether.md` |
+| Global skills ownership and installation | `docs/skills.md`, `scripts/skills.json` |
 | Recursive-removal contract | `docs/deletion-safety.md` |
 | Pi ownership and credential flow | `docs/pi.md` |
 | Pi settings source of truth | `dot_config/private_pi/agent/modify_private_settings.json.tmpl` |
@@ -408,7 +488,7 @@ not replace trusted commit review.
 | Encrypted SSH inventory | `private_dot_ssh/` |
 | SSH rendering assertions | `tests/check-ssh.sh` |
 | Publication gates | `docs/publication.md`, `tests/check-public.sh` |
-| Niri output profiles | `dot_config/niri/conf.d/20-outputs.kdl.tmpl` |
+| Niri shared outputs and bindings | `.chezmoitemplates/niri-outputs.kdl`, `.chezmoitemplates/niri-binds.kdl` |
 | Optional safe recursive removal (`safeRm`) | `dot_local/bin/executable_rm` |
 | Age identity helpers | `scripts/backup-age-identity.sh`, `scripts/restore-age-identity.sh` |
 
