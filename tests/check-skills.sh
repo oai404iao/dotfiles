@@ -71,17 +71,6 @@ assert declared["sources"] == [
         "source": "oai404iao/my_skills",
         "skills": ["agents-md", "frontend-design", "git-branch-development-workflow"],
     },
-    {
-        "source": "tavily-ai/skills",
-        "skills": [
-            "tavily-search",
-            "tavily-extract",
-            "tavily-map",
-            "tavily-crawl",
-            "tavily-research",
-            "tavily-dynamic-search",
-        ],
-    },
 ]
 
 write_manifest([source, second])
@@ -152,6 +141,8 @@ assert sentinel.read_text() == "preserve existing content"
 assert env["TMPDIR"] == str(task) and env["DISABLE_TELEMETRY"] == "0"
 
 ignore_lines = set((repo / ".chezmoiignore").read_text().splitlines())
+assert ".tavily/" in ignore_lines
+assert not (repo / "private_dot_tavily/private_config.json.tmpl").exists()
 assert {
     ".agents/skills/", ".agents/.skill-lock.json",
     ".local/state/skills/.skill-lock.json", "scripts/", "tests/", "docs/",

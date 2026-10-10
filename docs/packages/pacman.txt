@@ -32,10 +32,10 @@ bash-completion        # Optional Bash completion, sourced if present.
 # not dependencies that chezmoi installs as Arch packages.
 
 # Pi / agent tooling (independent of graphical and server roles).
-uv                     # Tavily CLI via uv tool; also custom Waybar longshot.
+uv                     # Agent Python tooling and custom Waybar longshot.
 # pnpm 12 is supplied by AUR pnpm-bin in aur.txt; Node 24 and npm/npx 12.1.0
 # are user-managed through pnpm, not tracked here as Arch packages.
-# Pi npm extensions and the uv-installed Tavily CLI are managed separately.
+# Pi npm extensions are managed separately.
 
 # Graphical/Niri: common to desktopShell=dms and desktopShell=custom.
 niri                   # Compositor and managed keybindings.
