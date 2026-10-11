@@ -278,15 +278,20 @@ chezmoi apply --exclude=scripts,encrypted \
 
 The helper and updated Niri startup entry take effect on the next login.
 To switch immediately, first save work and ensure the session is unlocked;
-`dms kill` briefly removes the shell, then launch its replacement:
+stop the old supervisor with `dms kill`, then launch its replacement through
+Niri (the shell briefly disappears):
 
 ```sh
 dms kill
-~/.local/bin/dms-with-lyrics run -d
+niri msg action spawn -- "$HOME/.local/bin/dms-with-lyrics" run
 ```
 
-Run the replacement with the desktop session's locale, not the English
-interactive-shell locale, to preserve the UI language and date/time format.
+Niri launches asynchronously with the desktop session's environment rather
+than the English interactive-shell locale, preserving the desktop UI language
+and date/time defaults. It does not preserve the caller's working directory.
+This also replaces a supervisor previously launched with the shell's English
+environment; `dms restart` alone cannot clear that contamination. A fresh
+login is required if Niri itself still has the old locale environment.
 
 The supervisor receives `DMS_SHELL_DIR`, so subsequent `dms restart` retains
 the prepared tree and `dms ipc` still reaches the current instance. Do not
@@ -300,10 +305,16 @@ supervisor retains its old environment. Re-review/rebase the overlay and
 hashes before preparing for a new DMS version. Stock DMS remains usable after
 fallback, but displaying these integrated lyrics requires the custom overlay.
 
-To return to stock immediately, run `dms kill`, then
-`env -u DMS_SHELL_DIR /usr/bin/dms run -d`. To make that permanent, restore the
-Niri startup source to `spawn-at-startup "dms" "run"` and apply that explicit
-target. Neither rollback requires deleting the prepared trees.
+To return to stock immediately:
+
+```sh
+dms kill
+niri msg action spawn -- /usr/bin/env -u DMS_SHELL_DIR /usr/bin/dms run
+```
+
+To make that permanent, restore the Niri startup source to
+`spawn-at-startup "dms" "run"` and apply that explicit target. Neither rollback
+requires deleting the prepared trees or moving startup to `dms.service`.
 
 ### Idle and lock defaults
 

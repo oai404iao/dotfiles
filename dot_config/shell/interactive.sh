@@ -8,6 +8,11 @@ LANGUAGE="en_US:en"
 export LANG
 export LANGUAGE
 
+# Let Niri launch GUI apps with the desktop environment, not this shell's.
+gui() {
+    niri msg action spawn -- "$@"
+}
+
 if GPG_TTY=$(tty 2>/dev/null); then
     export GPG_TTY
 else

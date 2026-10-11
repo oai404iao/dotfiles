@@ -17,8 +17,11 @@ credentials and mutable application state out of Git.
   DSH keeps everything under this single root; its contents stay unmanaged.
   Existing `~/.dsh` data is not migrated automatically. Set overrides in the
   launch environment, not in DSH `.env` files.
-- User sessions use Simplified Chinese while interactive shells use a complete
-  English locale.
+- Login, desktop, and user-service environments default to `LANG=zh_CN.UTF-8`
+  and `LANGUAGE=zh_CN:zh`, without persistent `LC_ALL`; interactive shells use a
+  complete English locale. On Niri, `gui app /absolute/path` launches
+  asynchronously with the desktop environment, not the shell's locale or
+  working directory. [Locale and launch details](docs/desktop.md#locale-split).
 - Proportional UI uses Adwaita Sans, terminals use JetBrainsMono Nerd Font
   Mono, and the status bar uses its Nerd Font Propo variant for icon alignment; Noto fonts
   provide CJK, symbol, and emoji fallback.

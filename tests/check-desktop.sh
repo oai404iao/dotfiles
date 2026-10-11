@@ -13,7 +13,7 @@ repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
     . "$repo_dir/dot_config/shell/profile.sh"
     [ "$LANG" = "zh_CN.UTF-8" ]
     [ "$LANGUAGE" = "zh_CN:zh" ]
-    [ "$LC_ALL" = "zh_CN.UTF-8" ]
+    [ -z "${LC_ALL+x}" ]
     [ -z "${LC_TIME-}" ]
 
     LC_ALL="zh_CN.UTF-8"
@@ -35,12 +35,43 @@ if [ -x "$environment_generator" ]; then
     )
     for assignment in \
         "LANG=zh_CN.UTF-8" \
-        "LANGUAGE=zh_CN:zh" \
-        "LC_ALL=zh_CN.UTF-8"
+        "LANGUAGE=zh_CN:zh"
     do
         printf '%s\n' "$generated_environment" | grep -qxF "$assignment"
     done
+    if printf '%s\n' "$generated_environment" | grep -q '^LC_ALL='; then
+        printf '%s\n' "LC_ALL must not be set by environment.d" >&2
+        exit 1
+    fi
 fi
+
+for interpreter in sh bash zsh; do
+    ENTRYPOINT="$repo_dir/dot_config/shell/interactive.sh" \
+        "$interpreter" -c '
+            . "$ENTRYPOINT"
+            niri() {
+                [ "$#" -eq 8 ] || return 1
+                [ "$1" = msg ] && [ "$2" = action ] &&
+                    [ "$3" = spawn ] && [ "$4" = -- ] &&
+                    [ "$5" = example-app ] &&
+                    [ "$6" = "/path with spaces/file" ] &&
+                    [ "$7" = "--flag" ] &&
+                    [ "$8" = "literal; \$value" ] || return 1
+                return "$spawn_status"
+            }
+            spawn_status=0
+            gui example-app "/path with spaces/file" --flag "literal; \$value" || exit 1
+            spawn_status=23
+            if gui example-app "/path with spaces/file" --flag "literal; \$value"; then
+                exit 1
+            else
+                [ "$?" -eq 23 ] || exit 1
+            fi
+            [ "$LANG" = en_US.UTF-8 ] &&
+                [ "$LANGUAGE" = en_US:en ] &&
+                [ -z "${LC_ALL+x}" ]
+        '
+done
 
 gtk2_result=$(
     printf '%s\n' \
@@ -78,7 +109,6 @@ locale_lines = {
 if locale_lines != {
     "LANG=zh_CN.UTF-8",
     "LANGUAGE=zh_CN:zh",
-    "LC_ALL=zh_CN.UTF-8",
 }:
     raise SystemExit("unexpected user session locale")
 

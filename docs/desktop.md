@@ -298,18 +298,48 @@ Upstream references:
 
 ## Locale split
 
-The login and user-service environments use `LANG=zh_CN.UTF-8`,
-`LANGUAGE=zh_CN:zh`, and `LC_ALL=zh_CN.UTF-8`. `niri-session` imports that
-login environment before starting graphical services; the login profile first
-clears inherited `LC_*` overrides so an English parent shell cannot take
-precedence. Bash and Zsh then source
-`~/.config/shell/interactive.sh` only for interactive shells, where `LANG`,
-`LANGUAGE`, and the effective locale categories switch to `en_US.UTF-8`.
+The login, desktop, and user-service environments default to
+`LANG=zh_CN.UTF-8` and `LANGUAGE=zh_CN:zh`, without persistent `LC_ALL`.
+`niri-session` imports the login environment before starting graphical
+services; the login profile first clears all inherited `LC_*` overrides so an
+English parent shell cannot take precedence. Bash and Zsh then source
+`~/.config/shell/interactive.sh` only for interactive shells, which clear
+`LC_*` overrides and select a complete English locale.
+
+Direct launches from an interactive shell inherit its English environment;
+being a GUI application does not automatically select Chinese. On Niri, use
+the shared interactive `gui` helper to launch through the compositor instead:
+
+```sh
+gui nautilus "$HOME/Documents"
+```
+
+It delegates to `niri msg action spawn -- "$@"`, launching asynchronously
+with Niri's desktop environment. It does not wait for the application or
+preserve the caller's working directory; pass absolute file paths. This
+requires a running Niri session, and application-specific language settings
+can still override the locale defaults.
 
 Both locales must already exist in `locale -a`; this repository does not edit
-the system-owned `/etc/locale.gen`. Log out completely and sign in again after
-applying these targets so the user service manager and graphical applications
-receive the new environment.
+the system-owned `/etc/locale.gen`. When migrating from persistent `LC_ALL`,
+after reviewing and applying the explicit locale targets, reload the user
+manager's configuration and remove its stale override once:
+
+```sh
+systemctl --user daemon-reload
+systemctl --user unset-environment LC_ALL
+```
+
+Importing the new login environment does not remove variables absent from it.
+Do not globally import the English terminal's environment into the user
+manager. These commands do not restart services: existing processes and legacy
+D-Bus activation environments still retain their old values. Terminate the
+full user session and sign in again; reboot if lingering keeps the user
+manager alive.
+
+For DMS, stop its old supervisor and relaunch through Niri as
+described in [the immediate overlay switch](desktop-shells.md#native-media-page-overlay);
+`dms restart` alone retains the supervisor's environment.
 
 ## Runtime dependencies
 

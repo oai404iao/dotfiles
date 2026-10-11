@@ -14,7 +14,10 @@
   （`~/.local/share/dsh`），并保留显式覆盖值。DSH 的所有内容仍放在这一
   单一根目录下，不纳入配置管理；现有 `~/.dsh` 数据不会自动迁移。
   如需覆盖，请在启动环境中设置，不要写入 DSH 的 `.env` 文件。
-- 用户会话使用简体中文，交互式 Shell 则使用完整的英文 locale。
+- 登录、桌面与用户服务环境默认使用 `LANG=zh_CN.UTF-8` 和
+  `LANGUAGE=zh_CN:zh`，不持久设置 `LC_ALL`；交互式 Shell 使用完整的英文 locale。
+  在 Niri 中，`gui app /absolute/path` 以桌面环境异步启动程序，不继承 Shell
+  的 locale 或工作目录。[Locale 与启动说明](docs/desktop.md#locale-split)。
 - 比例界面使用 Adwaita Sans，终端使用 JetBrainsMono Nerd Font Mono，
   状态栏使用其 Nerd Font Propo 变体以对齐图标；Noto 字体提供 CJK、符号与
   Emoji 回退。
