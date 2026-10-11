@@ -28,8 +28,9 @@ tmux                   # Managed tmux configuration.
 zip                    # Zsh c() archive function.
 aria2                  # Optional Zsh d alias (aria2c).
 bash-completion        # Optional Bash completion, sourced if present.
-# Oh My Zsh, Powerlevel10k and its plugins are optional user-managed files,
-# not dependencies that chezmoi installs as Arch packages.
+# Oh My Zsh, Powerlevel10k, zsh-autosuggestions and zsh-syntax-highlighting
+# are commit-pinned chezmoi archive externals, not Arch package dependencies.
+# See docs/zsh.md for migration and explicit upgrades.
 
 # Pi / agent tooling (independent of graphical and server roles).
 uv                     # Agent Python tooling and custom Waybar longshot.

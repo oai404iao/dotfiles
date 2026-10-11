@@ -268,4 +268,6 @@ for zsh_mode in -c -ic; do
         '
 done
 
+python3 "$repo_dir/tests/check-zsh-externals.py"
+
 printf '%s\n' "shell toolchain config passed"

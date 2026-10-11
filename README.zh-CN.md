@@ -174,6 +174,19 @@ Fontconfig，以及 Adwaita、Noto、Noto CJK、Noto Symbols、Noto Color Emoji
 和 JetBrains Mono Nerd Font 字体族；对应的 Arch 软件包见
 [docs/desktop.md](docs/desktop.md)。
 
+### Zsh 框架与主题
+
+Oh My Zsh、Powerlevel10k、zsh-autosuggestions 和 zsh-syntax-highlighting
+通过 `.chezmoiexternal.toml` 中固定 commit 的归档外部依赖管理。Chezmoi
+同时管理其版本以及 Zsh、P10k 配置；下载的源码、Git 元数据和运行时缓存
+不提交到本仓库。OMZ 自动更新已禁用。升级需要显式修改锁定 URL、测试并
+定向应用已审阅的目标，而不是运行 `omz update` 或 `git pull`。
+两套 Shell 配置及这些依赖均不受 `shell` 偏好影响。
+
+接管已有安装前必须备份。非精确归档保留本机额外文件，OMZ 归档排除
+`custom/`、缓存和日志内容。定向迁移、离线检查以及上游废弃文件的处理方法见
+[Zsh 迁移与升级](docs/zsh.md)。
+
 ### 用户级 Node.js
 
 单独安装 pnpm 12（例如 AUR 的 `pnpm-bin`），然后加载共享 Shell 环境，

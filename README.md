@@ -191,6 +191,22 @@ font configuration also expects Fontconfig plus the Adwaita, Noto, Noto CJK,
 Noto Symbols, Noto Color Emoji, and JetBrains Mono Nerd Font families; the
 corresponding Arch packages are listed in [docs/desktop.md](docs/desktop.md).
 
+### Zsh framework and theme
+
+Oh My Zsh, Powerlevel10k, zsh-autosuggestions, and zsh-syntax-highlighting
+are commit-pinned archive externals in `.chezmoiexternal.toml`. Chezmoi owns
+their versions as well as the Zsh and P10k configuration; downloaded source,
+Git metadata, and runtime caches are not committed here. OMZ automatic
+updates are disabled. Upgrades require explicitly changing the pinned URLs,
+testing, and applying the reviewed targets, not `omz update` or `git pull`.
+Both shell configurations and these dependencies deploy regardless of the
+`shell` preference.
+
+Existing installations must be backed up before takeover. Non-exact archives
+preserve local additions, and the OMZ archive excludes `custom/`, cache, and
+log contents. See [Zsh migration and upgrades](docs/zsh.md) for the targeted
+workflow, offline checks, and handling obsolete upstream files.
+
 ### User-level Node.js
 
 Install pnpm 12 separately (for example, `pnpm-bin` from the AUR), then use

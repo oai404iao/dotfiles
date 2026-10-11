@@ -48,6 +48,18 @@ secrets/
 # Retained agent scratch work is machine-local mutable state.
 .local/state/agents/tmp/
 
+# Shell dependency checkouts and generated state are not source configuration.
+.oh-my-zsh/**/.git/
+.oh-my-zsh/cache/
+.oh-my-zsh/log/
+.oh-my-zsh/**/*.zwc
+.oh-my-zsh/**/*.zwc.old
+.oh-my-zsh/custom/themes/powerlevel10k/gitstatus/usrbin/
+.cache/oh-my-zsh/
+.cache/zsh/
+.cache/gitstatus/
+.cache/p10k-*
+
 # DSH owns its single home, including credentials and sessions.
 .local/share/dsh/
 .dsh/

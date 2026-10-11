@@ -14,6 +14,9 @@ plugins=(
     tmux
 )
 
+# Chezmoi owns the pinned framework version.
+zstyle ':omz:update' mode disabled
+
 if [[ -r "$ZSH/oh-my-zsh.sh" ]]; then
     source "$ZSH/oh-my-zsh.sh"
 else
