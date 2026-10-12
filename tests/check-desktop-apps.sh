@@ -68,7 +68,7 @@ portal = "dot_config/xdg-desktop-portal/modify_niri-portals.conf"
 chooser = "org.freedesktop.impl.portal.FileChooser"
 for original in (
     "",
-    f"# keep\n[preferred]\ndefault=gnome;gtk;\n{chooser}=gnome;gtk;\n{chooser}=old\n"
+    f"# keep\n[preferred]\ndefault=gnome;gtk;\n{chooser}=gtk\n{chooser}=old\n"
     "org.freedesktop.impl.portal.ScreenCast=gnome\n[other]\n"
     f"{chooser}=untouched\n",
     "[other]\nvalue=keep",
@@ -79,7 +79,7 @@ for original in (
     ini = configparser.ConfigParser(interpolation=None)
     ini.optionxform = str
     ini.read_string(updated)
-    assert ini["preferred"][chooser] == "gtk;"
+    assert ini["preferred"][chooser] == "gnome;gtk;"
     if "# keep" in original:
         assert "# keep\n" in updated
         assert ini["preferred"]["default"] == "gnome;gtk;"
@@ -109,11 +109,23 @@ assert not launcher["Desktop Entry"].getboolean("Terminal")
 if shutil.which("desktop-file-validate"):
     subprocess.run(["desktop-file-validate", str(shardx)], check=True)
 
+bruno = repo / "dot_local/share/applications/bruno.desktop"
+launcher = configparser.ConfigParser(interpolation=None)
+launcher.optionxform = str
+launcher.read(bruno)
+assert launcher["Desktop Entry"]["Exec"] == "/opt/Bruno/bruno --ozone-platform=wayland %U"
+assert launcher["Desktop Entry"]["Type"] == "Application"
+assert launcher["Desktop Entry"]["MimeType"] == "x-scheme-handler/bruno;"
+assert not launcher["Desktop Entry"].getboolean("Terminal")
+if shutil.which("desktop-file-validate"):
+    subprocess.run(["desktop-file-validate", str(bruno)], check=True)
+
 ignore = (repo / ".chezmoiignore").read_text()
 graphical = ignore.split("{{- if not .graphical }}", 1)[1].split("{{- end }}", 1)[0]
 niri = ignore.split("{{- if not (and .graphical .niri) }}", 1)[1].split("{{- end }}", 1)[0]
 assert ".config/xdg-desktop-portal/niri-portals.conf" in niri.splitlines()
 assert ".config/spotify-launcher.conf" in niri.splitlines()
+assert ".local/share/applications/bruno.desktop" in niri.splitlines()
 for path in (
     ".config/btop/", ".config/fcitx5/", ".config/satty/", ".config/swaylock/",
     ".config/gtk-3.0/", ".config/gtk-4.0/", ".local/share/fcitx5/themes/Matugen/",
