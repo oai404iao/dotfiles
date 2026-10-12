@@ -46,6 +46,11 @@ it without deleting its local checkout.
 
 Disabled packages and their configuration are not managed.
 
+Model overrides set GPT-6 Astra/Luna/Sol, GPT-6.1 Sol, and DeepSeek Flash to
+350,000-token context windows while retaining Pi's built-in catalog metadata.
+The existing GPT-5.6 context settings remain unchanged. Providers do not override
+`User-Agent`; the client supplies its default.
+
 Codex tools 4.1.1 keeps the existing configuration paths, but its pinned schemas
 come from `pi-codex-runtime@1.0.0`. GPT-6 Astra/Sol/Luna deliberately retain
 Lite, automatic WebSocket transport, prewarm, standalone search, and native

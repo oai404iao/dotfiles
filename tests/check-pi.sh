@@ -217,6 +217,12 @@ if set(providers) != expected_providers:
     raise SystemExit("unexpected Pi provider inventory")
 if any("apiKey" in provider for provider in providers.values()):
     raise SystemExit("Pi provider credentials must stay in local auth.json")
+if any(
+    key.lower() == "user-agent"
+    for provider in providers.values()
+    for key in provider.get("headers", {})
+):
+    raise SystemExit("Pi providers must not override User-Agent")
 if providers["anthropic"] != {"baseUrl": "https://api.krill-code.net"}:
     raise SystemExit("Anthropic must override only its endpoint and use Pi's built-in catalog")
 openai = providers["openai"]
@@ -228,13 +234,16 @@ expected_context_overrides = {
     "gpt-6-astra": 350000,
     "gpt-6-luna": 350000,
     "gpt-6-sol": 350000,
+    "gpt-6.1-sol": 350000,
 }
 actual_context_overrides = {
     model_id: override.get("contextWindow")
     for model_id, override in openai.get("modelOverrides", {}).items()
 }
 if actual_context_overrides != expected_context_overrides:
-    raise SystemExit("unexpected GPT-5.6/GPT-6 context overrides")
+    raise SystemExit("unexpected GPT-5.6/GPT-6/GPT-6.1 context overrides")
+if deepseek.get("modelOverrides") != {"deepseek-flash": {"contextWindow": 350000}}:
+    raise SystemExit("DeepSeek Flash context window is not 350K")
 custom_openai_models = {
     model["id"]: model
     for model in openai.get("models", [])

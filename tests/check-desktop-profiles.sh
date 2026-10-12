@@ -89,7 +89,7 @@ targets = [
 ]
 
 def managed(command, env):
-    return set(run(command + ["managed", "--include", "files"], env).splitlines())
+    return set(run(command + ["managed", "--include", "files", "--exclude", "externals"], env).splitlines())
 
 def apply(home, env, command, shell):
     paths = targets + ([
@@ -196,7 +196,7 @@ for shell in ("custom", "dms"):
             assert bar[0]["leftWidgets"] == ["launcherButton", "workspaceSwitcher", "focusedWindow"]
             assert bar[0]["centerWidgets"] == ["music", "clock", "weather"]
             assert bar[0]["rightWidgets"] == [
-                "systemTray", "clipboard", "cpuUsage", "memUsage",
+                "systemTray", "clipboard", "dankTodo", "cpuUsage", "memUsage",
                 "notificationButton", "battery", "controlCenterButton",
             ]
             assert bar[0]["hoverPopouts"] is True

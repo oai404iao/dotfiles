@@ -101,6 +101,8 @@ Applies using `--exclude=scripts` skip these reminders as well.
   Click or hover opens the tabbed DankDash panel; hover popouts use a 450 ms
   delay. The left/right sections retain the launcher, workspaces, focused
   window, and system status without duplicate music or weather widgets.
+  The right section includes `dankTodo` after the clipboard; its installed
+  plugin must be scanned and enabled separately as described below.
   The bar background is transparent and its shadow is disabled; individual
   widget backgrounds remain opaque.
 - The separate [plugin repository](https://github.com/oai404iao/dms-plugins)
@@ -237,8 +239,10 @@ dms ipc call plugins enable lyrics
 dms ipc call plugins enable dankTodo
 ```
 
-Add `dankTodo` through the DankBar layout if desired; do not add `lyrics` as
-a separate widget. Chezmoi owns the complete bar layout, so local layout
+The managed DankBar layout already places `dankTodo` on the right, after the
+clipboard. Enabling the plugin is still required; chezmoi does not change
+`plugin_settings.json`. Do not add `lyrics` as a separate widget.
+Chezmoi owns the complete bar layout, so local layout
 changes are replaced by a later apply unless intentionally added to the
 settings source. After plugin-only updates, use
 `dms ipc call plugins reload lyrics` or `dms ipc call plugins reload dankTodo`.
