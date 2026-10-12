@@ -18,6 +18,8 @@
   `LANGUAGE=zh_CN:zh`，不持久设置 `LC_ALL`；交互式 Shell 使用完整的英文 locale。
   在 Niri 中，`gui app /absolute/path` 以桌面环境异步启动程序，不继承 Shell
   的 locale 或工作目录。[Locale 与启动说明](docs/desktop.md#locale-split)。
+- 图形设备上的 XDG 目录更新服务独立使用英文环境，不改变桌面语言。
+  [目录策略与迁移说明](docs/desktop.md#xdg-user-directories)。
 - 比例界面使用 Adwaita Sans，终端使用 JetBrainsMono Nerd Font Mono，
   状态栏使用其 Nerd Font Propo 变体以对齐图标；Noto 字体提供 CJK、符号与
   Emoji 回退。

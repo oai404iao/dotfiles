@@ -22,6 +22,8 @@ credentials and mutable application state out of Git.
   complete English locale. On Niri, `gui app /absolute/path` launches
   asynchronously with the desktop environment, not the shell's locale or
   working directory. [Locale and launch details](docs/desktop.md#locale-split).
+- On graphical machines, the XDG folder updater uses English independently of
+  the desktop locale. [Directory policy and migration](docs/desktop.md#xdg-user-directories).
 - Proportional UI uses Adwaita Sans, terminals use JetBrainsMono Nerd Font
   Mono, and the status bar uses its Nerd Font Propo variant for icon alignment; Noto fonts
   provide CJK, symbol, and emoji fallback.

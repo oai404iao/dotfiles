@@ -91,6 +91,7 @@ import json
 import os
 import pathlib
 import shlex
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -111,6 +112,96 @@ if locale_lines != {
     "LANGUAGE=zh_CN:zh",
 }:
     raise SystemExit("unexpected user session locale")
+
+user_dirs_dropin = repo_dir / "dot_config/systemd/user/xdg-user-dirs.service.d/10-english.conf"
+expected_user_dirs_dropin = (
+    "[Service]\n"
+    "Environment=LANG=en_US.UTF-8 LANGUAGE=en_US:en LC_ALL=en_US.UTF-8\n"
+)
+if user_dirs_dropin.read_text() != expected_user_dirs_dropin:
+    raise SystemExit("unexpected per-service XDG user directory locale")
+user_dirs_environment = dict(
+    assignment.split("=", 1)
+    for assignment in shlex.split(
+        user_dirs_dropin.read_text().split("Environment=", 1)[1]
+    )
+)
+
+user_dirs_update = shutil.which("xdg-user-dirs-update")
+if user_dirs_update is None:
+    print("XDG user directory locale checks skipped: xdg-user-dirs-update unavailable")
+else:
+    scratch_root = pathlib.Path.home() / ".local/state/agents/tmp"
+    scratch_root.mkdir(parents=True, exist_ok=True)
+    user_dirs_fixture = pathlib.Path(
+        tempfile.mkdtemp(prefix="check-english-user-dirs.", dir=scratch_root)
+    )
+    expected_user_dirs = {
+        f"XDG_{name}_DIR": f"$HOME/{directory}"
+        for name, directory in (
+            ("DESKTOP", "Desktop"),
+            ("DOWNLOAD", "Downloads"),
+            ("TEMPLATES", "Templates"),
+            ("PUBLICSHARE", "Public"),
+            ("DOCUMENTS", "Documents"),
+            ("MUSIC", "Music"),
+            ("PICTURES", "Pictures"),
+            ("VIDEOS", "Videos"),
+        )
+    }
+    config_dirs = user_dirs_fixture / "defaults"
+    config_dirs.mkdir()
+    (config_dirs / "user-dirs.defaults").write_text(
+        "".join(
+            f"{key[4:-4]}={value.removeprefix('$HOME/')}\n"
+            for key, value in expected_user_dirs.items()
+        )
+    )
+    for category in ("LC_MESSAGES", "LC_ALL"):
+        home = user_dirs_fixture / category
+        config = home / ".config"
+        config.mkdir(parents=True)
+        for directory in ("Desktop", "Downloads"):
+            (home / directory).mkdir()
+        environment = {
+            **os.environ,
+            "HOME": str(home),
+            "XDG_CONFIG_HOME": str(config),
+            "XDG_CONFIG_DIRS": str(config_dirs),
+            "LANG": "zh_CN.UTF-8",
+            "LANGUAGE": "zh_CN:zh",
+            "LC_MESSAGES": "zh_CN.UTF-8",
+        }
+        environment.pop("LC_ALL", None)
+        environment[category] = "zh_CN.UTF-8"
+        environment.update(user_dirs_environment)
+        def update_user_dirs():
+            subprocess.run(
+                [user_dirs_update],
+                env=environment, capture_output=True, text=True, check=True,
+            )
+            return dict(
+                shlex.split(line)[0].split("=", 1)
+                for line in (config / "user-dirs.dirs").read_text().splitlines()
+                if line.startswith("XDG_")
+            )
+
+        initial_user_dirs = update_user_dirs()
+        if not expected_user_dirs.items() <= initial_user_dirs.items():
+            raise SystemExit(f"XDG user directories are not English with inherited {category}")
+        custom_download = home / "Custom Downloads"
+        custom_download.mkdir()
+        custom_user_dirs = {
+            **expected_user_dirs,
+            "XDG_DOWNLOAD_DIR": "$HOME/Custom Downloads",
+        }
+        (config / "user-dirs.dirs").write_text(
+            "".join(f'{key}="{value}"\n' for key, value in custom_user_dirs.items())
+        )
+        for _ in range(2):
+            if not custom_user_dirs.items() <= update_user_dirs().items():
+                raise SystemExit("XDG user directory update overwrites a custom download path")
+    print(f"XDG user directory locale checks passed (retained fixtures: {user_dirs_fixture})")
 
 interactive_path = "shell/interactive.sh"
 for relative in ("dot_bashrc", "dot_config/zsh/dot_zshrc"):
@@ -176,6 +267,7 @@ expected_ignored = {
     ".config/fontconfig/",
     ".config/gtk-3.0/",
     ".config/gtk-4.0/",
+    ".config/systemd/user/xdg-user-dirs.service.d/",
 }
 if not expected_ignored <= ignore_lines:
     raise SystemExit(
@@ -188,6 +280,21 @@ if not expected_ignored <= set(headless_block.splitlines()):
     raise SystemExit("desktop ignores are outside the graphical condition")
 if ".config/environment.d/" in ignore_lines:
     raise SystemExit("the user locale is ignored on headless profiles")
+generated_user_dirs = {".config/user-dirs.dirs", ".config/user-dirs.locale"}
+unconditional_ignores = set()
+condition_depth = 0
+for line in ignore_text.splitlines():
+    if line.startswith("{{- if "):
+        condition_depth += 1
+    elif line.startswith("{{- end "):
+        condition_depth -= 1
+    elif condition_depth == 0:
+        unconditional_ignores.add(line)
+if not generated_user_dirs <= unconditional_ignores:
+    raise SystemExit("generated XDG user directory files must remain ignored on every profile")
+for name in ("user-dirs.dirs", "user-dirs.locale"):
+    if list((repo_dir / "dot_config").glob(f"*{name}*")):
+        raise SystemExit(f"generated {name} must not have a managed source")
 
 kitty = (repo_dir / "dot_config/kitty/kitty.conf.tmpl").read_text()
 if "font_family JetBrainsMono Nerd Font Mono\n" not in kitty:

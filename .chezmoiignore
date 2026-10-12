@@ -42,6 +42,10 @@ secrets/
 .local/share/keyrings/
 .local/state/keyring-backups/
 
+# XDG directory mappings and translation metadata remain machine-local.
+.config/user-dirs.dirs
+.config/user-dirs.locale
+
 # Unmanaged CLI credentials and session state.
 .tavily/
 
@@ -174,6 +178,7 @@ secrets/
 
 {{- if not .graphical }}
 .gtkrc-2.0
+.config/systemd/user/xdg-user-dirs.service.d/
 .config/environment.d/im.conf
 .config/btop/
 .config/fcitx5/

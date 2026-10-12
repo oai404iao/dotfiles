@@ -341,6 +341,41 @@ For DMS, stop its old supervisor and relaunch through Niri as
 described in [the immediate overlay switch](desktop-shells.md#native-media-page-overlay);
 `dms restart` alone retains the supervisor's environment.
 
+## XDG user directories
+
+On graphical machines, the managed
+`~/.config/systemd/user/xdg-user-dirs.service.d/10-english.conf` gives only the
+login folder updater an English locale. Its service-local `LC_ALL` overrides
+inherited Chinese `LC_*` values without changing the desktop environment.
+Missing mappings are generated with English names even when the desktop is
+Chinese; surviving custom mappings are retained.
+
+`~/.config/user-dirs.dirs` and `user-dirs.locale` remain generated,
+machine-local files. After reviewing and applying the explicit drop-in target,
+run `systemctl --user daemon-reload`. The override must be restored before
+the updater runs if the user configuration tree is lost.
+
+The service override does not affect manual commands or other desktop folder
+renamers. For manual generation, use:
+
+```sh
+LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US:en xdg-user-dirs-update
+```
+
+An existing Chinese mapping is not renamed automatically. Back up the two
+machine-local files before migration, create the intended English directories,
+and set each mapping explicitly, for example:
+
+```sh
+mkdir -p -- "$HOME/Downloads"
+LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US:en \
+    xdg-user-dirs-update --set DOWNLOAD "$HOME/Downloads"
+```
+
+Setting mappings does not move files from the old directories. Restart
+applications that cache these paths; explicit application download settings
+may still need updating. Do not use `--force` as a migration shortcut.
+
 ## Runtime dependencies
 
 Core session:
