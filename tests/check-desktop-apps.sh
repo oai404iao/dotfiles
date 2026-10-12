@@ -68,7 +68,7 @@ portal = "dot_config/xdg-desktop-portal/modify_niri-portals.conf"
 chooser = "org.freedesktop.impl.portal.FileChooser"
 for original in (
     "",
-    f"# keep\n[preferred]\ndefault=gnome;gtk;\n{chooser}=gtk\n{chooser}=old\n"
+    f"# keep\n[preferred]\ndefault=gnome;gtk;\n{chooser}=gnome;gtk;\n{chooser}=old\n"
     "org.freedesktop.impl.portal.ScreenCast=gnome\n[other]\n"
     f"{chooser}=untouched\n",
     "[other]\nvalue=keep",
@@ -79,7 +79,7 @@ for original in (
     ini = configparser.ConfigParser(interpolation=None)
     ini.optionxform = str
     ini.read_string(updated)
-    assert ini["preferred"][chooser] == "gnome;gtk;"
+    assert ini["preferred"][chooser] == "gtk;"
     if "# keep" in original:
         assert "# keep\n" in updated
         assert ini["preferred"]["default"] == "gnome;gtk;"

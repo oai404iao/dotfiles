@@ -130,7 +130,7 @@ depend on the supplied artwork.
   GTK 3 selects `adw-gtk3-dark` with dark preference enabled; this requires the
   separately installed `adw-gtk-theme` package. A missing theme can silently
   fall back to light Adwaita even when the desktop prefers dark mode.
-  On Niri, the FileChooser portal prefers GNOME/Nautilus with GTK as fallback;
+  On Niri, the FileChooser portal uses GTK instead of GNOME/Nautilus;
   other portal preferences remain untouched. No folder history, bookmarks,
   default applications, icon theme, or dconf database is taken
   over. Matugen no longer forces a particular GTK theme via GSettings.
@@ -172,11 +172,13 @@ palette files exist.
 ### File chooser portal
 
 On Niri, `~/.config/xdg-desktop-portal/niri-portals.conf` manages only
-`org.freedesktop.impl.portal.FileChooser=gnome;gtk;` in `[preferred]`.
-With a recent GNOME portal backend and Nautilus installed, this uses the
-Nautilus file chooser instead of GTK 3's chooser, avoiding its clipped
-file-type dropdown near screen edges. GTK remains a fallback backend;
-this does not fix GTK 3 menus embedded directly in applications.
+`org.freedesktop.impl.portal.FileChooser=gtk;` in `[preferred]`.
+This bypasses the GNOME backend's delegation to Nautilus, which can crash
+under Niri and leave applications such as Bruno without a file dialog.
+Keep `xdg-desktop-portal-gtk` installed and retain the GNOME backend for
+screen sharing. Other portal preferences remain untouched. This does not
+fix GTK 3 file-type dropdown clipping near screen edges or application
+drag-and-drop issues.
 
 After backing up and applying that explicit target, log out and back in,
 or restart `xdg-desktop-portal.service` once file dialogs and portal-based
