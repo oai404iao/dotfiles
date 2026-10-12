@@ -80,16 +80,9 @@ dms_only = {
     ".config/kitty/dank-theme.conf", ".config/gtk-3.0/dank-colors.css",
     ".config/kitty/dms-ansi.conf",
     ".config/gtk-4.0/dank-colors.css", ".config/qt6ct/qt6ct.conf",
-    ".local/bin/dms-with-lyrics",
 } | dms_kdl_targets
-lyrics_files = {
-    "plugin.json", "LyricsService.qml", "LyricsView.qml", "LyricsSettings.qml", "LyricsFetcher.js", "LICENSE",
-    "translations/zh_CN.json",
-}
-lyrics_dir = ".config/DankMaterialShell/plugins/lyrics"
-dms_only |= {f"{lyrics_dir}/{name}" for name in lyrics_files}
-lyrics_source = repo / "dot_config/DankMaterialShell/plugins/lyrics"
-assert {p.relative_to(lyrics_source).as_posix() for p in lyrics_source.rglob("*") if p.is_file()} == lyrics_files
+assert not any(path.is_file() for path in (repo / "dot_config/DankMaterialShell/plugins").rglob("*"))
+assert not (repo / "dot_local/bin/executable_dms-with-lyrics").exists()
 targets = [
     ".config/niri", ".config/kitty", ".config/gtk-3.0", ".config/gtk-4.0",
     ".config/fcitx5/conf/classicui.conf",
@@ -101,8 +94,6 @@ def managed(command, env):
 def apply(home, env, command, shell):
     paths = targets + ([
         ".config/DankMaterialShell/settings.json", ".config/qt6ct/qt6ct.conf",
-        lyrics_dir,
-        ".local/bin/dms-with-lyrics",
     ] if shell == "dms" else [])
     for path in paths:
         (home / path).parent.mkdir(parents=True, exist_ok=True)
@@ -152,6 +143,8 @@ for shell in ("custom", "dms"):
     for output in ("auto", "laptop-dual-1080p", "desktop-single-4k"):
         home, env, command = fixture(f"{shell}-{output}", shell, output=output)
         inventory = managed(command, env)
+        assert not any(path.startswith(".config/DankMaterialShell/plugins/") for path in inventory)
+        assert ".local/bin/dms-with-lyrics" not in inventory
         assert (dms_only if shell == "dms" else custom_only) <= inventory
         assert not (custom_only if shell == "dms" else dms_only) & inventory
         apply(home, env, command, shell)
@@ -209,18 +202,6 @@ for shell in ("custom", "dms"):
             assert bar[0]["hoverPopouts"] is True
             assert bar[0]["hoverPopoutDelay"] == 450
             assert not any(key.startswith("island") and key != "island" for key in bar[0])
-            manifest = json.loads((home / lyrics_dir / "plugin.json").read_text())
-            assert manifest["id"] == "lyrics"
-            assert manifest["type"] == "daemon"
-            assert manifest["capabilities"] == []
-            assert manifest["component"] == "./LyricsService.qml"
-            for key in ("showLyrics", "showTranslation"):
-                assert manifest["settings_schema"][key]["default"] is True
-            assert manifest["settings_schema"]["translationLanguage"]["default"] == "source"
-            for name in lyrics_files:
-                assert (home / lyrics_dir / name).read_bytes() == (
-                    repo / "dot_config/DankMaterialShell/plugins/lyrics" / name
-                ).read_bytes()
             qt6ct = configparser.ConfigParser(interpolation=None)
             qt_file = home / ".config/qt6ct/qt6ct.conf"
             qt6ct.read(qt_file)
@@ -386,9 +367,11 @@ for path in (
     ".config/DankMaterialShell/clsettings.json", ".config/DankMaterialShell/plugin_settings.json",
     ".config/DankMaterialShell/notification_history.json", ".config/quickshell/",
     ".config/DankMaterialShell/plugins.json", ".config/DankMaterialShell/plugins.lock.json",
-    ".config/DankMaterialShell/plugins/*", "!.config/DankMaterialShell/plugins/lyrics",
+    ".config/DankMaterialShell/plugins/*", ".config/dank-todo/",
+    ".local/bin/dms-with-lyrics",
 ):
     assert path in ignored.splitlines()
+assert "!.config/DankMaterialShell/plugins/lyrics" not in ignored.splitlines()
 
 print(f"desktop profile checks passed (retained fixtures: {task})")
 PY

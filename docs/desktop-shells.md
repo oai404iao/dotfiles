@@ -60,17 +60,21 @@ Do not run DankInstall or `dms setup --force` over this configuration. Chezmoi
 already supplies the compositor integration. DMS starts **only** through
 `spawn-at-startup "dms-with-lyrics" "run"`; do not also enable `dms.service`.
 The launcher uses the prepared, version-matched media-page overlay when
-available and otherwise runs the stock DMS shell.
+available and otherwise runs the stock DMS shell. Install the launcher from
+the [plugin repository](https://github.com/oai404iao/dms-plugins) before the
+first DMS session; chezmoi neither deploys nor automatically fetches it.
 
 The `run_after_check-dms-lyrics.sh.tmpl` apply hook runs only when `graphical`,
-`niri`, and `desktopShell="dms"` are selected. It checks for `dms` and `qs`,
-then checks the launcher's `current/shell.qml` and `.dms-version` contract
-under `${XDG_DATA_HOME:-$HOME/.local/share}/dms-media-lyrics/`. Missing
+`niri`, and `desktopShell="dms"` are selected. It checks for `dms`, `qs`, and
+`dms-with-lyrics`, then checks the launcher's `current/shell.qml` and
+`.dms-version` contract under
+`${XDG_DATA_HOME:-$HOME/.local/share}/dms-media-lyrics/`. Missing
 dependencies, missing/incomplete preparation, version mismatches, or a failed
 `dms version` produce actionable stderr reminders without failing apply.
 Python is checked only when preparation is needed. Healthy setups stay silent;
-unresolved reminders repeat on later applies. The hook does not install,
-download, prepare, restart, or inspect/change local plugin enablement.
+unresolved reminders repeat on later applies. The hook directs preparation to
+the separate plugin repository; it does not install, download, prepare,
+restart, or inspect/change local plugin enablement.
 Applies using `--exclude=scripts` skip these reminders as well.
 
 ## Configuration ownership
@@ -99,11 +103,15 @@ Applies using `--exclude=scripts` skip these reminders as well.
   window, and system status without duplicate music or weather widgets.
   The bar background is transparent and its shadow is disabled; individual
   widget backgrounds remain opaque.
-- Chezmoi owns the maintained `plugins/lyrics/` source, including its MIT
-  license. Plugin enablement and preferences in `plugin_settings.json`,
-  downloaded plugins, and plugin lockfiles remain machine-local.
-- The native media widget/page customization is prepared from the reviewed
-  `scripts/dms-media-lyrics/` source. Its complete generated DMS tree under
+- The separate [plugin repository](https://github.com/oai404iao/dms-plugins)
+  owns `plugins/{lyrics,dankTodo}`, `scripts/prepare-dms-media-lyrics.py`,
+  `scripts/dms-media-lyrics/`, `bin/dms-with-lyrics`, and their offline tests.
+  All installed plugin directories, including `lyrics`, and the launcher are
+  ignored by chezmoi. Plugin enablement/preferences in `plugin_settings.json`,
+  plugin lockfiles, and `~/.config/dank-todo/` storage stay machine-local.
+  Custom todo storage paths must also remain outside either source repository.
+- The native media widget/page customization is prepared from that reviewed
+  plugin checkout. Its complete generated DMS tree under
   `$XDG_DATA_HOME/dms-media-lyrics/` is machine-local, not a managed package.
 - `~/.config/niri/dms/{binds,outputs,layout,cursor,colors,alttab,windowrules}.kdl`
   are create-only. DMS owns subsequent edits. Output selection and familiar
@@ -156,125 +164,114 @@ those are only seeded on a new file, not changed in an existing file.
 
 ### Bilingual lyrics
 
-The maintained lyrics service is based on
-[Gm-aaa/dms-lyrics](https://github.com/Gm-aaa/dms-lyrics), commit
-`2cea21b36a18ca83a930550e067088856f5d8863` (upstream 0.3.0).
-Its original MIT license is deployed alongside the locally modified sources.
-Do not use a registry update or the upstream installer to overwrite this
-directory; update the reviewed source and tests here instead.
+The maintained `lyrics` and `dankTodo` plugins now live in
+[oai404iao/dms-plugins](https://github.com/oai404iao/dms-plugins), along with
+their offline tests, native media overlay, preparation helper, and launcher.
+That repository documents upstream attribution, licenses, plugin behavior,
+and implementation changes. Chezmoi no longer deploys any plugin or the
+launcher; its apply hook only emits reminders.
 
-- Spotify and other MPRIS players supply playback metadata and position.
-- NetEase is queried first for synchronized original lyrics and its supplied
-  `tlyric` translation. LRCLIB is the original-only fallback.
-- A single DMS daemon plugin supplies all displays; there is no separate
-  lyrics bar widget or popout. The customized music widget prefers each
-  line's supplied translation, then original lyrics, then song title/artist
-  during instrumental gaps or when no lyrics are available.
-- The native media page shows original and translated lines together using
-  the service's `LyricsView` and model, without starting another fetcher.
-- Its right-side lyrics button opens an external settings panel through the
-  same overlay as the native volume/device controls, leaving lyrics visible.
-  Unlike the hover-dismissed volume/device panels, lyrics settings remain open
-  when the pointer moves away. Click outside, click the lyrics button again,
-  press Escape, or leave the media page to close them. Escape in an open
-  selector closes that selector first. Selectors share the DMS popout's
-  transient-surface tracker for focus ownership and close cleanup.
-  `showLyrics`
-  controls the bar and page together and stops fetching while disabled.
-  `showTranslation` switches both views to originals only when disabled.
-  Preferences are saved in DMS's machine-local `plugin_settings.json`.
-- Settings labels follow DMS's UI locale through `I18n.trFor` and the
-  plugin-local `translations/zh_CN.json` catalog. English source strings are
-  the fallback; UI language selection does not change lyric translations.
-- The translation selector lists only what the current provider supplied.
-  NetEase exposes one `tlyric` without a language tag, labelled **Provider
-  translation**, not an invented language list. With no translated lines,
-  the settings show an unavailable message instead of a selector.
-- Translations match original timestamps within 200 ms, nearest pairs first,
-  without reusing a translation or carrying it forward to unrelated lines.
-  Missing, unsynchronized, and duplicate translations are omitted.
-- No AI service, Spotify API key, or extra daemon is used. Public lyric
-  providers receive the song metadata used for matching. Results are cached
-  only in memory; availability and translated coverage depend on the provider.
-  NetEase retains the upstream first-search-result selection, so alternative
-  recordings or ambiguous titles can still return mismatched lyrics.
-- Text width and source priority remain configurable in the lyrics settings.
-  Choosing LRCLIB first can bypass NetEase translations.
+The lyrics daemon shares one fetcher across displays. The version-matched
+overlay integrates original/translated lyrics into the music pill and native
+media page, retaining the native controls and a no-lyrics fallback. There is
+no separate lyrics bar widget. Plugin preferences, enablement, lockfiles,
+and todo storage remain machine-local.
 
-On a fresh DMS machine, prepare the native overlay below, apply the reviewed
-plugin and bar targets, then enable the service locally:
+#### Install on a fresh machine or migrate an existing installation
+
+Before running the plugin installer, review and update the **chezmoi source**
+to a revision that removes plugin and launcher ownership and ignores their
+installed paths. Inspect the source worktree first; do not blindly pull over
+local changes. An older source can replace the new symlinks during a later
+full apply. Verify the ownership handoff with this narrow inventory check
+(no destination diff or secret rendering):
 
 ```sh
-mkdir -p ~/.config/DankMaterialShell/plugins
-chezmoi apply --exclude=scripts,encrypted \
-  ~/.config/DankMaterialShell/plugins/lyrics \
-  ~/.config/DankMaterialShell/settings.json
-dms ipc call plugin-scan scan
-dms ipc call plugins enable lyrics
-dms ipc call plugins status lyrics
+chezmoi managed --include=files,symlinks --exclude=encrypted \
+  --skip-secrets --refresh-externals=never --path-style=relative |
+  grep -E '^(\.config/DankMaterialShell/plugins(/|$)|\.local/bin/dms-with-lyrics$)'
 ```
 
-Back up any pre-existing `plugins/lyrics/` directory and settings before
-applying. When migrating from the standalone widget, remove only its old
-`LyricsWidget.qml` after backing it up and confirming it is the managed
-version. The `lyrics` entry is no longer part of `centerWidgets`. After
-source updates, use `dms ipc call plugins reload lyrics`; if an imported
-JavaScript file remains cached, restart DMS while unlocked.
+Expect no matching paths (`grep` exits 1 for no matches); if paths appear,
+stop and review the source revision before installing. Updating the source
+and verifying this inventory is sufficient; **no full chezmoi apply is
+required** for the handoff.
+
+Before starting the DMS Niri session, explicitly clone and review the plugin
+repository. The usual checkout is `~/Dev/local/dms-plugins` (on this machine,
+`/home/hisir/Dev/local/dms-plugins`). For a new checkout:
+
+```sh
+mkdir -p ~/Dev/local
+git clone https://github.com/oai404iao/dms-plugins.git ~/Dev/local/dms-plugins
+cd ~/Dev/local/dms-plugins
+git checkout --detach <reviewed-commit>
+sh tests/check-source.sh
+python3 scripts/install.py --dry-run
+python3 scripts/install.py
+```
+
+Replace `<reviewed-commit>` with the reviewed revision; do not blindly update
+an existing checkout or replace local edits. These test and install commands
+run from the plugin repository, **not** the chezmoi source directory.
+
+The installer symlinks **both** `plugins/lyrics` and `plugins/dankTodo` into
+`${XDG_CONFIG_HOME:-$HOME/.config}/DankMaterialShell/plugins/`, plus
+`bin/dms-with-lyrics` into `~/.local/bin/`. Existing targets are renamed into
+a fresh private retained `~/.local/state/agents/tmp/dms-plugins-install.*`
+backup directory before replacement. Review the dry run first. The installer
+does not fetch updates, prepare the overlay, enable plugins, or restart DMS.
+Keep the checkout at its installed location so the symlinks remain valid.
+
+For migration, save work and stop DMS while unlocked before replacing active
+plugin sources. Keep existing plugin preferences and todo data; do not copy
+them into either Git repository. Do not use `dms plugins install`, `update`,
+or `restore` to overwrite these maintained targets. Update the reviewed
+checkout and run its tests instead.
+
+After launching DMS, scan and explicitly enable the plugins you want:
+
+```sh
+dms ipc call plugin-scan scan
+dms ipc call plugins enable lyrics
+dms ipc call plugins enable dankTodo
+```
+
+Add `dankTodo` through the DankBar layout if desired; do not add `lyrics` as
+a separate widget. Chezmoi owns the complete bar layout, so local layout
+changes are replaced by a later apply unless intentionally added to the
+settings source. After plugin-only updates, use
+`dms ipc call plugins reload lyrics` or `dms ipc call plugins reload dankTodo`.
+If imported JavaScript stays cached, restart DMS while unlocked.
 
 #### Native media-page overlay
 
-The QML files in `scripts/dms-media-lyrics/` are maintained derivatives
-of DMS **v1.6.2**, commit `2db7646fe3ab47fddfdb8723f2da07d61a0d47ac`,
-also reviewed against **v1.6.3**, commit
-`4a87e8227daf0840b3376fd5e7f891f5900165a6`. Both releases have identical
-`shell.qml` and five original media/dropdown components, so they share the
-same overlay and exact source hashes. Other versions remain rejected.
-The upstream MIT license is included beside it. It keeps DankDash's tabs,
-progress bar, transport, player selection, volume, and output controls. When
-the shared lyrics service has lyrics enabled and available, it places compact artwork
-and song metadata on the left and a scrolling bilingual view on the right.
-With no lyrics or without the enabled service, it uses the original layout.
-The settings button stays available while lyric display is disabled, so the
-user can turn it back on. Settings float outside the main panel on the same
-side as native audio menus, with their shared dismissal and screen-edge bounds.
-They do not replace the lyrics area.
+The plugin repository's `scripts/prepare-dms-media-lyrics.py` and
+`scripts/dms-media-lyrics/` support DMS **1.6.2 and 1.6.3** only. The helper
+copies a trusted, pristine complete shell tree and checks its version and
+original component hashes before replacing the reviewed components in the
+copy. Never modify the installed package or its read-only extraction.
+These compatibility hashes do not authenticate the complete input tree.
 
-DMS 1.6.2/1.6.3 has no plugin slot for this native page. The preparation script
-copies a trusted, pristine shell tree, verifies its version and the hashes of
-`shell.qml` and all five original media/dropdown components, then replaces
-**only** those five components in the copy. It never edits `/usr/bin/dms`, package files, or the
-read-only extracted shell. Source input must be trusted; these hashes are
-compatibility guards, not a full-tree authenticity check.
+Always prepare from the installed version's tree. Do not relabel
+`.dms-version` or reuse a 1.6.2 generated tree as 1.6.3. Generated trees under
+`${XDG_DATA_HOME:-$HOME/.local/share}/dms-media-lyrics/` stay machine-local.
+The launcher is required for Niri startup even when no overlay is prepared;
+in that case it runs stock DMS.
 
-Always use the complete tree from the installed, supported DMS version.
-The helper records that input version in `.dms-version`; do not relabel an
-old generated tree to pass the launcher check. Preparing from 1.6.3 preserves
-its upstream fixes outside the five replaced components.
-
-**Why not a plugin-only implementation?** The fetcher already is a daemon
-plugin. DMS 1.6.3 supports separate plugin widgets/popouts, but its
-[native media page](https://github.com/AvengeMedia/DankMaterialShell/blob/v1.6.3/quickshell/Modules/DankDash/MediaPlayerTab.qml)
-selects built-in chrome directly, without a plugin insertion point.
-A standalone lyrics widget would avoid the overlay but change the current
-integrated experience. Retain the daemon plus small overlay for these releases.
-
-The upstream 1.7 beta introduces native lyrics and
-[lyrics-provider plugins](https://danklinux.com/docs/1.7/dankmaterialshell/plugin-development).
-That is a candidate for retiring the overlay after a stable upgrade, not a
-1.6.3 API. Verify bilingual original/translation display and provider behavior
-before migrating; feature parity is not established. Do not install the beta
-or replace the existing daemon just to bypass the version guard.
-
-For the installed embedded-shell build, obtain its extraction path from
-`qs list --all` while stock DMS is running, then:
+For an embedded-shell build, locate its pristine extraction using
+`qs list --all` while stock DMS runs. Then, from the reviewed plugin checkout:
 
 ```sh
 python3 scripts/prepare-dms-media-lyrics.py /path/to/pristine/extracted/dms-shell
-chezmoi apply --exclude=scripts,encrypted \
-  ~/.local/bin/dms-with-lyrics \
-  ~/.config/niri/conf.d/40-session.kdl \
-  ~/.config/DankMaterialShell/plugins/lyrics
 ```
+
+The overlay is still required for the integrated 1.6.2/1.6.3 experience.
+Before replacing it with a future upstream lyrics API, verify bilingual
+display and provider behavior; do not bypass guards or install a beta simply
+to avoid preparation. See the
+[plugin repository](https://github.com/oai404iao/dms-plugins) for implementation,
+supported revisions, and detailed validation.
 
 The helper and updated Niri startup entry take effect on the next login.
 To switch immediately, first save work and ensure the session is unlocked;
@@ -370,6 +367,10 @@ keys. In particular, `Mod+V`, `Mod+M`, and `Mod+Comma` are not repurposed.
    Include custom component configs when switching back; do not copy clipboard
    histories or other personal state into the repository.
 4. Set `desktopShell` deliberately via `chezmoi edit-config`.
+   Before entering DMS, follow the [plugin setup](#bilingual-lyrics) to install
+   both plugins and the launcher from a reviewed checkout. Prepare a matching
+   overlay when using integrated lyrics. Chezmoi apply cannot install the
+   missing launcher or repair its symlink.
 5. Preview and apply **only** the selected desktop targets. For DMS:
 
    ```sh
@@ -425,28 +426,15 @@ generated-file preservation, and
 excludes runtime state. It does not start DMS, lock the screen, change services,
 or access the real credential backend.
 
-`tests/check-dms-lyrics.sh` uses Node.js when available to test lyric parsing,
-translation alignment, provider fallback, caching, and stale requests with
-fake HTTP responses. It never queries real music services. Without Node.js it
-reports a skip; the desktop profile inventory checks still run.
-`tests/check-dms-media-lyrics.sh` checks offline overlay preparation, source
-version/hash rejection, generation preservation, and exact-version launcher
-selection for both supported releases using fake DMS commands. It also checks
-cross-version fallback rather than treating 1.6.2 and 1.6.3 trees as interchangeable.
-When chezmoi is available, it renders the apply hook
-across profiles and checks silent healthy setups, missing dependencies/trees,
-version mismatches, and command failures. It never starts a real shell.
-`tests/check-dms-lyrics-qml.sh` uses Qt 6's test runner when available to
-instantiate the real lyrics service/view offscreen. Stubbed MPRIS and lyric
-responses test startup, player removal, display preferences while paused,
-language availability, disabled fetching, and shared view updates without
-connecting to the real desktop or network. It also exercises the real media
-overlay's external positioning, screen bounds, blur, hover tracking, and
-settings availability without a player. The real settings and Dash components
-exercise selector persistence, transient-menu cleanup, explicit dismissal,
-keyboard isolation, and the native controls' hover timeout. Widget mocks model
-menu lifecycle only; native Wayland popup focus and surface behavior still
-require an interactive check.
+`tests/check-dms-apply-hints.sh` renders the reminder hook across profiles
+and checks healthy silence, missing dependencies/launcher/prepared trees, version
+mismatches, and command failures. It never starts a real shell.
+
+Plugin logic, QML, todo persistence, overlay preparation, and launcher tests
+belong to [dms-plugins](https://github.com/oai404iao/dms-plugins). Run
+`sh tests/check-source.sh` from its reviewed checkout before installing or
+updating it. Those tests use offline fixtures; they do not prove native
+Wayland popup focus, real provider availability, or live desktop behavior.
 
 Run `./tests/check-source.sh` and `git diff --check` before applying.
 

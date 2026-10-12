@@ -1,3 +1,0 @@
-module Quickshell.Services.Mpris
-singleton MprisPlaybackState 1.0 MprisPlaybackState.qml
-MprisPlayer 1.0 MprisPlayer.qml

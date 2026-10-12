@@ -1,4 +1,0 @@
-module qs.Services
-singleton MprisController 1.0 MprisController.qml
-singleton PluginService 1.0 PluginService.qml
-singleton AudioService 1.0 AudioService.qml

@@ -75,7 +75,7 @@ secrets/
 .local/share/fcitx5/rime/
 .config/btop/btop.log*
 
-# Only the maintained lyrics plugin is declarative; other DMS plugins and state stay local.
+# Plugin sources and launcher are deployed by the separate dms-plugins repository.
 .cache/DankMaterialShell/
 .local/state/DankMaterialShell/
 .local/share/DankMaterialShell/
@@ -86,7 +86,8 @@ secrets/
 .config/DankMaterialShell/plugins.json
 .config/DankMaterialShell/plugins.lock.json
 .config/DankMaterialShell/plugins/*
-!.config/DankMaterialShell/plugins/lyrics
+.local/bin/dms-with-lyrics
+.config/dank-todo/
 .config/DankMaterialShell/.repos/
 .config/DankMaterialShell/themes/
 .config/DankMaterialShell/backups/

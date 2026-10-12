@@ -75,7 +75,7 @@ for graphical in (False, True):
                 assert not result.stdout and not result.stderr
 
 configure()
-for name in ("dms", "qs", "python3"):
+for name in ("dms", "qs", "python3", "dms-with-lyrics"):
     program = bin_dir / name
     program.write_text(
         '#!/bin/sh\n'
@@ -149,6 +149,14 @@ assert "sudo pacman -Syu --needed dms-shell quickshell" in apply()
 (task / "qs").rename(bin_dir / "qs")
 assert "sudo pacman -Syu --needed dms-shell" in apply()
 (task / "dms").rename(bin_dir / "dms")
+assert not apply()
+
+(bin_dir / "dms-with-lyrics").rename(task / "dms-with-lyrics")
+reminder = apply()
+assert "launcher missing" in reminder
+assert "https://github.com/oai404iao/dms-plugins" in reminder
+assert "python3 scripts/install.py" in reminder
+(task / "dms-with-lyrics").rename(bin_dir / "dms-with-lyrics")
 assert not apply()
 
 env["XDG_DATA_HOME"] = ""

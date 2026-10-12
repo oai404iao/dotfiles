@@ -26,7 +26,7 @@ Treat the repository as public and respect the ownership boundaries below.
 |   |-- git/                 # Path-specific identities and global ignores
 |   |-- nvim/                # LazyVim bootstrap and locked plugin revisions
 |   |-- niri/                # Modular Niri config and custom/DMS profile adapters
-|   |-- DankMaterialShell/   # Merged settings and maintained lyrics plugin
+|   |-- DankMaterialShell/   # Merged desktop settings; plugins live separately
 |   |-- waybar/              # Bar config and guarded helper scripts
 |   |-- kitty/, fuzzel/      # Terminal and launcher configuration
 |   |-- mako/, matugen/      # Notifications and generated theme templates
@@ -34,14 +34,13 @@ Treat the repository as public and respect the ownership boundaries below.
 |   |-- private_tether/      # Optional merged Bluetooth notification policy
 |   `-- private_pi/agent/    # Private-mode declarative Pi configuration
 |-- dot_local/bin/
-|   |-- executable_dms-with-lyrics # Version-matched DMS overlay launcher
 |   `-- executable_rm        # Optional recoverable recursive-removal wrapper
 |-- .chezmoitemplates/       # Shared Niri output and binding templates
 |-- run_after_check-dms-lyrics.sh.tmpl
 |                            # Reminder-only DMS dependency/preparation check
 |-- run_once_before_disable-swayidle-service.sh.tmpl
 |                            # Transfers swayidle ownership to Niri once
-|-- scripts/                 # Age helpers, skills installer, and DMS overlay sources
+|-- scripts/                 # Age helpers and skills installer
 |-- tests/                   # Offline source, rendering, and helper checks
 `-- docs/                    # Configuration and publication operating notes
 ```
@@ -60,18 +59,22 @@ Root `dot_*` files map to home-directory files such as `~/.zshenv` and
   manage their own dependencies.
 - Do not edit caches, downloaded plugins, package installations, histories,
   sessions, databases, or generated runtime state into source control.
-- `dot_config/DankMaterialShell/plugins/lyrics/` is a maintained source
-  exception, not a downloaded plugin cache. Preserve its upstream MIT license
-  and documented revision; test changes with `tests/check-dms-lyrics.sh`,
-  `tests/check-dms-lyrics-qml.sh`, and `tests/check-desktop-profiles.sh`.
-  It is a shared daemon, not a separate bar widget. Other DMS plugins, enablement/preferences,
-  and lockfiles remain machine-local.
-- `scripts/dms-media-lyrics/` maintains the version-pinned native media widget/page
-  overlay. Prepare it offline with `scripts/prepare-dms-media-lyrics.py`;
-  never patch the installed package or its read-only runtime extraction.
-  Generated shell trees under `$XDG_DATA_HOME/dms-media-lyrics/` stay ignored.
-  Niri starts `dms-with-lyrics`, which falls back to stock DMS if no matching
-  prepared tree exists. Run `tests/check-dms-media-lyrics.sh` for this path.
+- DMS plugin implementations belong to
+  [oai404iao/dms-plugins](https://github.com/oai404iao/dms-plugins), normally checked
+  out at `~/Dev/local/dms-plugins`. That repository owns `plugins/{lyrics,dankTodo}`,
+  the native media overlay/preparer, `bin/dms-with-lyrics`, its explicit installer,
+  and related logic/QML/overlay tests. Edit and test those there, not in chezmoi.
+  All deployed plugins, the launcher, plugin preferences/lockfiles, todo data, and
+  generated `$XDG_DATA_HOME/dms-media-lyrics/` trees stay ignored here.
+- Chezmoi owns only DMS desktop integration and a reminder-only apply hook.
+  Before a fresh DMS session, clone a reviewed plugin revision, run its offline
+  tests, and explicitly install its plugin/launcher symlinks with backups; see
+  `docs/desktop-shells.md#bilingual-lyrics`. There is no external auto-fetch.
+  Niri still starts `dms-with-lyrics`, which falls back to stock DMS without a
+  matching prepared tree; the launcher itself must already be installed.
+  Never patch installed packages or read-only shell extractions. Run
+  `tests/check-desktop-profiles.sh` and `tests/check-dms-apply-hints.sh` for the
+  integration and reminders.
 - Preserve lockfiles unless the task explicitly updates dependencies. In
   particular, do not regenerate `dot_config/nvim/lazy-lock.json` incidentally.
 - Pi npm declarations in `modify_private_settings.json.tmpl` are pinned and
@@ -126,6 +129,7 @@ implemented in `.chezmoiignore`. Deployment and rendering depend on `graphical`,
 ./tests/check-rbw.sh
 ./tests/check-skills.sh
 ./tests/check-desktop-profiles.sh
+./tests/check-dms-apply-hints.sh
 ./tests/check-tether.sh
 ./tests/check-keyring.sh
 CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh
@@ -145,8 +149,8 @@ chezmoi apply <target>
 ```
 
 `check-source.sh` invokes shell syntax/environment, rbw, Git, public-history,
-SSH, safe-rm, Pi, skills, desktop applications/profiles, Tether, DMS lyrics/media
-overlay, and keyring checks. Public checks cover all locally reachable history
+SSH, safe-rm, Pi, skills, desktop applications/profiles, Tether, DMS apply-hint,
+and keyring checks. Public checks cover all locally reachable history
 plus pending files. Neovim checks run when `nvim` is installed; Niri rendering
 and validation run when both `chezmoi` and `niri` are installed. Some desktop
 render/runtime checks skip when their tools are unavailable; report those skips.

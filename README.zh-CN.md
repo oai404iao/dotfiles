@@ -26,12 +26,13 @@
 - Niri 使用模块化配置和可选择的显示器配置档案。
 - Niri 桌面可在 init 时选择完整的 `dms` 或现有 `custom` 组件组合。
   [方案切换与所有权说明](docs/desktop-shells.md)涵盖 GUI 偏好的保留和两套启动流程的隔离。
-- DMS 包含本地维护的[双语歌词服务](docs/desktop-shells.md#bilingual-lyrics)。
-  适配 DMS 1.6.2/1.6.3 且检查版本的本地界面补丁将歌词整合进音乐组件和原生媒体页，
-  共用歌词/译文显示开关，不调用 AI 翻译。
-  DMS 配置的 apply 会提醒缺失的运行依赖、未准备或版本不匹配的界面补丁；
-  不会自动安装软件包或重启桌面。
-  升级 DMS 后，需从对应版本的原始源码树重新准备界面补丁。
+- DMS 的 `lyrics`、`dankTodo` 插件、原生媒体界面补丁与 `dms-with-lyrics`
+  启动器统一在 [oai404iao/dms-plugins](https://github.com/oai404iao/dms-plugins)
+  维护，不再由 chezmoi 管理。[新设备设置](docs/desktop-shells.md#bilingual-lyrics)
+  需要在启动 DMS 会话前检出经审阅的版本、运行离线测试并显式安装；
+  chezmoi 不会自动获取或安装它们，apply 仅提醒依赖和补丁准备事项。
+  双语歌词界面补丁支持 DMS 1.6.2/1.6.3；升级 DMS 后需从对应版本的
+  原始源码树重新准备。插件数据只保留在本机。
 - 可选的 [Tether 蓝牙 iPhone 通知](docs/tether.md)整合到 DMS，默认不开放 Wi-Fi
   或剪贴板访问；显式设置 `tetherMode="wifi-clipboard"` 可启用局域网与剪贴板同步。
   两种模式都禁用消息/联系人持久化，并设置不写入通知历史的规则。

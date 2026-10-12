@@ -31,12 +31,14 @@ credentials and mutable application state out of Git.
 - Niri desktops choose a complete `dms` shell or the existing `custom`
   component stack during init. [Profile switching and ownership](docs/desktop-shells.md)
   preserve GUI preferences and keep the two startup paths separate.
-- DMS includes a maintained [bilingual lyrics service](docs/desktop-shells.md#bilingual-lyrics).
-  A version-checked local overlay for DMS 1.6.2/1.6.3 integrates it into the music
-  widget and native media page, with shared lyric/translation controls and no AI calls.
-  DMS-profile applies warn about missing runtime dependencies or an unprepared/
-  mismatched overlay; they never install packages or restart the shell.
-  After upgrading DMS, prepare a new overlay from that version's pristine tree.
+- DMS plugins `lyrics` and `dankTodo`, the native media overlay, and the
+  `dms-with-lyrics` launcher are maintained in
+  [oai404iao/dms-plugins](https://github.com/oai404iao/dms-plugins), not chezmoi.
+  [Fresh-machine setup](docs/desktop-shells.md#bilingual-lyrics) requires a reviewed
+  checkout, offline tests, and explicit installation before starting the DMS session;
+  chezmoi never fetches or installs them. Applies only emit dependency/preparation
+  reminders. The bilingual overlay supports DMS 1.6.2/1.6.3; after upgrading DMS,
+  prepare it again from that version's pristine tree. Plugin data stays local.
 - Optional [Tether Bluetooth iPhone notifications](docs/tether.md) integrate
   with DMS without Wi-Fi or clipboard access by default. An explicit
   `tetherMode="wifi-clipboard"` also enables LAN and clipboard synchronization.
