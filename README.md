@@ -50,6 +50,8 @@ credentials and mutable application state out of Git.
   later applies.
 - Satty, btop, Fcitx5 candidate windows, swaylock-effects, and GTK file
   management share the desktop style while preserving input schemes and app state.
+- Nautilus's Scripts submenu can copy absolute paths or paths relative to the
+  current folder. [Usage and prerequisites](docs/desktop.md#nautilus-copy-path-scripts).
 - LazyVim configuration includes a lockfile reconstructed from verified local
   plugin checkouts.
 - Pi uses local Kitty notifications on graphical machines and Telegram on

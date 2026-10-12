@@ -42,6 +42,8 @@
 - 为 Matugen 与 Waypaper 提供初始状态，同时避免后续 apply 覆盖应用生成值。
 - Satty、btop、Fcitx5 候选框、swaylock-effects 与 GTK 文件管理共享桌面风格，
   同时保留输入方案和应用状态。
+- Nautilus 右键“脚本”子菜单支持复制绝对路径或相对于当前目录的路径。
+  [使用方式与依赖](docs/desktop.md#nautilus-copy-path-scripts)。
 - LazyVim 配置包含根据经过验证的本地插件检出重建的锁文件。
 - Pi 在图形机器使用 Kitty 本地通知，无桌面机器使用 Telegram。模型及无桌面
   Telegram 凭据通过 `rbw` 从 Bitwarden 获取，参见

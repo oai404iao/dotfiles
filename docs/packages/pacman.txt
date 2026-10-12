@@ -61,6 +61,7 @@ fcitx5-rime            # Rime input method.
 fcitx5-gtk             # GTK input-method integration.
 fcitx5-qt              # Qt input-method integration.
 nautilus               # File manager with managed GTK styling.
+wl-clipboard           # Nautilus copy-path scripts and wl-copy / wl-paste.
 btop                   # Configured system monitor.
 satty                  # Screenshot editor used by the custom profile.
 matugen                # DMS palettes or custom Waypaper theme pipeline.
@@ -92,7 +93,6 @@ brightnessctl          # Niri backlight-key actions.
 grim                   # Region and long screenshots.
 slurp                  # Region selection.
 imagemagick            # magick stitches long screenshots.
-wl-clipboard           # wl-copy / wl-paste.
 wf-recorder            # Waybar recording widget.
 jq                     # Safe JSON output for Waybar's recorder status.
 ddcutil                # External monitor brightness actions.

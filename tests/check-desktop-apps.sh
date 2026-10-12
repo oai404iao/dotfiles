@@ -280,5 +280,6 @@ else:
 PY
 
 python3 "$repo_dir/tests/check-nautilus-style.py"
+python3 "$repo_dir/tests/check-nautilus-scripts.py"
 
 printf '%s\n' "desktop application configs passed"

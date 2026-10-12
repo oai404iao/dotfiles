@@ -195,6 +195,7 @@ secrets/
 .config/waypaper/
 .local/share/applications/shardx-launcher.desktop
 .local/share/fcitx5/themes/Matugen/
+.local/share/nautilus/scripts/
 {{- end }}
 
 {{- if and .graphical .niri (eq $desktopShell "dms") }}

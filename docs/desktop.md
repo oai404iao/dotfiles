@@ -150,6 +150,31 @@ Reopen GTK applications to check their styles; test a file chooser separately
 from Nautilus. Test the lock screen interactively, not as an automated check.
 Neither source checks nor theme rendering invokes the lock screen.
 
+### Nautilus copy-path scripts
+
+Graphical profiles manage two executable scripts under
+`~/.local/share/nautilus/scripts/`: `复制相对路径` and `复制绝对路径`.
+Select files or folders, then choose **Scripts → 复制相对路径** or
+**Scripts → 复制绝对路径** from the context menu. This uses
+[Nautilus's built-in script support](https://help.gnome.org/gnome-help/nautilus-behavior.html),
+not a Python extension. Python and `wl-clipboard` must be installed; clipboard
+copying requires a Wayland session.
+
+Relative paths use the current browsing directory, with `./` for descendants
+and `../` for parent traversal; absolute paths retain symlink names rather than
+resolving them. Multiple selections produce one unquoted path per line, with
+no trailing newline. Spaces and Unicode are preserved. These are plain text
+paths, not shell-escaped arguments or Nautilus file-copy clipboard data.
+Remote locations and filenames containing line breaks are rejected before
+copying; an empty selection leaves the clipboard unchanged. Relative copying
+requires a local current directory, so virtual search/recent views are not
+supported for that action.
+
+Apply only the two script targets after reviewing them; other user scripts
+remain unmanaged. If the Scripts submenu is not visible, reopen Nautilus.
+`tests/check-nautilus-scripts.py` validates rendering and clipboard calls offline
+without replacing the real clipboard.
+
 ### GTK theme prerequisites
 
 On Arch Linux:
