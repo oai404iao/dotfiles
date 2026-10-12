@@ -8,7 +8,7 @@ settings = json.loads(raw) if raw.strip() else {}
 settings.update(
     {
         "defaultProvider": "openai",
-        "defaultModel": "gpt-6-astra",
+        "defaultModel": "gpt-6.1-sol",
         "defaultThinkingLevel": "high",
         "defaultTools": ["+codemode"],
         "codemode": {**settings.get("codemode", {}), "mode": "on"},
@@ -30,7 +30,7 @@ settings.update(
             "npm:@oai404iao/pi-telegram-notify@0.6.0",
 {{- end }}
             "npm:@oai404iao/pi-codex-minimal-tools@4.1.1",
-            "npm:@oai404iao/pi-subagent@1.0.1",
+            "npm:@oai404iao/pi-subagent@1.1.0",
         ],
         "theme": "dark",
         "sessionDir": "~/.local/state/pi/agent/sessions",
