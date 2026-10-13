@@ -10,6 +10,10 @@
       "skills": ["shadcn"]
     },
     {
+      "source": "schpet/linear-cli",
+      "skills": ["linear-cli"]
+    },
+    {
       "source": "oai404iao/my_skills",
       "skills": [
         "agents-md",

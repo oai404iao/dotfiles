@@ -67,6 +67,7 @@ declared = json.loads((repo / "scripts/skills.json").read_text())
 assert declared["sources"] == [
     {"source": "vercel-labs/agent-browser", "skills": ["agent-browser"]},
     {"source": "shadcn/ui", "skills": ["shadcn"]},
+    {"source": "schpet/linear-cli", "skills": ["linear-cli"]},
     {
         "source": "oai404iao/my_skills",
         "skills": ["agents-md", "frontend-design", "development-workflow"],
