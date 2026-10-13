@@ -226,7 +226,6 @@ secrets/
 .config/kitty/themes/matugen.conf
 .config/gtk-3.0/colors.css
 .config/gtk-4.0/colors.css
-.config/gtk-4.0/nautilus.css
 .local/share/fcitx5/themes/Matugen/
 {{- else }}
 .config/DankMaterialShell/

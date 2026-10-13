@@ -1,3 +1,4 @@
+import itertools
 import pathlib
 import sys
 
@@ -35,18 +36,25 @@ Gtk.StyleContext.add_provider_for_display(
 assert not errors, errors
 
 
-def background_alpha(widget):
+def background_rgba(widget):
     snapshot = Gtk.Snapshot()
     snapshot.render_background(widget.get_style_context(), 0, 0, 100, 100)
     node = snapshot.to_node()
     if node is None:
-        return 0
+        return (0, 0, 0, 0)
     surface = cairo.ImageSurface(cairo.FORMAT_ARGB32, 100, 100)
     node.draw(cairo.Context(surface))
     surface.flush()
     offset = 50 * surface.get_stride() + 50 * 4
     pixel = int.from_bytes(surface.get_data()[offset:offset + 4], sys.byteorder)
-    return (pixel >> 24) / 255
+    alpha = (pixel >> 24) / 255
+    if not alpha:
+        return (0, 0, 0, 0)
+    return tuple(((pixel >> shift) & 255) / 255 / alpha for shift in (16, 8, 0)) + (alpha,)
+
+
+def background_alpha(widget):
+    return background_rgba(widget)[3]
 
 
 def descendants(widget):
@@ -57,16 +65,36 @@ def descendants(widget):
         child = child.get_next_sibling()
 
 
-# Mirror Nautilus 50's structural layers without opening user files or windows.
-for css_class in ("nautilus-window", "nautilus-file-chooser", "unrelated"):
-    window = Adw.Window()
+# Mirror Nautilus's structural layers without opening user files or windows.
+palettes = (
+    ("custom", "#231a16", "#f1dfd9"),
+    ("dms-dark", "#151313", "#e8e1e1"),
+    ("dms-light", "#fff8f6", "#221f20"),
+)
+for (palette, background, foreground), css_class in itertools.product(
+    palettes, ("nautilus-window", "nautilus-file-chooser", "unrelated")
+):
+    provider.load_from_data((
+        (repo / "dot_config/gtk-4.0/create_colors.css").read_text()
+        + f"\n@define-color view_bg_color {background};\n"
+        + f"@define-color view_fg_color {foreground};\n"
+    ).encode())
+    assert not errors, errors
+    window = Adw.ApplicationWindow() if css_class == "nautilus-window" else Adw.Window()
     window.add_css_class(css_class)
     split = Adw.OverlaySplitView()
     if css_class == "nautilus-window":
         window.add_css_class("view")
+        tabs = Adw.TabView()
+        overview = Adw.TabOverview()
+        overview.set_view(tabs)
+        overview.set_child(split)
+        window.set_content(overview)
     elif css_class == "nautilus-file-chooser":
         split.add_css_class("view")
-    window.set_content(split)
+        window.set_content(split)
+    else:
+        window.set_content(split)
     content = Adw.ToolbarView()
     sidebar = Adw.ToolbarView()
     for toolbar in (content, sidebar):
@@ -87,10 +115,20 @@ for css_class in ("nautilus-window", "nautilus-file-chooser", "unrelated"):
     box.append(button)
     dropdown = Gtk.DropDown.new_from_strings(["All files", "Image files"])
     box.append(dropdown)
-    content.set_content(box)
+    status = Adw.StatusPage(title="Folder is Empty")
+    status.add_css_class("view")
+    pages = Gtk.Stack()
+    pages.add_child(box)
+    pages.add_child(status)
+    if css_class == "nautilus-window":
+        tabs.append(pages)
+        content.set_content(tabs)
+    else:
+        content.set_content(pages)
 
     for collapsed in (False, True):
         split.set_collapsed(collapsed)
+        split.set_show_sidebar(True)
         for backdrop in (False, True):
             widgets = [window, *descendants(window)]
             for widget in widgets:
@@ -100,11 +138,20 @@ for css_class in ("nautilus-window", "nautilus-file-chooser", "unrelated"):
                     widget.unset_state_flags(Gtk.StateFlags.BACKDROP)
             expected = 1 if css_class == "unrelated" else 0.9
             assert abs(background_alpha(window) - expected) < 0.01, css_class
+            assert background_alpha(status) == (1 if css_class == "unrelated" else 0)
             if css_class != "unrelated":
+                expected_color = Gdk.RGBA()
+                assert expected_color.parse(background)
+                assert all(abs(a - b) < 0.01 for a, b in zip(
+                    background_rgba(window)[:3],
+                    (expected_color.red, expected_color.green, expected_color.blue),
+                )), (palette, css_class, background_rgba(window))
                 assert background_alpha(split) == 0
                 for widget in widgets:
                     pane = widget.get_parent() == split and (
-                        widget.has_css_class("sidebar-pane") or widget.has_css_class("background")
+                        widget.has_css_class("sidebar-pane")
+                        or widget.has_css_class("overlay-pane")
+                        or widget.has_css_class("background")
                     )
                     if pane or widget.has_css_class("top-bar"):
                         assert background_alpha(widget) == 0, widget.get_css_name()
@@ -120,4 +167,4 @@ for css_class in ("nautilus-window", "nautilus-file-chooser", "unrelated"):
                     assert background_alpha(widget) == 1, (css_class, root.get_css_name())
     window.destroy()
 
-print("Nautilus backgrounds are translucent; text, icons, menus and other windows stay opaque")
+print("Nautilus backgrounds follow custom/DMS palettes at 90% opacity; text, icons, menus and other windows stay opaque")

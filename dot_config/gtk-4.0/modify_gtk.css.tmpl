@@ -9,7 +9,7 @@ css = re.sub(
     css,
 )
 {{ if and (get . "graphical") (get . "niri") (eq (get . "desktopShell" | default "custom") "dms") -}}
-sys.stdout.write('@import "dank-colors.css";\n' + css)
+sys.stdout.write('@import "dank-colors.css";\n@import "nautilus.css";\n' + css)
 {{ else -}}
 sys.stdout.write('@import "colors.css";\n@import "nautilus.css";\n' + css)
 {{ end -}}

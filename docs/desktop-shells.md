@@ -125,9 +125,16 @@ Applies using `--exclude=scripts` skip these reminders as well.
   every included file to exist. Plain `create_` can delete these empty files.
   Input configuration remains in the common `conf.d/10-input.kdl`.
 - Kitty's `dank-theme.conf` / `dank-tabs.conf` and GTK's `dank-colors.css`
-  receive create-only fallbacks; DMS generates subsequent palettes. DMS mode
-  does not import the custom Nautilus CSS or force GTK's dark preference.
+  receive create-only fallbacks; DMS generates subsequent palettes. Both
+  graphical profiles manage `gtk-4.0/nautilus.css` for Nautilus and its portal
+  file chooser's 90%-opacity background, imported once after the profile's
+  palette. GTK 4 uses `dank-colors.css` then `nautilus.css` in DMS, and
+  `colors.css` then `nautilus.css` in custom; unrelated CSS survives switching.
+  DMS mode does not force GTK's dark preference or enable legacy user templates.
+  For an existing machine, follow the
+  [reviewed two-target style update](desktop.md#nautilus-background-style).
   Reopen GTK applications after changing palettes if they do not refresh.
+  Apply does not automatically quit applications.
 - The initial dynamic palette uses Matugen's `scheme-neutral`: wallpaper hue
   remains, with less saturated accents and backgrounds. Terminals stay dark
   even when the shell switches to light mode. Kitty includes the declarative

@@ -94,6 +94,15 @@ targets = [
 def managed(command, env):
     return set(run(command + ["managed", "--include", "files", "--exclude", "externals"], env).splitlines())
 
+def assert_gtk_imports(css, version, shell):
+    palette = "dank-colors.css" if shell == "dms" else "colors.css"
+    expected = f'@import "{palette}";\n'
+    if version == "4.0":
+        expected += '@import "nautilus.css";\n'
+    assert css.startswith(expected)
+    assert css.count("colors.css") == 1
+    assert css.count("nautilus.css") == (1 if version == "4.0" else 0)
+
 def apply(home, env, command, shell):
     paths = targets + ([
         ".config/DankMaterialShell/settings.json", ".config/qt6ct/qt6ct.conf",
@@ -152,6 +161,7 @@ for shell in ("custom", "dms"):
         inventory = managed(command, env)
         assert not any(path.startswith(".config/DankMaterialShell/plugins/") for path in inventory)
         assert ".local/bin/dms-with-lyrics" not in inventory
+        assert ".config/gtk-4.0/nautilus.css" in inventory
         assert (dms_only if shell == "dms" else custom_only) <= inventory
         assert not (custom_only if shell == "dms" else dms_only) & inventory
         matugen_files = {path for path in inventory if path.startswith(".config/matugen/")}
@@ -331,9 +341,10 @@ for shell in ("custom", "dms"):
             assert 'Theme=Matugen\n' in classicui
         for version in ("3.0", "4.0"):
             css = (home / f".config/gtk-{version}/gtk.css").read_text()
-            expected = "dank-colors.css" if shell == "dms" else "colors.css"
-            assert css.startswith(f'@import "{expected}";\n')
-            assert ('@import "nautilus.css";' in css) == (version == "4.0" and shell == "custom")
+            assert_gtk_imports(css, version, shell)
+        assert (home / ".config/gtk-4.0/nautilus.css").read_bytes() == (
+            repo / "dot_config/gtk-4.0/nautilus.css"
+        ).read_bytes()
 
 home, env, command = fixture("dms-existing", "dms")
 settings_file = home / ".config/DankMaterialShell/settings.json"
@@ -360,11 +371,13 @@ assert qt6ct["Interface"]["retain"] == "1"
 home, env, command = fixture("legacy")
 assert custom_only <= managed(command, env)
 assert not dms_only & managed(command, env)
+assert ".config/gtk-4.0/nautilus.css" in managed(command, env)
 for shell in ("dms", "custom"):
     for graphical, niri in ((False, False), (False, True), (True, False)):
         home, env, command = fixture(f"{shell}-{graphical}-{niri}", shell, graphical, niri)
         inventory = managed(command, env)
         assert not dms_only & inventory
+        assert (".config/gtk-4.0/nautilus.css" in inventory) == graphical
         plugin_file = home / ".config/nvim/lua/plugins/dms-colorscheme.lua"
         plugin_file.parent.mkdir(parents=True)
         run(command + ["apply", "--exclude", "scripts,encrypted", str(plugin_file)], env)
@@ -376,7 +389,9 @@ for shell in ("dms", "custom"):
             assert "include current-theme.conf" in (home / ".config/kitty/kitty.conf").read_text()
             assert "Theme=Matugen\n" in (home / ".config/fcitx5/conf/classicui.conf").read_text()
             for version in ("3.0", "4.0"):
-                assert "dank-colors.css" not in (home / f".config/gtk-{version}/gtk.css").read_text()
+                assert_gtk_imports(
+                    (home / f".config/gtk-{version}/gtk.css").read_text(), version, "custom"
+                )
 
 home, env, command = fixture("invalid", "invalid")
 result = subprocess.run(command + ["managed"], env=env, capture_output=True, text=True)
@@ -399,15 +414,18 @@ for shell in ("dms", "custom"):
 
 # Switching replaces only managed CSS imports, not unrelated custom CSS.
 home, env, command = fixture("switch", "dms")
+palettes = {}
 for version in ("3.0", "4.0"):
     css = home / f".config/gtk-{version}/gtk.css"
     css.parent.mkdir(parents=True, exist_ok=True)
     css.write_text('@import "colors.css";\n@import "dank-colors.css";\n'
-                   + ('@import "nautilus.css";\n' if version == "4.0" else '')
+                   + ('@import "nautilus.css";\n@import url(\'nautilus.css\');\n' if version == "4.0" else '')
                    + '/* keep */\n@import "local.css";\n')
-apply(home, env, command, "dms")
+    palette = css.parent / "dank-colors.css"
+    palette.write_text("/* DMS-generated palette */\n")
+    palettes[palette] = palette.read_bytes()
 config = home / "chezmoi.toml"
-for shell in ("custom", "dms"):
+for shell in ("dms", "custom", "dms"):
     config.write_text(re.sub(r'desktopShell = "[^"]+"', f'desktopShell = "{shell}"', config.read_text()))
     apply(home, env, command, shell)
     if shell == "custom":
@@ -416,8 +434,14 @@ for shell in ("custom", "dms"):
         run(["niri", "validate", "--config", str(home / ".config/niri/config.kdl")], env)
     for version in ("3.0", "4.0"):
         css = (home / f".config/gtk-{version}/gtk.css").read_text()
-        assert css.count("colors.css") == 1
+        assert_gtk_imports(css, version, shell)
         assert '/* keep */\n@import "local.css";\n' in css
+    css_files = [home / f".config/gtk-{version}/gtk.css" for version in ("3.0", "4.0")]
+    css_files.append(home / ".config/gtk-4.0/nautilus.css")
+    applied = {path: path.read_bytes() for path in css_files}
+    apply(home, env, command, shell)
+    assert {path: path.read_bytes() for path in css_files} == applied
+    assert {path: path.read_bytes() for path in palettes} == palettes
 
 ignored = run(command + ["execute-template", "--file", str(repo / ".chezmoiignore")], env)
 for path in (

@@ -127,17 +127,19 @@ depend on the supplied artwork.
   lock-before-monitor-off ordering stays in Niri.
 - Nautilus remains the graphical file manager. GTK 3/4 import the generated
   palette for applications and file choosers; modifiers preserve other CSS.
-  GTK 3 selects `adw-gtk3-dark` with dark preference enabled; this requires the
-  separately installed `adw-gtk-theme` package. A missing theme can silently
-  fall back to light Adwaita even when the desktop prefers dark mode.
+  In the custom profile, GTK 3 selects `adw-gtk3-dark` with dark preference
+  enabled; this requires the separately installed `adw-gtk-theme` package.
+  A missing theme can silently fall back to light Adwaita even when the
+  desktop prefers dark mode.
   On Niri, the FileChooser portal prefers GNOME/Nautilus with GTK as fallback;
   other portal preferences remain untouched. No folder history, bookmarks,
   default applications, icon theme, or dconf database is taken
   over. Matugen no longer forces a particular GTK theme via GSettings.
-  GTK 4 imports a separate `nautilus.css`: Nautilus main windows and its portal
-  file choosers share a Matugen view background at 90% opacity. Only their
-  background layers change; text, icons, context menus, and dropdown popovers
-  retain their original opacity. Other GTK applications are not targeted.
+  Both custom and DMS graphical profiles import a separate GTK 4 `nautilus.css`
+  after their palette (`colors.css` or DMS's `dank-colors.css`): Nautilus main
+  windows and its portal file choosers share the view background at 90% opacity.
+  Only their background layers change; text, icons, context menus, and dropdown
+  popovers retain their original opacity. Other GTK applications are not targeted.
   This is background transparency, not compositor opacity or blur.
 
 SwayOSD is not enabled by this configuration; volume bindings retain their
@@ -149,6 +151,24 @@ their palettes through Matugen/Waypaper rather than forcing chezmoi ownership.
 Reopen GTK applications to check their styles; test a file chooser separately
 from Nautilus. Test the lock screen interactively, not as an automated check.
 Neither source checks nor theme rendering invokes the lock screen.
+
+### Nautilus background style
+
+To update only this style on an existing graphical custom or DMS machine,
+back up and review both explicit targets, then apply them:
+
+```sh
+chezmoi diff --skip-secrets --exclude=encrypted \
+  ~/.config/gtk-4.0/gtk.css ~/.config/gtk-4.0/nautilus.css
+chezmoi apply --exclude=scripts,encrypted \
+  ~/.config/gtk-4.0/gtk.css ~/.config/gtk-4.0/nautilus.css
+```
+
+The modifier preserves unrelated CSS and imports the profile palette followed
+by `nautilus.css` exactly once. DMS still owns its generated `dank-colors.css`;
+this update does not enable legacy user Matugen templates. Save work and reopen
+Nautilus and affected GTK applications yourself, then test a portal file chooser
+separately. Apply does not automatically quit applications.
 
 ### Nautilus copy-path scripts
 
