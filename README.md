@@ -47,8 +47,9 @@ credentials and mutable application state out of Git.
 - On Niri machines, GNOME Keyring D-Bus activation uses the packaged systemd
   user service; [keyring data and backups stay machine-local](docs/desktop.md#desktop-keyring).
 - Matugen and Waypaper generated state is bootstrapped without being reset on
-  later applies. DMS also regenerates and live-reloads btop's Matugen theme
-  without enabling the legacy custom desktop templates.
+  later applies. DMS also regenerates btop and fastfetch themes and integrates
+  Neovim through a pinned base46 plugin, without enabling the legacy custom
+  desktop templates.
 - Satty, btop, Fcitx5 candidate windows, swaylock-effects, and GTK file
   management share the desktop style while preserving input schemes and app state.
 - Nautilus's Scripts submenu can copy absolute paths or paths relative to the

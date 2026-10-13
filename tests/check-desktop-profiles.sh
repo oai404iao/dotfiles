@@ -81,12 +81,14 @@ dms_only = {
     ".config/kitty/dms-ansi.conf",
     ".config/gtk-4.0/dank-colors.css", ".config/qt6ct/qt6ct.conf",
     ".config/matugen/dms/configs/chezmoi-btop.toml",
+    ".config/matugen/dms/configs/chezmoi-fastfetch.toml",
 } | dms_kdl_targets
 assert not any(path.is_file() for path in (repo / "dot_config/DankMaterialShell/plugins").rglob("*"))
 assert not (repo / "dot_local/bin/executable_dms-with-lyrics").exists()
 targets = [
     ".config/niri", ".config/kitty", ".config/gtk-3.0", ".config/gtk-4.0",
     ".config/fcitx5/conf/classicui.conf",
+    ".config/nvim/lua/plugins/dms-colorscheme.lua",
 ]
 
 def managed(command, env):
@@ -96,7 +98,9 @@ def apply(home, env, command, shell):
     paths = targets + ([
         ".config/DankMaterialShell/settings.json", ".config/qt6ct/qt6ct.conf",
         ".config/matugen/dms/configs/chezmoi-btop.toml",
+        ".config/matugen/dms/configs/chezmoi-fastfetch.toml",
         ".config/matugen/templates/btop.theme",
+        ".config/matugen/templates/fastfetch-config.jsonc",
     ] if shell == "dms" else [])
     for path in paths:
         (home / path).parent.mkdir(parents=True, exist_ok=True)
@@ -154,11 +158,20 @@ for shell in ("custom", "dms"):
         if shell == "dms":
             assert matugen_files == {
                 ".config/matugen/dms/configs/chezmoi-btop.toml",
+                ".config/matugen/dms/configs/chezmoi-fastfetch.toml",
                 ".config/matugen/templates/btop.theme",
+                ".config/matugen/templates/fastfetch-config.jsonc",
             }
         else:
             assert not any(path.startswith(".config/matugen/dms/") for path in matugen_files)
         apply(home, env, command, shell)
+        if shutil.which("nvim"):
+            run([
+                "nvim", "--headless", "-u", "NONE", "-i", "NONE", "-n",
+                "-l", str(repo / "tests/check-dms-nvim.lua"),
+                str(home / ".config/nvim/lua/plugins/dms-colorscheme.lua"),
+                "enabled" if shell == "dms" else "disabled",
+            ], env)
         niri_dir = home / ".config/niri"
         if shutil.which("niri"):
             run(["niri", "validate", "--config", str(niri_dir / "config.kdl")], env)
@@ -194,6 +207,20 @@ for shell in ("custom", "dms"):
             assert settings["currentThemeName"] == "dynamic"
             assert settings["matugenScheme"] == "scheme-neutral"
             assert settings["terminalsAlwaysDark"] is True
+            assert settings["matugenTemplateNeovim"] is True
+            fastfetch_config = tomllib.loads(
+                (home / ".config/matugen/dms/configs/chezmoi-fastfetch.toml").read_text()
+            )
+            assert set(fastfetch_config) == {"templates"}
+            assert set(fastfetch_config["templates"]) == {"chezmoi-fastfetch"}
+            fastfetch_template = fastfetch_config["templates"]["chezmoi-fastfetch"]
+            assert fastfetch_template == {
+                "input_path": str(home / ".config/matugen/templates/fastfetch-config.jsonc"),
+                "output_path": str(home / ".config/fastfetch/config.jsonc"),
+            }
+            assert pathlib.Path(fastfetch_template["input_path"]).read_bytes() == (
+                repo / "dot_config/matugen/templates/fastfetch-config.jsonc"
+            ).read_bytes()
             btop_config = tomllib.loads(
                 (home / ".config/matugen/dms/configs/chezmoi-btop.toml").read_text()
             )
@@ -253,6 +280,8 @@ for shell in ("custom", "dms"):
             settings["widgetColorMode"] = "colorful"
             settings["runningAppsCurrentWorkspace"] = False
             settings["barElevationEnabled"] = True
+            settings["matugenTemplateNeovim"] = False
+            settings["matugenTemplateGhostty"] = False
             settings_file.write_text(json.dumps(settings))
             qt_file.write_text(
                 "; local comment\n[Appearance]\nicon_theme=breeze\ncustom_palette=false\n"
@@ -269,6 +298,8 @@ for shell in ("custom", "dms"):
             assert updated["widgetColorMode"] == "default"
             assert updated["runningAppsCurrentWorkspace"] is True
             assert updated["barElevationEnabled"] is False
+            assert updated["matugenTemplateNeovim"] is True
+            assert updated["matugenTemplateGhostty"] is False
             assert updated["acLockTimeout"] == 600
             assert updated["futurePreference"] is True
             assert updated["networkPreference"] == "ethernet"
@@ -334,6 +365,10 @@ for shell in ("dms", "custom"):
         home, env, command = fixture(f"{shell}-{graphical}-{niri}", shell, graphical, niri)
         inventory = managed(command, env)
         assert not dms_only & inventory
+        plugin_file = home / ".config/nvim/lua/plugins/dms-colorscheme.lua"
+        plugin_file.parent.mkdir(parents=True)
+        run(command + ["apply", "--exclude", "scripts,encrypted", str(plugin_file)], env)
+        assert plugin_file.read_text().strip() == "return {}"
         assert ".config/niri/config.kdl" not in inventory
         if graphical:
             run(command + ["apply", "--exclude", "scripts,encrypted"]
@@ -375,6 +410,8 @@ config = home / "chezmoi.toml"
 for shell in ("custom", "dms"):
     config.write_text(re.sub(r'desktopShell = "[^"]+"', f'desktopShell = "{shell}"', config.read_text()))
     apply(home, env, command, shell)
+    if shell == "custom":
+        assert (home / ".config/nvim/lua/plugins/dms-colorscheme.lua").read_text().strip() == "return {}"
     if shutil.which("niri"):
         run(["niri", "validate", "--config", str(home / ".config/niri/config.kdl")], env)
     for version in ("3.0", "4.0"):
@@ -391,6 +428,8 @@ for path in (
     ".config/DankMaterialShell/plugins.json", ".config/DankMaterialShell/plugins.lock.json",
     ".config/DankMaterialShell/plugins/*", ".config/dank-todo/",
     ".local/bin/dms-with-lyrics",
+    ".config/nvim/colors/dms.lua", ".config/nvim/lua/lualine/themes/dms.lua",
+    ".config/fastfetch/config.jsonc",
 ):
     assert path in ignored.splitlines()
 assert "!.config/DankMaterialShell/plugins/lyrics" not in ignored.splitlines()
@@ -424,6 +463,8 @@ if shutil.which("dms") and shutil.which("matugen"):
     skip = ",".join(item["id"] for item in json.loads(run(["dms", "matugen", "check"], env)))
     theme_file = home / ".config/btop/themes/matugen.theme"
     theme_file.parent.mkdir(parents=True)
+    fastfetch_file = home / ".config/fastfetch/config.jsonc"
+    fastfetch_file.parent.mkdir(parents=True)
     rendered = []
     for mode, status in (("dark", "0"), ("light", "1")):
         env["DMS_TEST_PKILL_STATUS"] = status
@@ -438,12 +479,19 @@ if shutil.which("dms") and shutil.which("matugen"):
         assert "{{" not in rendered[-1]
         assert re.search(r'theme\[main_fg\]="#[0-9a-fA-F]{6}"', rendered[-1])
         assert not legacy_output.exists()
+        assert "{{" not in fastfetch_file.read_text()
+        assert '"keyColor": "#' in fastfetch_file.read_text()
+        if shutil.which("fastfetch"):
+            run(["fastfetch", "--config", str(fastfetch_file), "--structure", "colors", "--pipe"], env)
     assert rendered[0] != rendered[1]
     expected_hook = f"-USR2 -x -u {os.getuid()} btop"
     assert hook_log.read_text().splitlines() == [expected_hook, expected_hook]
-    print("DMS btop generation and reload hooks passed with user templates disabled")
+    print("DMS btop/fastfetch generation and reload hooks passed with user templates disabled")
 else:
-    print("DMS btop generation skipped: dms or matugen unavailable")
+    print("DMS btop/fastfetch generation skipped: dms or matugen unavailable")
+
+if not shutil.which("nvim"):
+    print("DMS Neovim selection checks skipped: nvim unavailable")
 
 print(f"desktop profile checks passed (retained fixtures: {task})")
 PY

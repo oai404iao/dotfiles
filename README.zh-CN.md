@@ -40,7 +40,8 @@
 - Niri 设备上的 GNOME Keyring D-Bus 激活统一使用软件包提供的 systemd
   用户服务；[密钥环数据及备份只留在本机](docs/desktop.md#desktop-keyring)。
 - 为 Matugen 与 Waypaper 提供初始状态，同时避免后续 apply 覆盖应用生成值。
-  DMS 也会生成并实时重载 btop 的 Matugen 主题，无需启用旧 custom 桌面的整套模板。
+  DMS 也会生成 btop 与 fastfetch 的主题，并通过固定版本的 base46 插件接入 Neovim，
+  无需启用旧 custom 桌面的整套模板。
 - Satty、btop、Fcitx5 候选框、swaylock-effects 与 GTK 文件管理共享桌面风格，
   同时保留输入方案和应用状态。
 - Nautilus 右键“脚本”子菜单支持复制绝对路径或相对于当前目录的路径。

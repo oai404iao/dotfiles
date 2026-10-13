@@ -84,11 +84,12 @@ Applies using `--exclude=scripts` skip these reminders as well.
 - Chezmoi merges `~/.config/DankMaterialShell/settings.json`: it owns the
   complete `barConfigs` (DankBar with DankDash), `barElevationEnabled=false`,
   `cornerRadius=16`,
-  `widgetColorMode=default`, and `runningAppsCurrentWorkspace=true`. On a
+  `widgetColorMode=default`, `runningAppsCurrentWorkspace=true`, and
+  `matugenTemplateNeovim=true`. On a
   missing file it also seeds wallpaper-based colors, native clipboard paste,
   Adwaita Sans, and the idle policy below. Existing files keep every other
   preference, including machine-specific outputs, wallpaper, network, and
-  battery settings. Applying again restores only the five owned fields;
+  battery settings. Applying again restores only the six owned fields;
   pre-seeding this file bypasses DMS's first-launch wizard.
 - With the optional `tether=true` capability, the modifier also prepends an
   owned `no_history` rule for the exact `tether-gtk` desktop entry, preserving
@@ -134,7 +135,7 @@ Applies using `--exclude=scripts` skip these reminders as well.
   foreground, background, selection, tabs, and links still follow DMS. This
   does not enable the legacy user Matugen templates. Existing DMS installations
   can select **Neutral** and **Terminals - Always use Dark Theme** in Settings;
-  the seed does not reset existing preferences outside the five owned fields.
+  the seed does not reset existing preferences outside the six owned fields.
 - Chezmoi merges Qt6ct's `Appearance` palette path
   (`colors/matugen.conf` under this machine's home), custom palette, Adwaita
   icon theme, Fusion style, and `Fonts` settings. Other sections and keys
@@ -162,6 +163,19 @@ Applies using `--exclude=scripts` skip these reminders as well.
   remain machine-local. Existing machines can apply these two explicit inputs
   without enabling `runUserMatugenTemplates` or restarting DMS; the next
   wallpaper/theme change regenerates the btop palette.
+- fastfetch uses `matugen/dms/configs/chezmoi-fastfetch.toml` and the shared
+  `fastfetch-config.jsonc` input. DMS owns the generated full
+  `~/.config/fastfetch/config.jsonc`; local layout edits belong in the template,
+  not in that output.
+- Neovim's built-in DMS template is enabled by the settings modifier.
+  The profile-aware LazyVim specification loads the pinned `AvengeMedia/base46`
+  plugin and selects `dms`, with `tokyonight` as a fresh-machine fallback
+  until DMS first generates the palette. DMS owns `nvim/colors/dms.lua` and
+  `nvim/lua/lualine/themes/dms.lua`, including their upstream hot-reload logic;
+  these files remain ignored. Install only the new pinned plugin when migrating,
+  without updating other locked plugins. The specification renders empty
+  for custom/headless profiles, so switching away from DMS retires it even
+  when generated palettes remain on disk.
 - Custom-only files become ignored in DMS mode, not deleted. CopyQ history
   remains untouched and is not imported into DMS. DMS clipboard data,
   notifications, night-mode/wallpaper session state, downloaded plugins, and
@@ -181,17 +195,22 @@ Switching profiles does not migrate every entry in the custom
 |---|---|
 | Kitty, Fcitx5, GTK3/4, Qt6ct, Niri | Built-in generation plus this profile's application configuration |
 | Qt5ct, KDE color scheme | Built-in generation; application/backend selection is separate |
-| Ghostty | Built-in `themes/dankcolors`; Ghostty must select that theme |
-| Pywalfox | Built-in, conditional on the helper being installed |
-| Neovim (commented out in custom) | Optional built-in `dms` colorscheme; disabled by default and not selected by this LazyVim configuration |
+| Neovim (commented out in custom) | Built-in `dms` colorscheme enabled and selected by this profile's LazyVim/base46 integration |
 | btop | This profile's narrow DMS template and live-reload hook |
-| Cava, Starship, Yazi, fastfetch, niriswitcher | No built-in replacement or DMS adapter here; old generated outputs do not follow DMS |
+| fastfetch | This profile's narrow DMS template; regenerated full configuration |
+| Cava | No built-in replacement or DMS adapter here; old generated output does not follow DMS |
+| Starship, Yazi, niriswitcher, Ghostty, Hyprland, Pywalfox | Removed from the custom Matugen configuration and inputs |
 | Waybar, Fuzzel, Mako, wlogout, swayosd, swaylock-effects | Custom desktop components replaced by DMS UI; their old palettes are not regenerated |
-| Hyprland | Not part of this Niri profile |
 
 Only migrate additional applications that are actually used. Generation alone
 does not select a theme, and copying the complete old configuration would also
 reactivate obsolete desktop hooks.
+
+For a machine-local cleanup, back up and move only reviewed retired targets.
+Disable the DMS Ghostty, Qt5ct, KDE color-scheme, Hyprland, and Pywalfox template switches
+before removing their generated outputs, or DMS can recreate them. These
+switches remain local preferences; the repository still supports the custom
+desktop and does not uninstall packages during apply.
 
 ### Bilingual lyrics
 

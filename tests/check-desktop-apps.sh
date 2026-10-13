@@ -137,6 +137,17 @@ for path in (".config/fcitx5/profile", ".config/fcitx5/config", ".local/share/fc
 assert not (repo / "dot_local/share/fcitx5/rime").exists()
 
 templates = tomllib.loads((repo / "dot_config/matugen/config.toml").read_text())["templates"]
+retired_templates = {
+    "starship": "starship-colors.toml",
+    "yazi": "yazi-theme.toml",
+    "niriswitcher": "niriswitcher-colors.css",
+    "ghostty": "ghostty-colors.conf",
+    "hyprland": "hyprland-colors.conf",
+    "pywalfox": "pywalfox-colors.json",
+}
+for name, path in retired_templates.items():
+    assert name not in templates
+    assert not (repo / "dot_config/matugen/templates" / path).exists()
 assert "fcitx5-remote --check" in templates["fcitx5"]["post_hook"]
 assert "fcitx5-remote -r" in templates["fcitx5"]["post_hook"]
 assert "fcitx5 -r" not in templates["fcitx5"]["post_hook"]

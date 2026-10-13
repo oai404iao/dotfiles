@@ -1,0 +1,20 @@
+{{ if and .graphical .niri (eq (get . "desktopShell" | default "custom") "dms") -}}
+return {
+  {
+    "AvengeMedia/base46",
+    lazy = true,
+    opts = {},
+  },
+  {
+    "LazyVim/LazyVim",
+    opts = {
+      colorscheme = function()
+        local theme = vim.fn.filereadable(vim.fn.stdpath("config") .. "/colors/dms.lua") == 1 and "dms" or "tokyonight"
+        vim.cmd.colorscheme(theme)
+      end,
+    },
+  },
+}
+{{- else }}
+return {}
+{{- end }}

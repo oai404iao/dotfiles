@@ -11,10 +11,6 @@ command = 'awww img "{{ image }}"'
 input_path = '~/.config/matugen/templates/colors.css'
 output_path = '~/.config/waybar/colors.css'
 
-[templates.pywalfox]
-input_path = '~/.config/matugen/templates/pywalfox-colors.json'
-output_path = '~/.cache/wal/colors.json'
-
 [templates.fuzzel]
 input_path = '~/.config/matugen/templates/fuzzel.ini'
 output_path = '~/.config/fuzzel/colors.ini'
@@ -43,14 +39,6 @@ input_path = '~/.config/matugen/templates/cava-colors.ini'
 output_path = '~/.config/cava/themes/your-theme'
 #post_hook = "pkill -USR1 cava"
 
-[templates.starship]
-input_path = '~/.config/matugen/templates/starship-colors.toml'
-output_path = '~/.config/starship.toml'
-
-[templates.yazi]
-input_path = '~/.config/matugen/templates/yazi-theme.toml'
-output_path = '~/.config/yazi/theme.toml'
-
 [templates.wlogout]
 input_path = '~/.config/matugen/templates/colors.css'
 output_path = '~/.config/wlogout/colors.css'
@@ -66,11 +54,6 @@ output_path = '~/.config/gtk-4.0/colors.css'
 #output_path = '~/.config/swaync/colors.css'
 #post_hook = 'swaync-client -rs &'
 
-[templates.ghostty]
-input_path = '~/.config/matugen/templates/ghostty-colors.conf'
-output_path = '~/.config/ghostty/themes/Matugen'
-post_hook = 'pkill -SIGUSR2 ghostty || true'
-
 [templates.qt5ct]
 input_path = '~/.config/matugen/templates/qtct-colors.conf'
 output_path = '~/.config/qt5ct/colors/matugen.conf'
@@ -82,14 +65,6 @@ output_path = '~/.config/qt6ct/colors/matugen.conf'
 [templates.color-scheme]
 input_path = '~/.config/matugen/templates/Matugen.colors'
 output_path = '~/.local/share/color-schemes/Matugen.colors'
-
-[templates.hyprland]
-input_path = '~/.config/matugen/templates/hyprland-colors.conf'
-output_path = '~/.config/hypr/colors.conf'
-
-[templates.niriswitcher]
-input_path = '~/.config/matugen/templates/niriswitcher-colors.css'
-output_path = '~/.config/niriswitcher/style.css'
 
 # Niri includes the generated file and reloads it after each update.
 [templates.niri]

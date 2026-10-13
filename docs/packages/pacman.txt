@@ -109,10 +109,7 @@ swappy                 # Alternative screenshot editor to Satty.
 fzf                    # Alternative wf-recorder selection menu to Fuzzel.
 swaync                 # Defined but inactive Waybar notification module.
 gnome-control-center   # Defined but inactive Waybar settings button.
-ghostty                # Matugen theme recipient; no Ghostty startup.
 fastfetch              # Matugen theme recipient.
-starship               # Matugen theme recipient; not the managed Zsh prompt.
-yazi                   # Matugen theme recipient.
 qt5ct                  # Matugen theme recipient.
 swayosd                # Matugen theme recipient.
 
