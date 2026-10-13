@@ -97,7 +97,7 @@ secrets/
 .config/DankMaterialShell/launcher_cache.json
 .config/DankMaterialShell/notification_history.json
 .config/quickshell/
-.config/matugen/dms/
+.config/matugen/dms/*
 .config/qt6ct/colors/
 .local/share/fcitx5/themes/dms/
 .config/niri/dms/*.bak*
@@ -203,7 +203,14 @@ secrets/
 .config/mako/
 .config/waybar/
 .config/waypaper/
-.config/matugen/
+.config/matugen/*
+!.config/matugen/dms/
+!.config/matugen/dms/configs/
+.config/matugen/dms/configs/*
+!.config/matugen/dms/configs/chezmoi-btop.toml
+!.config/matugen/templates/
+.config/matugen/templates/*
+!.config/matugen/templates/btop.theme
 .config/swaylock/
 .config/systemd/user/waybar-gammarelay.service
 .config/niri/conf.d/20-outputs.kdl

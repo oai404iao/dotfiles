@@ -154,6 +154,14 @@ Applies using `--exclude=scripts` skip these reminders as well.
   it does not launch awww when DMS reads that config. Review additional
   machine-local `~/.config/matugen/dms/configs/` templates separately: DMS can
   execute these even when user templates are disabled.
+- btop is not a built-in DMS template. Chezmoi deploys only
+  `matugen/dms/configs/chezmoi-btop.toml` and the shared `btop.theme` input in
+  DMS mode. DMS generates `~/.config/btop/themes/matugen.theme` on theme changes;
+  the hook sends `SIGUSR2` to this user's running btop instances to reload it.
+  The generated theme remains create-only, and other DMS custom templates
+  remain machine-local. Existing machines can apply these two explicit inputs
+  without enabling `runUserMatugenTemplates` or restarting DMS; the next
+  wallpaper/theme change regenerates the btop palette.
 - Custom-only files become ignored in DMS mode, not deleted. CopyQ history
   remains untouched and is not imported into DMS. DMS clipboard data,
   notifications, night-mode/wallpaper session state, downloaded plugins, and
@@ -163,6 +171,27 @@ If DMS was already configured before adopting this profile, back up and review
 its current settings before applying the modifier. In particular, check
 `runUserMatugenTemplates`, idle/lock settings, and any custom power commands:
 those are only seeded on a new file, not changed in an existing file.
+
+#### Legacy Matugen template coverage
+
+Switching profiles does not migrate every entry in the custom
+`matugen/config.toml`. Ignored old outputs can remain on disk without updating.
+
+| Custom template | DMS equivalent / remaining integration |
+|---|---|
+| Kitty, Fcitx5, GTK3/4, Qt6ct, Niri | Built-in generation plus this profile's application configuration |
+| Qt5ct, KDE color scheme | Built-in generation; application/backend selection is separate |
+| Ghostty | Built-in `themes/dankcolors`; Ghostty must select that theme |
+| Pywalfox | Built-in, conditional on the helper being installed |
+| Neovim (commented out in custom) | Optional built-in `dms` colorscheme; disabled by default and not selected by this LazyVim configuration |
+| btop | This profile's narrow DMS template and live-reload hook |
+| Cava, Starship, Yazi, fastfetch, niriswitcher | No built-in replacement or DMS adapter here; old generated outputs do not follow DMS |
+| Waybar, Fuzzel, Mako, wlogout, swayosd, swaylock-effects | Custom desktop components replaced by DMS UI; their old palettes are not regenerated |
+| Hyprland | Not part of this Niri profile |
+
+Only migrate additional applications that are actually used. Generation alone
+does not select a theme, and copying the complete old configuration would also
+reactivate obsolete desktop hooks.
 
 ### Bilingual lyrics
 

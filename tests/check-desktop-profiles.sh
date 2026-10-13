@@ -80,6 +80,7 @@ dms_only = {
     ".config/kitty/dank-theme.conf", ".config/gtk-3.0/dank-colors.css",
     ".config/kitty/dms-ansi.conf",
     ".config/gtk-4.0/dank-colors.css", ".config/qt6ct/qt6ct.conf",
+    ".config/matugen/dms/configs/chezmoi-btop.toml",
 } | dms_kdl_targets
 assert not any(path.is_file() for path in (repo / "dot_config/DankMaterialShell/plugins").rglob("*"))
 assert not (repo / "dot_local/bin/executable_dms-with-lyrics").exists()
@@ -94,6 +95,8 @@ def managed(command, env):
 def apply(home, env, command, shell):
     paths = targets + ([
         ".config/DankMaterialShell/settings.json", ".config/qt6ct/qt6ct.conf",
+        ".config/matugen/dms/configs/chezmoi-btop.toml",
+        ".config/matugen/templates/btop.theme",
     ] if shell == "dms" else [])
     for path in paths:
         (home / path).parent.mkdir(parents=True, exist_ok=True)
@@ -147,6 +150,14 @@ for shell in ("custom", "dms"):
         assert ".local/bin/dms-with-lyrics" not in inventory
         assert (dms_only if shell == "dms" else custom_only) <= inventory
         assert not (custom_only if shell == "dms" else dms_only) & inventory
+        matugen_files = {path for path in inventory if path.startswith(".config/matugen/")}
+        if shell == "dms":
+            assert matugen_files == {
+                ".config/matugen/dms/configs/chezmoi-btop.toml",
+                ".config/matugen/templates/btop.theme",
+            }
+        else:
+            assert not any(path.startswith(".config/matugen/dms/") for path in matugen_files)
         apply(home, env, command, shell)
         niri_dir = home / ".config/niri"
         if shutil.which("niri"):
@@ -183,6 +194,17 @@ for shell in ("custom", "dms"):
             assert settings["currentThemeName"] == "dynamic"
             assert settings["matugenScheme"] == "scheme-neutral"
             assert settings["terminalsAlwaysDark"] is True
+            btop_config = tomllib.loads(
+                (home / ".config/matugen/dms/configs/chezmoi-btop.toml").read_text()
+            )
+            assert set(btop_config) == {"templates"}
+            assert set(btop_config["templates"]) == {"chezmoi-btop"}
+            btop_template = btop_config["templates"]["chezmoi-btop"]
+            assert btop_template["input_path"] == str(home / ".config/matugen/templates/btop.theme")
+            assert btop_template["output_path"] == str(home / ".config/btop/themes/matugen.theme")
+            assert pathlib.Path(btop_template["input_path"]).read_bytes() == (
+                repo / "dot_config/matugen/templates/btop.theme"
+            ).read_bytes()
             assert settings["cornerRadius"] == 16
             assert settings["widgetColorMode"] == "default"
             assert settings["runningAppsCurrentWorkspace"] is True
@@ -372,6 +394,56 @@ for path in (
 ):
     assert path in ignored.splitlines()
 assert "!.config/DankMaterialShell/plugins/lyrics" not in ignored.splitlines()
+
+if shutil.which("dms") and shutil.which("matugen"):
+    home, env, command = fixture("dms-btop-generation", "dms")
+    apply(home, env, command, "dms")
+    shell = home / "test-shell"
+    inputs = shell / "matugen/templates"
+    inputs.mkdir(parents=True)
+    (inputs / "dank.json").write_text('{"primary":"{{colors.primary.default.hex}}"}')
+    legacy_output = home / "legacy-output"
+    (home / ".config/matugen/config.toml").write_text(
+        "[templates.legacy]\n"
+        f"input_path = '{inputs / 'dank.json'}'\n"
+        f"output_path = '{legacy_output}'\n"
+    )
+    bin_dir = home / "bin"
+    bin_dir.mkdir()
+    hook_log = home / "hook.log"
+    pkill = bin_dir / "pkill"
+    pkill.write_text(
+        '#!/bin/sh\nprintf "%s\\n" "$*" >> "$DMS_TEST_HOOK_LOG"\n'
+        'exit "$DMS_TEST_PKILL_STATUS"\n'
+    )
+    pkill.chmod(0o755)
+    env = {
+        **env, "PATH": str(bin_dir) + os.pathsep + env["PATH"],
+        "DMS_TEST_HOOK_LOG": str(hook_log),
+    }
+    skip = ",".join(item["id"] for item in json.loads(run(["dms", "matugen", "check"], env)))
+    theme_file = home / ".config/btop/themes/matugen.theme"
+    theme_file.parent.mkdir(parents=True)
+    rendered = []
+    for mode, status in (("dark", "0"), ("light", "1")):
+        env["DMS_TEST_PKILL_STATUS"] = status
+        run([
+            "dms", "matugen", "generate", "--shell-dir", str(shell),
+            "--config-dir", str(home / ".config"), "--state-dir", str(home / ".cache/dms-test"),
+            "--kind", "hex", "--value", "#927d76", "--mode", mode,
+            "--matugen-type", "scheme-neutral", "--run-user-templates=false",
+            "--skip-templates", skip,
+        ], env)
+        rendered.append(theme_file.read_text())
+        assert "{{" not in rendered[-1]
+        assert re.search(r'theme\[main_fg\]="#[0-9a-fA-F]{6}"', rendered[-1])
+        assert not legacy_output.exists()
+    assert rendered[0] != rendered[1]
+    expected_hook = f"-USR2 -x -u {os.getuid()} btop"
+    assert hook_log.read_text().splitlines() == [expected_hook, expected_hook]
+    print("DMS btop generation and reload hooks passed with user templates disabled")
+else:
+    print("DMS btop generation skipped: dms or matugen unavailable")
 
 print(f"desktop profile checks passed (retained fixtures: {task})")
 PY

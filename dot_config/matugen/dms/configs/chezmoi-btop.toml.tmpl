@@ -1,0 +1,4 @@
+[templates.chezmoi-btop]
+input_path = '{{ .chezmoi.homeDir }}/.config/matugen/templates/btop.theme'
+output_path = '{{ .chezmoi.homeDir }}/.config/btop/themes/matugen.theme'
+post_hook = 'pkill -USR2 -x -u "$(id -u)" btop || [ "$?" -eq 1 ]'
