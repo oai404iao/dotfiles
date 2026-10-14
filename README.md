@@ -245,6 +245,15 @@ Open a new terminal after applying and verify `command -v node npm npx pnpm`:
 Node/npm/npx should resolve under `$PNPM_HOME/bin`, and pnpm to the system
 package.
 
+### Graphical sudo prompts
+
+Graphical profiles deploy `~/.local/bin/sudo-askpass`, a Zenity password
+helper. The shared login environment exports `SUDO_ASKPASS` when the helper
+is executable, preserving a non-empty custom value. Use `sudo -A command`
+in CLI scripts or Pi; ordinary `sudo` is not replaced. This does not change
+sudoers, disable passwords, or approve every command.
+See [setup and targeted apply](docs/desktop.md#graphical-sudo-prompts).
+
 ## Bootstrap a New Machine
 
 ### 1. Initialize without applying

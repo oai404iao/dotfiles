@@ -163,45 +163,160 @@ for interpreter in sh bash zsh; do
     done
 done
 
+for helper_case in absent nonexecutable executable; do
+    askpass_home="$test_root/askpass-$helper_case"
+    mkdir -p "$askpass_home/.local/bin"
+    if [ "$helper_case" != absent ]; then
+        : >"$askpass_home/.local/bin/sudo-askpass"
+        chmod 0644 "$askpass_home/.local/bin/sudo-askpass"
+        if [ "$helper_case" = executable ]; then
+            chmod 0755 "$askpass_home/.local/bin/sudo-askpass"
+        fi
+    fi
+    for interpreter in sh bash zsh; do
+        for value_case in unset empty custom; do
+            env -i HOME="$askpass_home" XDG_CONFIG_HOME="$fake_config" \
+                PATH="/usr/bin:/bin" ENTRYPOINT="$repo_dir/dot_config/shell/profile.sh" \
+                HELPER_CASE="$helper_case" VALUE_CASE="$value_case" \
+                "$interpreter" -c '
+                    case "$VALUE_CASE" in
+                        unset) unset SUDO_ASKPASS ;;
+                        empty) SUDO_ASKPASS="" ;;
+                        custom) SUDO_ASKPASS="$HOME/custom askpass" ;;
+                    esac
+                    for source_count in 1 2; do
+                        . "$ENTRYPOINT"
+                        if [ "$HELPER_CASE" = executable ]; then
+                            expected="$HOME/.local/bin/sudo-askpass"
+                            if [ "$VALUE_CASE" = custom ]; then
+                                expected="$HOME/custom askpass"
+                            fi
+                            [ "$SUDO_ASKPASS" = "$expected" ] || exit 1
+                            sh -c '"'"'[ "$SUDO_ASKPASS" = "$1" ]'"'"' sh "$expected" || exit 1
+                        else
+                            case "$VALUE_CASE" in
+                                unset) [ -z "${SUDO_ASKPASS+x}" ] || exit 1 ;;
+                                empty) [ "${SUDO_ASKPASS+x}" = x ] && [ -z "$SUDO_ASKPASS" ] || exit 1 ;;
+                                custom) [ "$SUDO_ASKPASS" = "$HOME/custom askpass" ] || exit 1 ;;
+                            esac
+                        fi
+                        if [ "$source_count" = 1 ]; then
+                            original_path=$PATH
+                        else
+                            [ "$PATH" = "$original_path" ] || exit 1
+                        fi
+                    done
+                '
+        done
+    done
+done
+
+sh -n "$repo_dir/dot_local/bin/executable_sudo-askpass"
+fake_zenity="$test_root/fake-zenity"
+cat >"$fake_zenity" <<'EOF'
+#!/bin/sh
+set -eu
+[ "$#" = 3 ]
+[ "$1" = --password ]
+[ "$2" = '--title=sudo authentication' ]
+[ "$3" = "--text=$EXPECTED_PROMPT" ]
+if [ "$ZENITY_EXIT" != 0 ]; then
+    exit "$ZENITY_EXIT"
+fi
+printf '%s\n' 'fake sudo password'
+EOF
+chmod 0755 "$fake_zenity"
+askpass_copy="$test_root/sudo-askpass"
+python3 - "$repo_dir/dot_local/bin/executable_sudo-askpass" "$askpass_copy" "$fake_zenity" <<'PY'
+from pathlib import Path
+import shlex
+import sys
+
+source, destination, zenity = sys.argv[1:]
+helper = Path(source).read_text()
+assert helper.count("/usr/bin/zenity") == 1
+assert "exec /usr/bin/zenity --password" in helper
+Path(destination).write_text(helper.replace("/usr/bin/zenity", shlex.quote(zenity)))
+PY
+chmod 0755 "$askpass_copy"
+printf '%s\n' 'fake sudo password' >"$test_root/expected-password"
+for prompt_case in default custom; do
+    if [ "$prompt_case" = default ]; then
+        prompt='Enter your login password'
+        set --
+    else
+        prompt='Enter a fake password: "quoted" $value'
+        set -- "$prompt"
+    fi
+    env -i EXPECTED_PROMPT="$prompt" ZENITY_EXIT=0 \
+        "$askpass_copy" "$@" >"$test_root/askpass-output" 2>"$test_root/askpass-error"
+    cmp "$test_root/expected-password" "$test_root/askpass-output"
+    [ ! -s "$test_root/askpass-error" ]
+    for zenity_exit in 1 7; do
+        if env -i EXPECTED_PROMPT="$prompt" ZENITY_EXIT="$zenity_exit" \
+            "$askpass_copy" "$@" >"$test_root/askpass-output" 2>"$test_root/askpass-error"; then
+            printf '%s\n' "sudo-askpass must preserve zenity failure" >&2
+            exit 1
+        else
+            [ "$?" = "$zenity_exit" ]
+        fi
+        [ ! -s "$test_root/askpass-output" ]
+        [ ! -s "$test_root/askpass-error" ]
+    done
+done
+
 grep -qxF '.local/share/dsh/' "$repo_dir/.chezmoiignore"
 grep -qxF '.dsh/' "$repo_dir/.chezmoiignore"
 
 if command -v chezmoi >/dev/null 2>&1; then
     fixture_source="$test_root/source"
-    mkdir -p "$fixture_source/dot_config"
+    mkdir -p "$fixture_source/dot_config" "$fixture_source/dot_local/bin"
     cp "$repo_dir/.chezmoiignore" "$repo_dir/.chezmoiremove" \
         "$repo_dir/dot_bash_profile" "$repo_dir/dot_bashrc" \
         "$repo_dir/dot_zshenv" "$fixture_source/"
     cp -R "$repo_dir/dot_config/bash" "$repo_dir/dot_config/zsh" \
         "$repo_dir/dot_config/shell" "$fixture_source/dot_config/"
+    cp "$repo_dir/dot_local/bin/executable_sudo-askpass" "$fixture_source/dot_local/bin/"
     for shell_choice in bash zsh; do
-        shell_home="$test_root/deploy-$shell_choice"
-        mkdir -p "$shell_home/.config/shell" \
-            "$shell_home/.config/bash/rc.d" "$shell_home/.config/zsh/rc.d"
-        for old_loader in shell/nvm.sh bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
-            : >"$shell_home/.config/$old_loader"
-        done
-        cat >"$test_root/$shell_choice.toml" <<EOF
+        for graphical in false true; do
+            fixture_name="$shell_choice-$graphical"
+            shell_home="$test_root/deploy-$fixture_name"
+            mkdir -p "$shell_home/.config/shell" "$shell_home/.local" \
+                "$shell_home/.config/bash/rc.d" "$shell_home/.config/zsh/rc.d"
+            for old_loader in shell/nvm.sh bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
+                : >"$shell_home/.config/$old_loader"
+            done
+            cat >"$test_root/$fixture_name.toml" <<EOF
 mode = "file"
 [data]
 shell = "$shell_choice"
-graphical = false
+graphical = $graphical
 niri = false
 EOF
-        chezmoi --config "$test_root/$shell_choice.toml" \
-            --source "$fixture_source" --destination "$shell_home" \
-            --cache "$test_root/chezmoi-cache" \
-            --persistent-state "$test_root/$shell_choice-state.boltdb" \
-            apply --exclude scripts,encrypted \
-            "$shell_home/.bash_profile" "$shell_home/.bashrc" \
-            "$shell_home/.zshenv" "$shell_home/.config/bash" \
-            "$shell_home/.config/zsh" "$shell_home/.config/shell"
-        for target in .bash_profile .bashrc .zshenv \
-            .config/bash/rc.d/10-options.bash .config/zsh/.zshrc; do
-            [ -f "$shell_home/$target" ]
-        done
-        for old_loader in shell/nvm.sh bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
-            [ ! -e "$shell_home/.config/$old_loader" ]
+            chezmoi --config "$test_root/$fixture_name.toml" \
+                --source "$fixture_source" --destination "$shell_home" \
+                --cache "$test_root/chezmoi-cache" \
+                --persistent-state "$test_root/$fixture_name-state.boltdb" \
+                apply --exclude scripts,encrypted \
+                "$shell_home/.bash_profile" "$shell_home/.bashrc" \
+                "$shell_home/.zshenv" "$shell_home/.config/bash" \
+                "$shell_home/.config/zsh" "$shell_home/.config/shell" \
+                "$shell_home/.local/bin"
+            for target in .bash_profile .bashrc .zshenv \
+                .config/bash/rc.d/10-options.bash .config/zsh/.zshrc; do
+                [ -f "$shell_home/$target" ]
+            done
+            for old_loader in shell/nvm.sh bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
+                [ ! -e "$shell_home/.config/$old_loader" ]
+            done
+            if [ "$graphical" = true ]; then
+                [ -f "$shell_home/.local/bin/sudo-askpass" ]
+                [ "$(stat -c %a "$shell_home/.local/bin/sudo-askpass")" = 755 ]
+                cmp "$repo_dir/dot_local/bin/executable_sudo-askpass" \
+                    "$shell_home/.local/bin/sudo-askpass"
+            else
+                [ ! -e "$shell_home/.local/bin/sudo-askpass" ]
+            fi
         done
     done
 fi

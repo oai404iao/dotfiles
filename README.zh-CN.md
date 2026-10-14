@@ -222,6 +222,14 @@ PATH 和变量。Chezmoi 不会卸载 nvm 或其中的全局包：先迁移仍�
 应用后打开新终端，用 `command -v node npm npx pnpm` 检查：Node/npm/npx
 应指向 `$PNPM_HOME/bin`，pnpm 应指向系统包。
 
+### sudo 图形密码弹窗
+
+图形配置部署基于 Zenity 的密码助手 `~/.local/bin/sudo-askpass`。
+共享登录环境在助手可执行时导出 `SUDO_ASKPASS`，保留已有的非空自定义值。
+命令行脚本或 Pi 使用 `sudo -A 命令`；不会替换普通 `sudo`，也不会修改
+sudoers、启用免密码或提供逐条命令审批。
+依赖、定向应用和生效方式见[配置说明](docs/desktop.md#graphical-sudo-prompts)。
+
 ## 在新机器上初始化
 
 ### 1. 只初始化，不立即应用

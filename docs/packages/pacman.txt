@@ -12,6 +12,7 @@ systemd                # User services, loginctl and busctl (normally in Arch ba
 python                 # Chezmoi modifiers, helpers, and offline tests.
 bash                   # Managed Bash and helper scripts.
 zsh                    # Managed Zsh; both shells are needed by check-source.sh.
+sudo                   # CLI privilege escalation, including sudo -A.
 pinentry               # pinentry-curses selected by the rbw configuration.
 glib2                  # gio for safe-rm and its offline test.
 coreutils              # rm, realpath, stat, install, timeout, etc.
@@ -41,6 +42,7 @@ uv                     # Agent Python tooling and custom Waybar longshot.
 # Graphical/Niri: common to desktopShell=dms and desktopShell=custom.
 niri                   # Compositor and managed keybindings.
 kitty                  # Terminal and Neovim scrollback integration.
+zenity                 # Graphical sudo askpass password dialog.
 fontconfig             # Font fallback.
 adwaita-fonts          # Adwaita Sans UI font.
 noto-fonts             # Official default; choose this OR AUR noto-fonts-lite.

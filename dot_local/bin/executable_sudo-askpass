@@ -1,0 +1,6 @@
+#!/bin/sh
+set -eu
+
+exec /usr/bin/zenity --password \
+    --title="sudo authentication" \
+    --text="${1:-Enter your login password}"

@@ -181,6 +181,7 @@ secrets/
 {{- end }}
 
 {{- if not .graphical }}
+.local/bin/sudo-askpass
 .gtkrc-2.0
 .config/systemd/user/xdg-user-dirs.service.d/
 .config/environment.d/im.conf

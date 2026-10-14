@@ -47,6 +47,11 @@ case "${PATH-}" in
 esac
 export PATH
 
+if [ -x "$HOME/.local/bin/sudo-askpass" ]; then
+    : "${SUDO_ASKPASS:=$HOME/.local/bin/sudo-askpass}"
+    export SUDO_ASKPASS
+fi
+
 EDITOR="nvim"
 VISUAL="$EDITOR"
 PAGER="less"

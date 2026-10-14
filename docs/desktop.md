@@ -43,6 +43,59 @@ Waypaper runs `~/.config/waypaper/apply-theme` without interpolating the
 wallpaper filename into a shell command. The hook reads the active image from
 `awww query --json` and invokes Matugen with an argument vector.
 
+## Graphical sudo prompts
+
+Graphical profiles deploy `~/.local/bin/sudo-askpass`. It runs
+`/usr/bin/zenity --password` as the calling user and sends the entered
+password directly to sudo through the askpass interface. Install `sudo` and
+`zenity` separately; chezmoi does not install packages:
+
+```sh
+sudo pacman -S --needed sudo zenity
+```
+
+The shared Bash/Zsh login environment sets `SUDO_ASKPASS` when the helper
+is executable, preserving any non-empty custom value. Invoke it explicitly:
+
+```sh
+sudo -A /usr/bin/id
+```
+
+Ordinary `sudo` is unchanged. To ignore an existing authentication timestamp
+for one command, use `sudo -A -k /usr/bin/id`; sudoers may still exempt a
+command from password authentication. The dialog is authentication, not
+per-command approval, and does not display the full command. Do not grant
+a root shell or run the whole agent as root to avoid repeated prompts.
+
+For an existing machine, back up both targets if present, review their
+sanitized diff, then apply only these files:
+
+```sh
+chezmoi diff --skip-secrets --exclude=encrypted \
+  ~/.local/bin/sudo-askpass ~/.config/shell/profile.sh
+chezmoi apply --skip-secrets --exclude=scripts,encrypted \
+  ~/.local/bin/sudo-askpass ~/.config/shell/profile.sh
+```
+
+New login sessions inherit the setting. In an already open terminal, set it
+explicitly before starting Pi, or pass it on the individual command:
+
+```sh
+export SUDO_ASKPASS="$HOME/.local/bin/sudo-askpass"
+# Start a new Pi process after exporting; existing processes retain their environment.
+```
+
+The calling process must have access to the graphical session. This setup
+does not forward prompts from remote SSH sessions or containers. Never run
+the helper alone through an agent tool, capture its stdout, or log passwords.
+Canceling the dialog fails authentication; there is no password-storage or
+terminal fallback in the helper.
+
+Headless profiles ignore the helper, not delete it. When retiring graphical
+configuration, move a retained helper out of its target path and unset the
+managed `SUDO_ASKPASS` value before starting new processes. Login export is
+based on the helper's executable presence, not a runtime display check.
+
 ## Fonts
 
 Graphical profiles install `~/.config/fontconfig/fonts.conf` with these generic
