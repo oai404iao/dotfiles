@@ -54,6 +54,8 @@
   其余 npm 安装状态仍保持忽略。
 - Pi codemode 与直接工具调用并存（`on`，非 `only`）；参见
   [兼容性与子代理限制](docs/pi.md#codemode)。
+- [通过 Command Code 接入 Jev](docs/pi.md#jev-task-triage)，支持主代理每个新任务
+  仅分类一次，辅助判断派工与 review；简单任务直接完成，不强制走子代理流水线。
 - Pi 固定使用 Codex tools 5.0.0 和 subagent 1.2.0。Subagent 使用七个异步
   明文工具，全树并发上限为 4，邮箱默认等待 120 秒；参见
   [迁移说明](docs/pi.md#subagent-100-migration)。
@@ -330,7 +332,7 @@ chezmoi apply \
 上面的其余命令会单独验证并应用 age 加密的 Git
 与 SSH 元数据；如果机器的两项 SSH 能力均关闭，则省略 SSH apply。
 
-auth modifier 会安装全部四个模型凭据引用，无需 `/login`。接管或更新既有
+auth modifier 会安装全部五个模型凭据引用，无需 `/login`。接管或更新既有
 `auth.json` 前，先退出所有使用该目录的 Pi 进程，避免并发写入认证文件，
 再将文件私密备份到源码和保留的 agent 临时目录
 （`~/.local/state/agents/tmp/`）之外，目录权限为 `0700`、文件权限为 `0600`。

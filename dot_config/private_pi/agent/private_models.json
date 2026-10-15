@@ -81,6 +81,9 @@
         }
       ]
     },
+    "typesafe": {
+      "baseUrl": "https://api.commandcode.ai/provider/v1"
+    },
     "xai": {
       "baseUrl": "https://api.spiredive.com/v1"
     }

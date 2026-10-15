@@ -40,6 +40,7 @@ commands = {
     "openai": "!rbw get 'pi spiredive api key'",
     "xai": "!rbw get 'pi spiredive api key'",
     "anthropic": "!rbw get 'pi krill api key'",
+    "typesafe": "!rbw get 'pi commandcode api key'",
 }
 for provider in commands:
     if provider in auth and (

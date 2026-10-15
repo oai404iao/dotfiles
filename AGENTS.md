@@ -254,10 +254,10 @@ it does not install dependencies, prepare the overlay, or restart services.
   profiles ignore the Telegram config directory without deleting existing files.
 - `private_models.json` omits API credentials. `modify_private_auth.json` is a
   Python modifier that merges API-key command references for `deepseek`,
-  `openai`, and `xai` (Spiredive) and `anthropic` (Krill), preserving all other
-  providers, values, and extra API-key fields. It rejects managed-provider
-  non-API-key entries and malformed, duplicate-key, or non-object JSON without
-  outputting credentials.
+  `openai`, and `xai` (Spiredive), `anthropic` (Krill), and `typesafe` (Command Code),
+  preserving all other providers, values, and extra API-key fields. It rejects
+  managed-provider non-API-key entries and malformed, duplicate-key, or non-object
+  JSON without outputting credentials.
   Apply never contacts `rbw`; Pi caches resolved commands for its process
   lifetime. Never put a literal key in managed model config.
 - Only the auth modifier source is tracked, never rendered `auth.json` data.

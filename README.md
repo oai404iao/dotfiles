@@ -63,6 +63,9 @@ credentials and mutable application state out of Git.
   `npm/pnpm-workspace.yaml`; all other npm installation state stays ignored.
 - Pi codemode is enabled alongside direct tools (`on`, not `only`); see
   [compatibility and child-agent limits](docs/pi.md#codemode).
+- [Jev via Command Code](docs/pi.md#jev-task-triage) supports one root-only
+  workflow/review classification per new task. Simple work stays direct;
+  delegation and independent review are not mandatory pipeline stages.
 - Pi Codex tools 5.0.0 and subagent 1.2.0 are pinned. Subagent uses seven
   asynchronous plaintext tools, a tree-wide concurrency limit of 4, and a
   120-second default mailbox wait; see the [migration guide](docs/pi.md#subagent-100-migration).
@@ -358,7 +361,7 @@ The remaining commands above validate and apply age-encrypted Git and SSH
 metadata separately; omit the SSH apply on a profile where both SSH
 capabilities are disabled.
 
-The auth modifier installs all four model credential references; no `/login`
+The auth modifier installs all five model credential references; no `/login`
 is needed. Before adopting or updating an existing `auth.json`, exit all Pi
 processes using that directory to avoid concurrent auth writes, then back up
 the file privately outside the source and retained agent scratch

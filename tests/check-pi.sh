@@ -32,6 +32,7 @@ expected = {
     "extensions/pi-codex-minimal-tools/private_config.json.tmpl",
     "extensions/pi-codex-minimal-tools/private_models.json.tmpl",
     "extensions/pi-telegram-notify/private_config.json.tmpl",
+    "extensions/private_jev.ts",
 }
 actual = {
     str(path.relative_to(source_dir))
@@ -113,6 +114,7 @@ auth_commands = {
     "openai": "!rbw get 'pi spiredive api key'",
     "xai": "!rbw get 'pi spiredive api key'",
     "anthropic": "!rbw get 'pi krill api key'",
+    "typesafe": "!rbw get 'pi commandcode api key'",
 }
 auth_defaults = {
     provider: {"type": "api_key", "key": command}
@@ -121,6 +123,7 @@ auth_defaults = {
 existing_auth = {
     "openai": {"type": "api_key", "key": "synthetic-old-key", "env": {"EXTRA": "keep"}},
     "anthropic": {"type": "api_key", "key": "!old-command", "futureField": True},
+    "typesafe": {"type": "api_key", "key": "!old-jev-command", "futureField": "keep"},
     "openai-codex": {
         "type": "oauth", "access": "synthetic-access",
         "refresh": "synthetic-refresh", "expires": 123456789,
@@ -277,7 +280,7 @@ for name in ("scout", "reviewer", "worker"):
 
 models = json.loads((source_dir / "private_models.json").read_text())
 providers = models.get("providers", {})
-expected_providers = {"anthropic", "deepseek", "openai", "xai"}
+expected_providers = {"anthropic", "deepseek", "openai", "typesafe", "xai"}
 if set(providers) != expected_providers:
     raise SystemExit("unexpected Pi provider inventory")
 if any("apiKey" in provider for provider in providers.values()):
@@ -290,6 +293,8 @@ if any(
     raise SystemExit("Pi providers must not override User-Agent")
 if providers["anthropic"] != {"baseUrl": "https://api.krill-code.net"}:
     raise SystemExit("Anthropic must override only its endpoint and use Pi's built-in catalog")
+if providers["typesafe"] != {"baseUrl": "https://api.commandcode.ai/provider/v1"}:
+    raise SystemExit("Jev must use Command Code's System One base URL without a duplicate suffix")
 openai = providers["openai"]
 deepseek = providers["deepseek"]
 expected_context_overrides = {
@@ -565,6 +570,8 @@ strictDepBuilds: true
             raise SystemExit("Pi profile managed settings/Telegram inventory is incorrect")
         if ".config/pi/agent/auth.json" not in inventory:
             raise SystemExit("Pi auth command references must be managed in every profile")
+        if ".config/pi/agent/extensions/jev.ts" not in inventory:
+            raise SystemExit("Pi Jev classifier extension must be managed in every profile")
 
         rbw_log.write_text("")
         fresh_auth = None if profile == (False, False) else "{}"
@@ -794,5 +801,12 @@ strictDepBuilds: true
 else:
     print("Pi settings/profile and other template checks skipped: chezmoi unavailable")
 PY
+
+if command -v node >/dev/null 2>&1 && command -v pi >/dev/null 2>&1; then
+    node --experimental-strip-types --experimental-import-meta-resolve --disable-warning=ExperimentalWarning \
+        "$repo_dir/tests/check-pi-jev.mjs" "$(command -v pi)"
+else
+    printf '%s\n' "Pi Jev runtime checks skipped: node or pi unavailable"
+fi
 
 printf '%s\n' "Pi configs passed"

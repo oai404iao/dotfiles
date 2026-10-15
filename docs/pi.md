@@ -315,20 +315,78 @@ different installation from the one upgraded, then inspect that host's SDK and
 the installed subagent version. Repository configuration checks alone do not
 verify the running process.
 
+## Jev task triage
+
+Jev is a classifier, not a chat model: it does not appear in `/model` or
+`enabledModels`, and it does not replace the default coding model. The managed
+`extensions/jev.ts` registers provider `typesafe`, model ID `typesafe/jev`, using
+Pi's built-in `typesafe-system-one` transport. Pi 1.2.0's `models.json` additions
+are chat-only, so a small provider extension is needed for this classifier ID.
+The provider endpoint remains in `models.json`:
+`https://api.commandcode.ai/provider/v1`. Pi appends `systemone` exactly once.
+The [Command Code Provider API](https://commandcode.ai/docs/provider) documents
+this model ID, endpoint, and System One request/response format.
+
+Authentication uses `!rbw get 'pi commandcode api key'` under `typesafe` in
+`auth.json`, separate from Spiredive and Krill. This must resolve to a Command
+Code key, not a direct TypeSafe key. Apply installs the reference without
+accessing the vault. The classifier keeps Pi's unpriced zero-cost metadata;
+token usage is recorded, but a zero session cost does not mean the service is free.
+
+The global prompt in `my_skills/prompts/pi-global-agents.md` asks the root to
+classify each new user task once through codemode, before starting task work.
+One call answers both workflow (`direct`/`delegate`) and independent-review
+(`needed`/`unnecessary`) questions using a short sanitized task/scope/risk
+summary. Never send secrets or the full transcript. Continuations and child
+messages do not trigger another classification. Children have no `models` API
+and must not proxy classification elsewhere.
+
+The result is advisory: user constraints, authorization, and repository-required
+checks still apply. A missing API, failed call, invalid answer, or uncertain
+classification falls back to proportionate root judgment without retries or
+reviewer loops. Straightforward fixes stay direct. Delegate only useful bounded
+work; use one independent review when requested or risk-justified. Finish when
+deliverables and required checks are complete, not after a fixed sequence of roles.
+This is prompt guidance, not an automatic routing hook or an enforced call count.
+
+To deploy, publish the reviewed prompt to `my_skills/main` and use the
+[reviewed-cache instructions workflow](#global-agent-instructions).
+Privately back up existing targets, then review/apply only `models.json`,
+`extensions/jev.ts`, and the changed role definitions. Do not diff a model file
+that might contain literal credentials. Update `auth.json` separately through the
+[safe authentication workflow](#apply-authentication-references-safely), after
+exiting Pi. Restart Pi and create new children to load provider/role changes.
+There is no new npm dependency or change to package pins.
+
+`tests/check-pi.sh` covers the five-provider auth merge and isolated deployment.
+When Node and Pi are installed, `tests/check-pi-jev.mjs` also loads the registration
+against the installed Pi composer and mocks every HTTP request to check the exact
+endpoint/model, typed answers, usage, and error results. It does not contact
+Command Code, resolve real credentials, or establish live service compatibility.
+
 ## Agent delegation guidance
 
 The managed global instructions define bounded tasks, file ownership, explicit
-completion criteria, and confirmation of decisions that change delegated work.
+completion criteria, and confirmation of material decisions that change delegated work.
+Simple tasks stay with the root; there is no mandatory scout/worker/reviewer
+pipeline. Jev supplies the [initial advisory triage](#jev-task-triage).
 Independent reconnaissance or review can use `fork_turns:"none"` with a
 self-contained brief; related follow-ups reuse an agent with the latest task and
 decisions. Message acceptance is not evidence that a decision was implemented.
 
-Scout reports coverage, exact locations, constraints, and uncertainty without
+Scout is for unknown locations or dependencies, not known-path fixes. It reports
+coverage, exact locations, constraints, and uncertainty without
 expanding into implementation or a full audit. Reviewer reports coverage,
 severity-ranked findings, actual verification, and gaps. Both remain read-only;
 unreviewed requirements must be explicit rather than hidden behind a completed
 run status. These are instruction-level expectations, not enforced permissions
 or a guarantee of complete review.
+
+Both use `bash` for targeted inspection and `codemode` for batching/filtering
+within their existing ceilings. Reports can combine fields for small scopes.
+Reviewer is a bounded independent check, not a routine completion gate; it does
+not delegate or request another reviewer. Further review needs a concrete
+residual high-risk issue or a user/repository requirement.
 
 Worker executes scoped subtasks, including file edits and verification, and
 reports completed deliverables, actual checks, and remaining gaps. Its definition
@@ -346,8 +404,9 @@ unchanged. No queue or new plugin setting is introduced.
 
 To deploy this guidance, review and privately back up the explicit targets
 before applying only `~/.config/pi/agent/AGENTS.md`,
-`~/.config/pi/agent/agents/scout.md`, and
-`~/.config/pi/agent/agents/reviewer.md`. Reload or restart Pi when existing child
+`~/.config/pi/agent/agents/scout.md`,
+`~/.config/pi/agent/agents/reviewer.md`, and
+`~/.config/pi/agent/agents/worker.md`. Reload or restart Pi when existing child
 work no longer needs preserving, then spawn new children.
 
 To add only worker, review and apply the explicit target
@@ -457,7 +516,7 @@ No Pi credential is committed or exported by shell startup files.
 
 Managed `models.json` deliberately omits `apiKey`. Each machine stores the
 command references below in `auth.json`. The Python modifier
-`dot_config/private_pi/agent/modify_private_auth.json` merges these four entries,
+`dot_config/private_pi/agent/modify_private_auth.json` merges these five entries,
 each with `"type": "api_key"`:
 
 | Provider | `key` command reference |
@@ -466,6 +525,7 @@ each with `"type": "api_key"`:
 | `openai` | `!rbw get 'pi spiredive api key'` |
 | `xai` | `!rbw get 'pi spiredive api key'` |
 | `anthropic` | `!rbw get 'pi krill api key'` |
+| `typesafe` | `!rbw get 'pi commandcode api key'` |
 
 For example:
 
@@ -480,7 +540,7 @@ For example:
 
 Applying the modifier installs references, not resolved keys, and never contacts
 `rbw` or the vault. It replaces only `type` and `key` in existing API-key entries
-for these four providers, preserving extra fields such as `env`. Every other
+for these five providers, preserving extra fields such as `env`. Every other
 provider and value is preserved, including unrelated OAuth credentials.
 The destination remains private with mode `0600`.
 
@@ -523,8 +583,9 @@ Pi needs the vault only when it first resolves a command.
 
 `auth.json` credentials take precedence over `models.json`. Pi resolves an
 auth-file command on first use and caches the result for the process lifetime.
-Because all three entries use the exact same command, one successful resolution
-serves all three providers in that process. The key does not enter the general
+Because the Spiredive entries use the exact same command, one successful resolution
+serves those three providers in that process. Krill and Command Code resolve
+their separate commands independently. The key does not enter the general
 login environment or get inherited automatically by unrelated shell tools.
 
 Keep `rbw` unlocked for the first resolution in every new Pi process, including
