@@ -104,9 +104,9 @@ for path in source_dir.rglob("*.json"):
 settings_modifier = source_dir / "modify_private_settings.json.tmpl"
 telegram_package = "npm:@oai404iao/pi-telegram-notify@0.6.0"
 common_packages = {
-    "npm:@juicesharp/rpiv-ask-user-question@2.12.0",
-    "npm:@oai404iao/pi-codex-minimal-tools@4.1.1",
-    "npm:@oai404iao/pi-subagent@1.1.0",
+    "npm:@juicesharp/rpiv-ask-user-question@2.13.8",
+    "npm:@oai404iao/pi-codex-minimal-tools@5.0.0",
+    "npm:@oai404iao/pi-subagent@1.2.0",
 }
 expected_defaults = {
     "defaultProvider": "openai",
@@ -574,9 +574,9 @@ strictDepBuilds: true
         )
         rendered = load_json(result.stdout)
         package = (
-            "pi-subagent@1.1.0"
+            "pi-subagent@1.2.0"
             if relative == "private_subagent.json.tmpl"
-            else "pi-codex-runtime@1.0.0"
+            else "pi-codex-runtime@2.0.0"
         )
         schema = "models" if relative.endswith("private_models.json.tmpl") else "config"
         if rendered.get("$schema") != f"https://unpkg.com/@oai404iao/{package}/{schema}.schema.json":
@@ -595,7 +595,7 @@ strictDepBuilds: true
             if retired_keys & rendered.keys():
                 raise SystemExit("Pi subagent config retains retired settings")
             expected_subagent = {
-                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.1.0/config.schema.json",
+                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.2.0/config.schema.json",
                 "agentScope": "user",
                 "maxDepth": 3,
                 "maxConcurrentAgents": 4,
@@ -616,6 +616,7 @@ strictDepBuilds: true
                 "apiKeyMode",
                 "webSearchEnabled",
                 "viewImage",
+                "viewImageWorkspaceOnly",
                 "applyPatchEnabled",
                 "additionalModelIds",
             }
@@ -632,6 +633,8 @@ strictDepBuilds: true
                 profile["id"]: profile
                 for profile in rendered["models"]
             }
+            if any("viewImage" in profile.get("tools", {}) for profile in profiles.values()):
+                raise SystemExit("Codex profiles retain the removed viewImage setting")
             if set(profiles) != {
                 "openai/gpt-5.6-sol",
                 "openai/gpt-6-astra",

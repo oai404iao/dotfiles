@@ -63,7 +63,7 @@ credentials and mutable application state out of Git.
   `npm/pnpm-workspace.yaml`; all other npm installation state stays ignored.
 - Pi codemode is enabled alongside direct tools (`on`, not `only`); see
   [compatibility and child-agent limits](docs/pi.md#codemode).
-- Pi Codex tools 4.1.1 and subagent 1.0.1 are pinned. Subagent uses six
+- Pi Codex tools 5.0.0 and subagent 1.2.0 are pinned. Subagent uses seven
   asynchronous plaintext tools, a tree-wide concurrency limit of 4, and a
   120-second default mailbox wait; see the [migration guide](docs/pi.md#subagent-100-migration).
 - [Agent delegation guidance](docs/pi.md#agent-delegation-guidance) defines
@@ -301,7 +301,7 @@ rbw config unset lock_timeout
 ### 3. Prepare external application dependencies
 
 Install the selected shell, desktop, Neovim, and Pi dependencies appropriate
-for the machine. The pinned Pi extensions require Pi 0.99.1 or newer and
+for the machine. The pinned Pi extensions require Pi 1.2.0 or newer and
 Node.js 22.19 or newer. Graphical machines also need
 `~/.local/share/pi/extensions/pi-local-notify` linked to the trusted local plugin
 source; see [local plugin setup](docs/pi.md#notifications-by-machine-profile).

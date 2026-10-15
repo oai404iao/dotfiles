@@ -78,7 +78,7 @@ Root `dot_*` files map to home-directory files such as `~/.zshenv` and
 - Preserve lockfiles unless the task explicitly updates dependencies. In
   particular, do not regenerate `dot_config/nvim/lazy-lock.json` incidentally.
 - Pi npm declarations in `modify_private_settings.json.tmpl` are pinned and
-  require Pi 0.99.1 or newer and Node.js 22.19 or newer. Fully restart Pi after
+  require Pi 1.2.0 or newer and Node.js 22.19 or newer. Fully restart Pi after
   upgrading its host; `/reload` does not update the running SDK.
   Graphical profiles load local notifications through
   `~/.local/share/pi/extensions/pi-local-notify`; its source symlink is

@@ -36,7 +36,7 @@ symlink paths without first resolving their real paths. An isolated pnpm layout
 can therefore load stale npm-era siblings or fail to find transitive dependencies.
 The hoisted setting applies only to Pi package operations, not other projects.
 npm packages are pinned to their adopted versions.
-The pinned extensions require Pi 0.99.1 or newer and Node.js 22.19 or newer.
+The pinned extensions require Pi 1.2.0 or newer and Node.js 22.19 or newer.
 Upgrade the system-managed Pi package
 (`sudo pacman -Syu pi`) before applying these declarations, then fully exit and
 restart Pi so the process uses the upgraded host SDK.
@@ -51,14 +51,21 @@ Model overrides set GPT-6 Astra/Luna/Sol, GPT-6.1 Sol, and DeepSeek Flash to
 The existing GPT-5.6 context settings remain unchanged. Providers do not override
 `User-Agent`; the client supplies its default.
 
-Codex tools 4.1.1 keeps the existing configuration paths, but its pinned schemas
-come from `pi-codex-runtime@1.0.0`. GPT-6 Astra/Sol/Luna deliberately retain
+Codex tools 5.0.0 keeps the existing configuration paths, but its pinned schemas
+come from `pi-codex-runtime@2.0.0`. GPT-6 Astra/Sol/Luna deliberately retain
 Lite, automatic WebSocket transport, prewarm, standalone search, and native
 Responses compaction rather than adopting the new Standard/SSE defaults.
 Astra needs explicit fields: its bundled defaults override inherited values
 even when `extends` points to the Lite profile. Image generation and default
 Fast mode remain disabled. Deprecated `responses.endpoint` overrides are
 removed; Pi's provider API and base URL own routing.
+
+The retired `viewImageWorkspaceOnly` and model `tools.viewImage` settings are
+removed. Pi's native `read` handles local images; image generation remains
+disabled. Codex tools now hides `edit`/`write` declarations through Pi's loadout
+API while `apply_patch` is active, without disabling those tools or overriding
+explicit user exclusions. The new request-extension and endpoint-allowlist
+options retain their bundled defaults; no endpoint routing policy is added.
 
 The removed `directImageApiFallback` property is no longer managed, including
 its former `false` value. Profiles already select standalone image generation
@@ -68,8 +75,8 @@ configured default; children follow the main session's selection.
 Historical opaque checkpoints remain protected; unrecognized custom-profile
 hashes fail closed rather than silently converting history to text.
 
-Subagent is pinned to **1.1.0**, using the asynchronous Codex multi-agent v2
-runtime. Its six tools are model-only (not callable from native codemode);
+Subagent is pinned to **1.2.0**, using the asynchronous Codex multi-agent v2
+runtime. Its seven tools are model-only (not callable from native codemode);
 the managed scout/reviewer allowlists enable codemode alongside their existing
 ordinary tools. Mailbox waits now default to 120 seconds, with 300 seconds
 recommended for longer tasks; incoming activity still wakes the caller early.
@@ -77,6 +84,12 @@ This is a plugin default, not a new `subagent.json` setting. See the
 [subagent migration](#subagent-100-migration) before updating an existing install.
 Headless machines keep the existing Telegram credential template and settings.
 These configuration checks do not establish live endpoint compatibility.
+
+Subagent 1.2.0 adds explicit `model`/`thinking` selections on spawn and follow-up,
+paginated listing, and `close_agent`. Closing permanently retires the target's
+structural subtree, retaining transcripts and reserved names; use
+`interrupt_agent` to stop a run while keeping the agent reusable. Existing
+configuration and role defaults remain unchanged.
 
 Shared skills under `~/.agents/skills/` are installed separately with
 `pnpm dlx skills`; only their [manifest and manual installer](skills.md) are managed
@@ -214,7 +227,7 @@ layout still leaves jiti unable to resolve their replacements.
 
 Restart Pi after the rebuild and check `/codex-minimal-tools:doctor` on
 `openai/gpt-6.1-sol`: the model profile should no longer be `(none)`, the provider
-shim should be active, and `apply_patch` should be active. The 4.1.1 runtime
+shim should be active, and `apply_patch` should be active. The 5.0.0 bundle
 already supplies this model profile; adding it to user `models.json` is not the
 fix. Installation data, lockfiles, and backups remain machine-local and ignored.
 
@@ -241,8 +254,10 @@ and start new agents.
 | Child `report` | `send_message(target, message)` to the parent. |
 | Read answers from `wait_agent` | Wait for mailbox activity; answers arrive separately in attributed context messages. |
 
-The remaining controls are `interrupt_agent(target)` and
-`list_agents(path_prefix?)`. Ordinary messages do not start idle agents. Task
+The remaining controls are `interrupt_agent(target)`,
+`close_agent(target)`, and
+`list_agents(path_prefix?, include_closed?, limit?, cursor?)`.
+Ordinary messages do not start idle agents. Task
 names use lowercase letters, digits and underscores, without hyphens.
 Collaboration controls are provided by the runtime even with an ordinary-tool
 ceiling, so scout/reviewer definitions need no new control-tool entries.
@@ -256,7 +271,7 @@ Review only explicit safe targets and privately back up existing files first:
 ```sh
 chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/subagent.json
 chezmoi apply ~/.config/pi/agent/subagent.json
-pi install npm:@oai404iao/pi-subagent@1.1.0 --no-approve
+pi install npm:@oai404iao/pi-subagent@1.2.0 --no-approve
 ```
 
 The Pi install command updates that package declaration without resetting other
@@ -273,7 +288,7 @@ Telegram notifications.
 ### `createCodemodeExtension is not a function`
 
 This error occurs during child-runtime creation, before the child can execute
-its task. Check the host Pi version first: subagent 1.1.0 requires Pi 0.99.1 or
+its task. Check the host Pi version first: subagent 1.2.0 requires Pi 1.2.0 or
 newer, including its SDK factories. A newer `pi-coding-agent` dependency under
 `agent/npm/node_modules` does not upgrade the running host; Pi maps extension
 SDK imports to its own implementation.
@@ -348,14 +363,14 @@ See the [Pi codemode reference](https://github.com/earendil-works/pi/blob/main/p
 The pinned extension sources were checked against Pi's native codemode contract:
 
 - Codex tools preserves codemode when reconciling its active tools.
-- Subagent orchestration is `model-only`: call `spawn_agent` and the other five
+- Subagent orchestration is `model-only`: call `spawn_agent` and the other six
   controls directly, not through `tools.spawn_agent()`. The managed scout/reviewer
   allowlists explicitly include `codemode`, enabling batching and filtering
   within each child's tool ceiling without adding editing tools. Their
   read-only instructions remain unchanged; the existing `bash` tool is not a
   filesystem sandbox. The child runtime loads codemode with `models: false`,
   so its default implementation does not expose the `models` API.
-- Ask-user-question 2.12.0 still uses default `direct` exposure, so it is also
+- Ask-user-question 2.13.8 still uses default `direct` exposure, so it is also
   script-callable. Prefer direct questions; parallel dialogs and cancellation
   inside scripts have not been validated. This is why `on`, not `only`, is used.
 - Telegram listens for UI prompts and settled runs rather than individual

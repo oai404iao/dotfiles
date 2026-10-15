@@ -54,7 +54,7 @@
   其余 npm 安装状态仍保持忽略。
 - Pi codemode 与直接工具调用并存（`on`，非 `only`）；参见
   [兼容性与子代理限制](docs/pi.md#codemode)。
-- Pi 固定使用 Codex tools 4.1.1 和 subagent 1.0.1。Subagent 使用六个异步
+- Pi 固定使用 Codex tools 5.0.0 和 subagent 1.2.0。Subagent 使用七个异步
   明文工具，全树并发上限为 4，邮箱默认等待 120 秒；参见
   [迁移说明](docs/pi.md#subagent-100-migration)。
 - [Agent 派工说明](docs/pi.md#agent-delegation-guidance) 要求明确任务范围：
@@ -277,7 +277,7 @@ rbw config unset lock_timeout
 ### 3. 准备应用的外部依赖
 
 根据机器用途安装对应的 Shell、桌面、Neovim 和 Pi 依赖。锁定的 Pi 扩展要求
-Pi 0.99.1 或更高版本、Node.js 22.19 或更高版本。图形机器还需要将
+Pi 1.2.0 或更高版本、Node.js 22.19 或更高版本。图形机器还需要将
 `~/.local/share/pi/extensions/pi-local-notify` 软链接到可信的本地插件源码，
 参见[本地插件配置](docs/pi.md#notifications-by-machine-profile)。
 无桌面机器不需要本地扩展 checkout。
