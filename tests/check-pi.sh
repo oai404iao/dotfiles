@@ -178,8 +178,8 @@ scout_frontmatter = {
     if ":" in line
     for key, value in [line.split(":", 1)]
 }
-if scout_frontmatter.get("model") != "deepseek/deepseek-flash":
-    raise SystemExit("Pi scout does not use DeepSeek Flash")
+if scout_frontmatter.get("model") != "openai/gpt-6-luna":
+    raise SystemExit("Pi scout does not use GPT-6 Luna")
 if scout_frontmatter.get("thinking") != "high":
     raise SystemExit("Pi scout thinking level is not high")
 
