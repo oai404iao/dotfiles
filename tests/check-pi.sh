@@ -20,6 +20,7 @@ source_dir = pathlib.Path(sys.argv[1])
 repo_dir = source_dir.parents[2]
 
 expected = {
+    "modify_private_auth.json",
     "modify_private_settings.json.tmpl",
     "npm/modify_private_pnpm-workspace.yaml",
     "private_models.json",
@@ -44,7 +45,6 @@ if actual != expected:
     )
 
 expected_ignored = {
-    ".config/pi/agent/auth.json",
     ".config/pi/agent/trust.json",
     ".config/pi/agent/models-store.json",
     ".config/pi/agent/external-thinking.json",
@@ -71,6 +71,8 @@ if not expected_ignored <= ignore_lines:
     )
 if ".config/pi/agent/npm/" in ignore_lines:
     raise SystemExit("Pi pnpm build policy is hidden by a directory-wide ignore")
+if ".config/pi/agent/auth.json" in ignore_lines:
+    raise SystemExit("Pi auth command-reference modifier is hidden by an ignore")
 
 external_path = ".config/pi/agent/AGENTS.md"
 external_source = (repo_dir / ".chezmoiexternal.toml").read_text()
@@ -100,6 +102,69 @@ def load_json(text):
 for path in source_dir.rglob("*.json"):
     if not path.name.startswith("modify_"):
         load_json(path.read_text())
+
+auth_modifier = source_dir / "modify_private_auth.json"
+if not os.access(auth_modifier, os.X_OK):
+    raise SystemExit("Pi auth modifier must be executable")
+auth_script = auth_modifier.read_text()
+compile(auth_script, str(auth_modifier), "exec")
+auth_commands = {
+    "deepseek": "!rbw get 'pi spiredive api key'",
+    "openai": "!rbw get 'pi spiredive api key'",
+    "xai": "!rbw get 'pi spiredive api key'",
+    "anthropic": "!rbw get 'pi krill api key'",
+}
+auth_defaults = {
+    provider: {"type": "api_key", "key": command}
+    for provider, command in auth_commands.items()
+}
+existing_auth = {
+    "openai": {"type": "api_key", "key": "synthetic-old-key", "env": {"EXTRA": "keep"}},
+    "anthropic": {"type": "api_key", "key": "!old-command", "futureField": True},
+    "openai-codex": {
+        "type": "oauth", "access": "synthetic-access",
+        "refresh": "synthetic-refresh", "expires": 123456789,
+    },
+    "unrelated": {"type": "api_key", "key": "synthetic-unrelated-key"},
+    "futureProvider": {"type": "future", "nested": [True, {"keep": "原样"}]},
+}
+
+
+def modify_auth(old, env=None):
+    return subprocess.run(
+        [str(auth_modifier)], input=old, text=True, capture_output=True, env=env
+    )
+
+
+for original in ({}, existing_auth):
+    expected_auth = {**original, **auth_defaults}
+    for provider in auth_commands.keys() & original.keys():
+        expected_auth[provider] = {**original[provider], **auth_defaults[provider]}
+    inputs = (json.dumps(original),) if original else ("", " \n", "{}")
+    for old in inputs:
+        result = modify_auth(old)
+        if result.returncode or load_json(result.stdout) != expected_auth:
+            raise SystemExit("Pi auth modifier changed command references or lost local credentials")
+        repeated = modify_auth(result.stdout)
+        if repeated.returncode or repeated.stdout != result.stdout:
+            raise SystemExit("Pi auth modifier is not idempotent")
+
+invalid_auth = [
+    "null", "[]", "true", '"synthetic-secret"', "{synthetic-secret",
+    '{"duplicate": 1, "duplicate": 2}',
+    '{"unrelated": {"nested": 1, "nested": 2}}',
+    '{"unrelated": NaN}', '{"unrelated": Infinity}',
+    '{"unrelated": 1e400}', '{"unrelated": -1e400}',
+]
+for provider in auth_commands:
+    for conflict in (None, [], True, "synthetic-secret", {}, {"type": "future"},
+                     {"type": "oauth", "access": "synthetic-secret"}):
+        invalid_auth.append(json.dumps({provider: conflict}))
+for invalid in invalid_auth:
+    rejected = modify_auth(invalid)
+    if rejected.returncode == 0 or rejected.stdout or "synthetic-secret" in rejected.stderr:
+        raise SystemExit("Pi auth modifier accepted unsafe input or exposed credentials")
+print("Pi auth command-reference merge and rejection checks passed")
 
 settings_modifier = source_dir / "modify_private_settings.json.tmpl"
 telegram_package = "npm:@oai404iao/pi-telegram-notify@0.6.0"
@@ -341,6 +406,12 @@ strictDepBuilds: true
     scratch_root = pathlib.Path.home() / ".local/state/agents/tmp"
     scratch_root.mkdir(parents=True, exist_ok=True)
     scratch = pathlib.Path(tempfile.mkdtemp(prefix="check-pi.", dir=scratch_root))
+    fixture_source = scratch / "source"
+    # External declarations are exercised separately with synthetic local fixtures.
+    shutil.copytree(
+        repo_dir, fixture_source,
+        ignore=shutil.ignore_patterns(".git", ".worktrees", ".chezmoiexternal.toml"),
+    )
     home = scratch / 'home with "quotes"'
     home.mkdir()
     fake_bin = scratch / "bin"
@@ -446,10 +517,11 @@ strictDepBuilds: true
 
     chezmoi = [
         "chezmoi", "--config", "/dev/null", "--config-format", "toml",
-        "--source", str(repo_dir), "--destination", str(home),
+        "--source", str(fixture_source), "--destination", str(home),
         "--persistent-state", str(scratch / "chezmoi-state.boltdb"),
     ]
     agent_dir = home / ".config/pi/agent"
+    auth_target = agent_dir / "auth.json"
     settings_target = agent_dir / "settings.json"
     telegram_target = agent_dir / "extensions/pi-telegram-notify/config.json"
     telegram_target.parent.mkdir(parents=True)
@@ -473,11 +545,17 @@ strictDepBuilds: true
             rendered, local_package if graphical else telegram_package, home
         )
         target_path = subprocess.run(
-            [*command, "target-path", str(settings_modifier)],
+            [*command, "target-path", str(fixture_source / settings_modifier.relative_to(repo_dir))],
             text=True, capture_output=True, check=True, env=fixture_env,
         ).stdout.strip()
         if target_path != str(settings_target):
             raise SystemExit("Pi settings template changed its destination path")
+        auth_path = subprocess.run(
+            [*command, "target-path", str(fixture_source / auth_modifier.relative_to(repo_dir))],
+            text=True, capture_output=True, check=True, env=fixture_env,
+        ).stdout.strip()
+        if auth_path != str(auth_target):
+            raise SystemExit("Pi auth modifier changed its destination path")
         inventory = subprocess.run(
             [*command, "managed", "--include=files", "--exclude=encrypted,externals", str(agent_dir)],
             text=True, capture_output=True, check=True, env=fixture_env,
@@ -485,6 +563,48 @@ strictDepBuilds: true
         telegram_managed = ".config/pi/agent/extensions/pi-telegram-notify/config.json" in inventory
         if telegram_managed == graphical or ".config/pi/agent/settings.json" not in inventory:
             raise SystemExit("Pi profile managed settings/Telegram inventory is incorrect")
+        if ".config/pi/agent/auth.json" not in inventory:
+            raise SystemExit("Pi auth command references must be managed in every profile")
+
+        rbw_log.write_text("")
+        fresh_auth = None if profile == (False, False) else "{}"
+        for old in (fresh_auth, json.dumps(existing_auth)):
+            if old is not None:
+                auth_target.write_text(old)
+                auth_target.chmod(0o644)
+            apply_auth = [
+                *command, "apply", "--force", "--exclude=scripts,encrypted,externals",
+                str(auth_target),
+            ]
+            subprocess.run(
+                apply_auth, text=True, capture_output=True, check=True, env=fixture_env,
+            )
+            expected_auth = load_json(modify_auth(old or "").stdout)
+            if load_json(auth_target.read_text()) != expected_auth:
+                raise SystemExit("Pi auth apply lost local credentials or command references")
+            if auth_target.stat().st_mode & 0o777 != 0o600:
+                raise SystemExit("Pi auth target must remain mode 0600")
+            applied = auth_target.read_bytes()
+            subprocess.run(
+                apply_auth, text=True, capture_output=True, check=True, env=fixture_env,
+            )
+            if auth_target.read_bytes() != applied:
+                raise SystemExit("Pi auth apply is not idempotent")
+        if rbw_log.read_text():
+            raise SystemExit("Pi auth apply unexpectedly accessed rbw")
+    for invalid in invalid_auth:
+        auth_target.write_text(invalid)
+        rejected = subprocess.run(
+            apply_auth, text=True, capture_output=True, env=fixture_env,
+        )
+        if rejected.returncode == 0 or auth_target.read_text() != invalid:
+            raise SystemExit("Pi auth apply overwrote invalid or conflicting credentials")
+        if "synthetic-secret" in rejected.stdout + rejected.stderr:
+            raise SystemExit("Pi auth apply exposed rejected credentials")
+    auth_target.write_text(json.dumps(existing_auth))
+    if rbw_log.read_text():
+        raise SystemExit("Pi auth rejection unexpectedly accessed rbw")
+    print("Pi auth isolated apply, private permissions, and conflict preservation checks passed")
 
     for desktop in ((True, True), (True, False)):
         headless = (False, False)
@@ -550,7 +670,7 @@ strictDepBuilds: true
         print("pnpm 12 policy consumption skipped: pnpm unavailable")
     inventory = subprocess.run(
         ["chezmoi", "--config", "/dev/null", "--config-format", "toml",
-         "--source", str(repo_dir), "--destination", str(home),
+         "--source", str(fixture_source), "--destination", str(home),
          "--persistent-state", str(scratch / "chezmoi-state.boltdb"),
          "--override-data", '{"graphical":false,"niri":false}',
          "managed", "--include=files", "--exclude=encrypted,externals", str(policy_dir)],

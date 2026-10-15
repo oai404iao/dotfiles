@@ -23,11 +23,21 @@ repo = pathlib.Path(sys.argv[1])
 scratch = pathlib.Path.home() / ".local/state/agents/tmp"
 scratch.mkdir(parents=True, exist_ok=True)
 task = pathlib.Path(tempfile.mkdtemp(prefix="check-desktop-profiles.", dir=scratch))
+source = task / "source"
+# Excluding external target types does not prevent archive expansion while loading source.
+shutil.copytree(
+    repo, source,
+    ignore=shutil.ignore_patterns(".git", ".worktrees", ".chezmoiexternal.toml"),
+)
 
-def run(command, env, **kwargs):
-    result = subprocess.run(
-        command, env=env, capture_output=True, text=True, **kwargs
-    )
+def run(command, env):
+    try:
+        result = subprocess.run(
+            command, env=env, capture_output=True, text=True,
+            stdin=subprocess.DEVNULL, timeout=30,
+        )
+    except subprocess.TimeoutExpired:
+        raise SystemExit(f"Timed out after 30s: {command}") from None
     if result.returncode:
         raise SystemExit(f"{command}\n{result.stderr or result.stdout}")
     return result.stdout
@@ -56,7 +66,7 @@ def fixture(name, shell=None, graphical=True, niri=True, output="auto"):
         "PATH": str(repo / "tests/fixtures/pi/bin") + os.pathsep + os.environ["PATH"],
     }
     command = [
-        "chezmoi", "--config", str(config), "--source", str(repo),
+        "chezmoi", "--config", str(config), "--source", str(source),
         "--persistent-state", str(home / "chezmoi-state.boltdb"),
     ]
     return home, env, command
@@ -92,7 +102,7 @@ targets = [
 ]
 
 def managed(command, env):
-    return set(run(command + ["managed", "--include", "files", "--exclude", "externals"], env).splitlines())
+    return set(run(command + ["managed", "--include", "files"], env).splitlines())
 
 def assert_gtk_imports(css, version, shell):
     palette = "dank-colors.css" if shell == "dms" else "colors.css"
@@ -113,21 +123,20 @@ def apply(home, env, command, shell):
     ] if shell == "dms" else [])
     for path in paths:
         (home / path).parent.mkdir(parents=True, exist_ok=True)
-    run(command + ["apply", "--force", "--exclude", "scripts,encrypted"]
+    run(command + ["apply", "--force", "--exclude=scripts,encrypted,externals"]
         + [str(home / path) for path in paths], env)
 
 home, env, command = fixture("dms-generated-fragments", "dms")
 niri_dir = home / ".config/niri"
-run(command + ["apply", "--exclude", "scripts,encrypted", str(niri_dir)], env,
-    stdin=subprocess.DEVNULL)
+run(command + ["apply", "--exclude=scripts,encrypted,externals", str(niri_dir)], env)
 generated = [home / path for path in sorted(dms_kdl_targets)]
 seeded = {path: path.read_bytes() for path in generated}
 assert all(seeded.values())
 
 def apply_fragments(paths):
     output = run(
-        command + ["apply", "--exclude", "scripts,encrypted", *(str(path) for path in paths)],
-        env, stdin=subprocess.DEVNULL,
+        command + ["apply", "--exclude=scripts,encrypted,externals",
+                   *(str(path) for path in paths)], env,
     )
     assert not output, output
 
@@ -380,11 +389,11 @@ for shell in ("dms", "custom"):
         assert (".config/gtk-4.0/nautilus.css" in inventory) == graphical
         plugin_file = home / ".config/nvim/lua/plugins/dms-colorscheme.lua"
         plugin_file.parent.mkdir(parents=True)
-        run(command + ["apply", "--exclude", "scripts,encrypted", str(plugin_file)], env)
+        run(command + ["apply", "--exclude=scripts,encrypted,externals", str(plugin_file)], env)
         assert plugin_file.read_text().strip() == "return {}"
         assert ".config/niri/config.kdl" not in inventory
         if graphical:
-            run(command + ["apply", "--exclude", "scripts,encrypted"]
+            run(command + ["apply", "--exclude=scripts,encrypted,externals"]
                 + [str(home / path) for path in (".config/kitty", ".config/gtk-3.0", ".config/gtk-4.0", ".config/fcitx5")], env)
             assert "include current-theme.conf" in (home / ".config/kitty/kitty.conf").read_text()
             assert "Theme=Matugen\n" in (home / ".config/fcitx5/conf/classicui.conf").read_text()
@@ -394,7 +403,10 @@ for shell in ("dms", "custom"):
                 )
 
 home, env, command = fixture("invalid", "invalid")
-result = subprocess.run(command + ["managed"], env=env, capture_output=True, text=True)
+result = subprocess.run(
+    command + ["managed"], env=env, capture_output=True, text=True,
+    stdin=subprocess.DEVNULL, timeout=30,
+)
 assert result.returncode and "desktopShell must be custom or dms" in result.stderr
 
 # Exercise the real init prompt without the user's saved machine data.
@@ -403,10 +415,10 @@ empty = home / "empty.toml"
 empty.write_text("")
 for shell in ("dms", "custom"):
     rendered = run(
-        ["chezmoi", "--config", str(empty), "--source", str(repo),
+        ["chezmoi", "--config", str(empty), "--source", str(source),
          "execute-template", "--init", "--promptChoice",
          f"Machine role=laptop,Default shell=zsh,Desktop shell: DMS or custom components={shell},Niri output profile=auto,SSH authorized_keys identity=none",
-         "--promptBool", "Graphical machine=true,Use niri=true,Use Tether iPhone notifications=false,Work machine=false,Use rbw SSH agent=false,Use recoverable rm wrapper=false",
+         "--promptBool", "Graphical machine=true,Use niri=true,Use Tether iPhone notifications=false,Work machine=false,Use rbw SSH agent=false",
          "--file", str(repo / ".chezmoi.toml.tmpl")], env,
     )
     assert tomllib.loads(rendered)["data"]["desktopShell"] == shell

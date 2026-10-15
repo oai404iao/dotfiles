@@ -68,8 +68,6 @@
   `~/.agents/skills/` 下的下载内容不纳入本仓库。
 - OpenSSH 使用经 age 加密的公钥选择器与主机元数据，客户端私钥由
   Bitwarden 中的 `rbw-agent` 使用；Git 身份元数据同样经过加密。
-- 可选的 `safeRm` 项会把递归 `rm` 转移到桌面回收站，并拒绝操作受保护的
-  XDG 与 Pi 根目录。
 
 ## 仓库结构
 
@@ -88,7 +86,7 @@
 │   ├── waypaper/            # 壁纸集成
 │   └── private_pi/agent/    # 使用私有权限的 Pi 声明式配置
 ├── private_dot_ssh/         # 通用 SSH 策略与加密清单
-├── dot_local/bin/           # 用户命令，包括可选的安全 rm 包装器
+├── dot_local/bin/           # 用户命令
 ├── scripts/                 # 仅供源码侧使用的 age identity 工具
 ├── tests/                   # 离线源码与渲染检查
 ├── docs/                    # 各组件操作说明
@@ -120,8 +118,9 @@ chezmoi 的源码属性是本设计的一部分：
 即使远端仓库是私有的，也要把本仓库视为公开仓库。禁止加入凭据、递归导入
 `$HOME` 或 XDG 根目录，也不要提交恢复备份。
 
-受管 Pi 模型 provider 不保存 API 凭据。每台机器改为在已忽略的
-`auth.json` 中保存 `rbw` 命令引用：
+受管 Pi 模型 provider 不保存 API 凭据。
+`dot_config/private_pi/agent/modify_private_auth.json` 将 `rbw` API key
+命令引用合并到权限为 `0600` 的私有 `auth.json`：
 
 ```json
 {
@@ -133,6 +132,15 @@ chezmoi 的源码属性是本设计的一部分：
 ```
 
 Pi 每个进程只解析一次该命令，并将结果保存在内存中。
+`deepseek`、`openai` 和 `xai` 使用上面的 Spiredive 引用；`anthropic`
+使用 `!rbw get 'pi krill api key'`。modifier 仅替换受管 API key 条目的
+`type`/`key`，保留额外字段以及其他所有 provider 和值。受管 provider 的
+OAuth/非 API key 冲突，以及格式错误、键重复或非对象 JSON 都会导致失败，
+不输出替换内容，也不覆盖目标。应用引用不会访问 `rbw` 或 vault。
+Git 只跟踪 modifier 源码：绝不要执行 `chezmoi add auth.json` 或提交其渲染数据。
+即使使用 `--skip-secrets` 也绝不要 diff `auth.json`，因为保留的条目可能包含
+key 或 OAuth token。
+
 Telegram 扩展自身不支持解析命令，因此 chezmoi 会将 Bitwarden 中的值渲染到
 权限为 `0600` 的目标文件。不要显示未过滤的 Pi diff。`--skip-secrets`
 只会跳过秘密模板，不会遮盖目标文件里已经存在的明文凭据，也不会排除原生
@@ -162,13 +170,12 @@ Telegram 扩展自身不支持解析命令，因此 chezmoi 会将 Bitwarden 中
 在 Arch Linux 上安装仓库级工具：
 
 ```sh
-sudo pacman -S --needed git chezmoi age rbw openssh python bash zsh glib2
+sudo pacman -S --needed git chezmoi age rbw openssh python bash zsh
 ```
 
 完整源码验证需要 Bash 和 Zsh；实际运行时只需要所选的 Shell。还需确保已安装
 `neovim` 和 `less`。Pi 与 Node.js 需要单独安装。图形环境依赖见
 [docs/desktop.md](docs/desktop.md)；本仓库不提供系统级软件包引导安装。
-`glib2` 提供安全 rm 测试所需的 `gio` 命令；启用 `safeRm` 后包装器也依赖它。
 
 按全部配置档分类并附用途注释的 Arch 软件包清单见
 [pacman 包](docs/packages/pacman.txt)和 [AUR 包](docs/packages/aur.txt)。
@@ -263,6 +270,7 @@ rbw sync
 Pi 还依赖以下 Bitwarden 条目：
 
 - `pi spiredive api key`
+- `pi krill api key`
 - `pi telegram bot token`（仅无桌面机器）
 - `pi telegram chat id`（仅无桌面机器）
 
@@ -294,8 +302,7 @@ CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh
 测试套件应保持离线。Pi 模板测试使用假的 `rbw`；安装了 `niri` 时，其配置会
 渲染到隔离的临时 HOME 并接受验证。SSH 配置档案与公钥选择器使用生成的假
 数据测试；显式可信检查还会验证真实 age 密文，但不会输出解密内容或访问
-vault。safe-rm 测试会组合确定性的假命令失败场景与隔离 HOME/XDG 状态中的
-真实 GIO，并验证生成的回收站内容及元数据，不会读取或修改用户的真实回收站。
+vault。
 
 ### 5. 审阅并应用
 
@@ -323,14 +330,18 @@ chezmoi apply \
 上面的其余命令会单独验证并应用 age 加密的 Git
 与 SSH 元数据；如果机器的两项 SSH 能力均关闭，则省略 SSH apply。
 
-第一次发起模型请求前，需要配置 Pi 已忽略的本机凭据。在 Pi 中分别为
-`deepseek`、`openai` 和 `xai` 运行 `/login`；出现选择时使用 API key
-认证，并为每个 provider 输入以下命令引用：
+auth modifier 会安装全部四个模型凭据引用，无需 `/login`。接管或更新既有
+`auth.json` 前，先退出所有使用该目录的 Pi 进程，避免并发写入认证文件，
+再将文件私密备份到源码和保留的 agent 临时目录
+（`~/.local/state/agents/tmp/`）之外，目录权限为 `0700`、文件权限为 `0600`。
+审阅 modifier 源码而非 auth diff，然后仅应用：
 
-```text
-!rbw get 'pi spiredive api key'
+```sh
+chezmoi apply --exclude=scripts,encrypted ~/.config/pi/agent/auth.json
 ```
 
+之后重启 Pi。受管 provider 若存在冲突的 OAuth/非 API key 凭据，
+必须由用户明确移除后才能重试，绝不会自动转换。应用该目标无需解锁 `rbw`。
 在每个新 Pi 进程解析完该命令前保持 `rbw` 已解锁。结果会缓存在该进程内，
 所以之后锁定 `rbw` 不会中断它。生命周期和恢复细节见
 [docs/pi.md](docs/pi.md)。
@@ -343,22 +354,21 @@ chezmoi diff --skip-secrets <sanitized-target>
 chezmoi apply <reviewed-target>
 ```
 
+即使迁移后，也绝不要 diff Pi `auth.json`；保留的凭据仍属于本机状态。
 不要 diff 可能包含明文密钥的既有 Pi `models.json`。请按照
-[docs/pi.md](docs/pi.md) 中的直接脱敏流程处理。不要 diff 加密的 SSH
-目标，否则会输出解密后的主机清单；请使用 [docs/ssh.md](docs/ssh.md)
+[docs/pi.md](docs/pi.md#credentials) 中的定向 auth 应用及直接脱敏流程处理。
+不要 diff 加密的 SSH 目标，否则会输出解密后的主机清单；请使用
+[docs/ssh.md](docs/ssh.md)
 中的可信检查与定向 apply。
 
 应用完成后启动新的登录会话，并检查：
 
 ```sh
-command -v rm
 locale
 fc-match sans-serif
 fc-match monospace
 chezmoi status --skip-secrets --exclude=encrypted
 ```
-
-启用 `safeRm` 时预期的 `rm` 路径是 `~/.local/bin/rm`，否则为 `/usr/bin/rm`。
 
 ## 日常工作流
 
@@ -373,8 +383,8 @@ chezmoi apply <reviewed-target>
 
 应用发生变化的 Telegram 模板、新 Pi 进程首次解析模型 key，以及通过
 `rbw-agent` 使用 SSH identity 前，需要先解锁 `rbw`。已经初始化的 Pi
-进程会继续在内存中保留解析后的 key。只有在可信终端中才能查看完整的秘密
-渲染 diff。
+进程会继续在内存中保留解析后的 key。绝不要显示 auth 或 Telegram 的
+秘密 diff；仅预览明确指定且已脱敏的目标。
 
 新增配置时应指定单个文件：
 
@@ -390,7 +400,6 @@ chezmoi add ~/.config/example/config
 - [桌面配置所有权与依赖](docs/desktop.md)
 - [DMS/custom 桌面方案与切换](docs/desktop-shells.md)
 - [可选的 Tether 蓝牙 iPhone 通知](docs/tether.md)
-- [可选的递归删除保护](docs/deletion-safety.md)
 - [Pi 配置与凭据](docs/pi.md)
 - [SSH identity 与 rbw-agent](docs/ssh.md)
 - [公开仓库安全流程](docs/publication.md)

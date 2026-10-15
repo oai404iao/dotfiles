@@ -78,8 +78,6 @@ credentials and mutable application state out of Git.
 - OpenSSH uses age-encrypted public selectors and host metadata while
   `rbw-agent` keeps private client keys in Bitwarden; Git identity metadata is
   encrypted as well.
-- The optional `safeRm` opt-in redirects recursive `rm` to the desktop Trash
-  and rejects protected XDG and Pi roots.
 
 ## Repository Layout
 
@@ -98,7 +96,7 @@ credentials and mutable application state out of Git.
 │   ├── waypaper/            # Wallpaper integration
 │   └── private_pi/agent/    # Private-mode declarative Pi configuration
 ├── private_dot_ssh/         # Generic SSH policy and encrypted inventory
-├── dot_local/bin/           # User commands, including the optional safe rm wrapper
+├── dot_local/bin/           # User commands
 ├── scripts/                 # Source-only age identity helpers
 ├── tests/                   # Offline source and rendering checks
 ├── docs/                    # Component-specific operating notes
@@ -132,8 +130,9 @@ Treat this repository as public even when its remote is private. Never add a
 credential, recursively import `$HOME` or an XDG root, or commit a recovery
 backup.
 
-Managed Pi model providers omit API credentials. Each machine stores an
-`rbw` command reference in its ignored `auth.json` instead:
+Managed Pi model providers omit API credentials.
+`dot_config/private_pi/agent/modify_private_auth.json` merges `rbw` API-key
+command references into private (`0600`) `auth.json`:
 
 ```json
 {
@@ -145,6 +144,16 @@ Managed Pi model providers omit API credentials. Each machine stores an
 ```
 
 Pi resolves the command once per process and keeps the result in memory.
+`deepseek`, `openai`, and `xai` use the Spiredive reference above; `anthropic`
+uses `!rbw get 'pi krill api key'`. The modifier replaces only the managed
+API-key entries' `type`/`key`, preserving extra fields and all other providers
+and values. Managed-provider OAuth/non-API-key conflicts and malformed,
+duplicate-key, or non-object JSON fail without replacement output or overwriting
+the target. Applying references never contacts `rbw` or the vault.
+Only the modifier source is tracked: never `chezmoi add auth.json` or commit
+its rendered data. Never diff `auth.json`, even with `--skip-secrets`, because
+preserved entries can contain keys or OAuth tokens.
+
 The Telegram extension cannot resolve commands itself, so chezmoi renders its
 Bitwarden values into a target file with mode `0600`. Avoid displaying
 unfiltered Pi diffs. `--skip-secrets` skips secret templates; it does not
@@ -177,15 +186,14 @@ must not contain credentials.
 On Arch Linux, install the repository-level tools:
 
 ```sh
-sudo pacman -S --needed git chezmoi age rbw openssh python bash zsh glib2
+sudo pacman -S --needed git chezmoi age rbw openssh python bash zsh
 ```
 
 Both Bash and Zsh are needed for complete source validation; only the selected
 shell is needed at runtime. `neovim` and `less` are expected to be installed.
 Pi and Node.js are installed separately. Graphical dependencies are listed in
 [docs/desktop.md](docs/desktop.md); this repository does not provide a
-system-wide package bootstrap. `glib2` supplies the `gio` command used by the
-safe-rm test and, when `safeRm` is enabled, by the wrapper.
+system-wide package bootstrap.
 
 The annotated Arch package lists cover all profiles: [pacman packages](docs/packages/pacman.txt)
 and [AUR packages](docs/packages/aur.txt). Select only the sections you use;
@@ -287,6 +295,7 @@ The private age identity must never enter Git.
 The Pi setup also expects these Bitwarden items:
 
 - `pi spiredive api key`
+- `pi krill api key`
 - `pi telegram bot token` (headless machines only)
 - `pi telegram chat id` (headless machines only)
 
@@ -320,10 +329,7 @@ The test suite is intended to remain offline. Pi template tests use a fake
 `rbw`. When `niri` is installed, its configuration is rendered into isolated
 temporary homes and validated. SSH profiles and public selectors are checked
 with generated fake data; the explicit trusted check also validates the real
-age ciphertext without printing it or contacting the vault. The safe-rm test
-combines deterministic fake-command failure cases with real GIO under isolated
-HOME/XDG state. It verifies the resulting Trash payload and metadata without
-reading or modifying the user's Trash.
+age ciphertext without printing it or contacting the vault.
 
 ### 5. Review and apply
 
@@ -352,14 +358,20 @@ The remaining commands above validate and apply age-encrypted Git and SSH
 metadata separately; omit the SSH apply on a profile where both SSH
 capabilities are disabled.
 
-Configure Pi's ignored local credentials before the first model request. In
-Pi, run `/login` for `deepseek`, `openai`, and `xai`, select API-key
-authentication when prompted, and enter this command reference for each:
+The auth modifier installs all four model credential references; no `/login`
+is needed. Before adopting or updating an existing `auth.json`, exit all Pi
+processes using that directory to avoid concurrent auth writes, then back up
+the file privately outside the source and retained agent scratch
+(`~/.local/state/agents/tmp/`), with directory mode `0700` and file mode `0600`.
+Review the modifier source, not an auth diff, then apply only:
 
-```text
-!rbw get 'pi spiredive api key'
+```sh
+chezmoi apply --exclude=scripts,encrypted ~/.config/pi/agent/auth.json
 ```
 
+Restart Pi afterward. A conflicting OAuth/non-API-key credential for a managed
+provider requires explicit user removal before retrying; it is never
+automatically converted. Applying this target does not require unlocking `rbw`.
 Keep `rbw` unlocked until each new Pi process has resolved the command. The
 result is cached in that process, so locking `rbw` afterward does not interrupt
 it. See [docs/pi.md](docs/pi.md) for lifecycle and recovery details.
@@ -373,23 +385,21 @@ chezmoi diff --skip-secrets <sanitized-target>
 chezmoi apply <reviewed-target>
 ```
 
-Do not diff an existing Pi `models.json` that might contain a literal key.
-Follow the direct sanitization procedure in [docs/pi.md](docs/pi.md). Do not
-diff encrypted SSH targets because their decrypted host inventory would be
+Never diff Pi `auth.json`, including after migration; preserved credentials
+remain local. Do not diff an existing Pi `models.json` that might contain a
+literal key. Follow the targeted auth and direct sanitization procedures in
+[docs/pi.md](docs/pi.md#credentials). Do not diff encrypted SSH targets because
+their decrypted host inventory would be
 printed; use the trusted check and targeted apply in [docs/ssh.md](docs/ssh.md).
 
 After applying, start a new login session and verify:
 
 ```sh
-command -v rm
 locale
 fc-match sans-serif
 fc-match monospace
 chezmoi status --skip-secrets --exclude=encrypted
 ```
-
-The expected `rm` path is `~/.local/bin/rm` when `safeRm` is enabled and
-`/usr/bin/rm` otherwise.
 
 ## Daily Workflow
 
@@ -405,7 +415,8 @@ chezmoi apply <reviewed-target>
 Unlock `rbw` before applying a changed Telegram template, before a new Pi
 process first resolves its model key, and before using an SSH identity through
 `rbw-agent`. An already initialized Pi process keeps its resolved key in
-memory. Inspect a full rendered secret diff only in a trusted terminal.
+memory. Never display auth or Telegram secret-bearing diffs; preview only
+explicit sanitized targets.
 
 When adding configuration, use an explicit file:
 
@@ -421,7 +432,6 @@ secrets belong in `.chezmoiignore` or the appropriate external secret backend.
 - [Desktop ownership and dependencies](docs/desktop.md)
 - [DMS/custom desktop profiles and switching](docs/desktop-shells.md)
 - [Optional Tether Bluetooth iPhone notifications](docs/tether.md)
-- [Optional recoverable recursive deletion](docs/deletion-safety.md)
 - [Pi configuration and credentials](docs/pi.md)
 - [SSH identities and rbw-agent](docs/ssh.md)
 - [Public repository safety](docs/publication.md)

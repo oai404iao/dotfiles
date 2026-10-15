@@ -19,6 +19,13 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
+source_dir="$tmp_dir/source"
+mkdir -p -- "$source_dir/dot_config"
+# Excluding externals alone can still expand and download them during apply.
+cp -R -- "$repo_dir/dot_config/niri" "$source_dir/dot_config/niri"
+cp -R -- "$repo_dir/.chezmoitemplates" "$source_dir/.chezmoitemplates"
+cp -- "$repo_dir/.chezmoiignore" "$source_dir/.chezmoiignore"
+
 binds_file="$repo_dir/.chezmoitemplates/niri-binds.kdl"
 while IFS='|' read -r expected_bind action; do
     if ! grep -Fqx "    $expected_bind" "$binds_file"; then
@@ -88,7 +95,7 @@ destDir = "$home_dir"
     secretBackend = "rbw"
 EOF
 
-    chezmoi --config "$config_file" --source "$repo_dir" apply \
+    chezmoi --config "$config_file" --source "$source_dir" apply \
         --exclude scripts "$home_dir/.config/niri" \
         >/dev/null 2>&1
     niri validate --config "$home_dir/.config/niri/config.kdl" \
@@ -128,7 +135,7 @@ destDir = "$legacy_home"
     secretBackend = "rbw"
 EOF
 
-chezmoi --config "$legacy_config" --source "$repo_dir" apply \
+chezmoi --config "$legacy_config" --source "$source_dir" apply \
     --exclude scripts "$legacy_home/.config/niri" \
     >/dev/null 2>&1
 niri validate --config "$legacy_home/.config/niri/config.kdl" \

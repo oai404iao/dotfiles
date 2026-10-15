@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+import json
+import math
+import sys
+
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError
+        result[key] = value
+    return result
+
+
+def reject_constant(value):
+    raise ValueError
+
+
+def finite_float(value):
+    number = float(value)
+    if not math.isfinite(number):
+        raise ValueError
+    return number
+
+
+raw = sys.stdin.read()
+try:
+    auth = json.loads(
+        raw, object_pairs_hook=unique_object,
+        parse_constant=reject_constant, parse_float=finite_float,
+    ) if raw.strip() else {}
+    if not isinstance(auth, dict):
+        raise ValueError
+except ValueError:
+    sys.exit("Invalid auth.json: expected a JSON object without duplicate keys.")
+
+commands = {
+    "deepseek": "!rbw get 'pi spiredive api key'",
+    "openai": "!rbw get 'pi spiredive api key'",
+    "xai": "!rbw get 'pi spiredive api key'",
+    "anthropic": "!rbw get 'pi krill api key'",
+}
+for provider in commands:
+    if provider in auth and (
+        not isinstance(auth[provider], dict)
+        or auth[provider].get("type") != "api_key"
+    ):
+        sys.exit(
+            f"Refusing to replace non-API-key auth for {provider}; "
+            "explicitly remove the conflicting login before applying."
+        )
+
+for provider, command in commands.items():
+    auth[provider] = {**auth.get(provider, {}), "type": "api_key", "key": command}
+
+json.dump(auth, sys.stdout, ensure_ascii=False, indent=2, allow_nan=False)
+sys.stdout.write("\n")

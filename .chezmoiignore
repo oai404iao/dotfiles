@@ -6,7 +6,6 @@
 {{- if hasKey . "sshInboundIdentity" -}}
 {{-   $sshInboundIdentity = .sshInboundIdentity -}}
 {{- end -}}
-{{- $safeRm := false -}}
 {{- $tether := get . "tether" | default false -}}
 {{- $tetherMode := "notifications" -}}
 {{- if hasKey . "tetherMode" -}}
@@ -18,9 +17,6 @@
 {{- $desktopShell := get . "desktopShell" | default "custom" -}}
 {{- if not (has $desktopShell (list "custom" "dms")) -}}
 {{-   fail "desktopShell must be custom or dms" -}}
-{{- end -}}
-{{- if hasKey . "safeRm" -}}
-{{-   $safeRm = .safeRm -}}
 {{- end -}}
 README.md
 README.zh-CN.md
@@ -152,8 +148,7 @@ secrets/
 {{- end }}
 {{- end }}
 
-# Pi credentials and generated or mutable state.
-.config/pi/agent/auth.json
+# Pi generated or mutable state; auth.json has a command-reference modifier.
 .config/pi/agent/trust.json
 .config/pi/agent/models-store.json
 .config/pi/agent/external-thinking.json
@@ -173,11 +168,6 @@ secrets/
 .config/pi/agent/workflows/projects/
 {{- if .graphical }}
 .config/pi/agent/extensions/pi-telegram-notify/
-{{- end }}
-
-# Optional recoverable recursive-removal wrapper.
-{{- if not $safeRm }}
-.local/bin/rm
 {{- end }}
 
 {{- if not .graphical }}

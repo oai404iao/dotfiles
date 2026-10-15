@@ -12,6 +12,7 @@ chezmoi owns the declarative files required to reproduce the current Pi setup:
 - global settings and package declarations
 - global agent instructions (`AGENTS.md`, fetched from `my_skills/main`)
 - custom providers and models
+- model authentication command references (merged into local `auth.json`)
 - key bindings
 - user-maintained subagent definitions and configuration
 - Codex-tool, subagent, and Telegram extension configuration
@@ -20,7 +21,8 @@ Files are installed with mode `0600`; `~/.config/pi` remains mode `0700`.
 
 The following generated or mutable data is deliberately not managed:
 
-- `auth.json`, `trust.json`, and `models-store.json`
+- local `auth.json` values other than the managed command references
+- `trust.json` and `models-store.json`
 - npm installation state (except its build policy below), `git/`, downloaded
   binaries, package installation IDs, and local plugin links under
   `~/.local/share/pi/extensions/`
@@ -454,8 +456,18 @@ Use `/reload` or start a new Pi session to load the updated context file.
 No Pi credential is committed or exported by shell startup files.
 
 Managed `models.json` deliberately omits `apiKey`. Each machine stores the
-following command reference under every applicable provider in its ignored
-`auth.json`:
+command references below in `auth.json`. The Python modifier
+`dot_config/private_pi/agent/modify_private_auth.json` merges these four entries,
+each with `"type": "api_key"`:
+
+| Provider | `key` command reference |
+| --- | --- |
+| `deepseek` | `!rbw get 'pi spiredive api key'` |
+| `openai` | `!rbw get 'pi spiredive api key'` |
+| `xai` | `!rbw get 'pi spiredive api key'` |
+| `anthropic` | `!rbw get 'pi krill api key'` |
+
+For example:
 
 ```json
 {
@@ -466,16 +478,48 @@ following command reference under every applicable provider in its ignored
 }
 ```
 
-Configure `deepseek`, `openai`, and `xai` with `/login`, selecting
-API-key authentication when Pi offers multiple methods and entering the same
-command reference for each. Do not replace the reference with the retrieved
-value.
+Applying the modifier installs references, not resolved keys, and never contacts
+`rbw` or the vault. It replaces only `type` and `key` in existing API-key entries
+for these four providers, preserving extra fields such as `env`. Every other
+provider and value is preserved, including unrelated OAuth credentials.
+The destination remains private with mode `0600`.
+
+An existing managed-provider entry whose `type` is not `api_key` is a conflict.
+The modifier fails without producing replacement JSON or overwriting the target;
+it never silently converts OAuth credentials. If you deliberately choose to
+replace such a credential, remove it yourself (for example, select that provider
+in Pi's `/logout`), then exit Pi before applying again. Malformed JSON, duplicate
+keys, and non-object JSON are also rejected without echoing input contents.
+
+`auth.json` is no longer fully ignored, but only the modifier's command-reference
+source belongs in Git. Never run `chezmoi add` on `auth.json`, commit its rendered
+data, or replace a reference with the retrieved value.
 
 `anthropic` uses `https://api.krill-code.net` with Pi's built-in model catalog.
 The enabled-model list includes `anthropic/claude-opus-5-5`; the default remains
-`openai/gpt-6.1-sol`. Configure its own Krill API-key credential with
-`/login anthropic`, selecting API-key authentication. It does not automatically
-reuse the Spiredive credential.
+`openai/gpt-6.1-sol`. Its managed reference uses the separate Krill credential,
+not the Spiredive credential.
+
+### Apply authentication references safely
+
+Never display or capture an `auth.json` diff, even with `--skip-secrets`:
+preserved provider entries can contain literal keys or OAuth tokens.
+Before adopting or updating this target, privately back up an existing file
+outside the chezmoi source and outside retained agent scratch
+(`~/.local/state/agents/tmp/`). Use directory mode `0700` and file mode `0600`;
+do not print or log the backup's contents.
+
+Exit all active Pi processes using this agent directory before backing up and
+applying, to avoid concurrent authentication writes. Review the modifier source
+and run the offline checks rather than previewing its secret-bearing output,
+then apply only this target:
+
+```sh
+chezmoi apply --exclude=scripts,encrypted ~/.config/pi/agent/auth.json
+```
+
+Restart Pi afterward. Applying this target does not require unlocking `rbw`;
+Pi needs the vault only when it first resolves a command.
 
 `auth.json` credentials take precedence over `models.json`. Pi resolves an
 auth-file command on first use and caches the result for the process lifetime.
@@ -496,8 +540,8 @@ Bitwarden entries (not required for desktop notifications):
 - `pi telegram bot token`
 - `pi telegram chat id`
 
-Unlock `rbw` before applying the Telegram template, configuring model
-credentials, or starting a Pi process that has not resolved its key:
+Unlock `rbw` before applying the Telegram template or starting a Pi process
+that has not resolved its key:
 
 ```sh
 rbw unlock
@@ -508,20 +552,21 @@ literal API key. Do **not** diff that file: back it up, migrate the key to
 Bitwarden, and replace it directly with the sanitized managed version:
 
 ```sh
-chezmoi apply --force ~/.config/pi/agent/models.json
+chezmoi apply --force --exclude=scripts,encrypted ~/.config/pi/agent/models.json
 ```
 
-Keep that backup outside the chezmoi source with directory mode `0700` and file
-mode `0600`. Verify the Bitwarden copy before replacement, then move the backup
-to Trash after the migration has been accepted.
+Keep that backup outside the chezmoi source and retained agent scratch, with
+directory mode `0700` and file mode `0600`. Verify the Bitwarden copy before
+replacement, then move the backup to Trash after the migration has been accepted.
 
-After that one-time sanitization, avoid displaying an unfiltered Pi diff
-because the rendered Telegram target contains credentials. Use:
+Do not diff or apply the whole Pi directory: `auth.json` can retain credentials
+and the rendered Telegram target contains credentials. For settings changes,
+privately back up and review only the sanitized settings target:
 
 ```sh
-chezmoi diff --skip-secrets ~/.config/pi/agent
-chezmoi apply ~/.config/pi/agent
+chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/settings.json
+chezmoi apply --exclude=scripts,encrypted ~/.config/pi/agent/settings.json
 ```
 
-Pi's `auth.json` remains unmanaged so `/login` can safely maintain OAuth
-credentials without chezmoi overwriting them.
+Use the separate [authentication workflow](#apply-authentication-references-safely)
+for `auth.json`, and never display the Telegram target's secret-bearing diff.

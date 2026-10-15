@@ -3,6 +3,12 @@ set -eu
 
 repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
+run_check() {
+    printf '==> %s\n' "$1"
+    "$repo_dir/tests/$1"
+}
+
+printf '%s\n' "==> source syntax checks"
 find "$repo_dir" \
     -path "$repo_dir/.git" -prune -o \
     -type f \( -name "*.zsh" -o -name "dot_zshenv" -o -name "dot_zprofile" -o -name "dot_zshrc" \) \
@@ -31,12 +37,13 @@ find "$repo_dir" \
         done
     ' sh {} +
 
-"$repo_dir/tests/check-shell.sh"
-"$repo_dir/tests/check-rbw.sh"
-"$repo_dir/tests/check-git.sh"
-"$repo_dir/tests/check-public.sh"
+run_check check-shell.sh
+run_check check-rbw.sh
+run_check check-git.sh
+run_check check-public.sh
 
 if command -v nvim >/dev/null 2>&1; then
+    printf '%s\n' "==> Neovim source checks"
     find "$repo_dir/dot_config/nvim" -type f -name "*.lua" \
         -exec nvim --headless -u NONE -i NONE -n \
             -c 'lua for _, path in ipairs(vim.fn.argv()) do assert(loadfile(path)) end' \
@@ -52,18 +59,17 @@ fi
 if command -v chezmoi >/dev/null 2>&1 &&
     command -v niri >/dev/null 2>&1
 then
-    "$repo_dir/tests/check-niri.sh"
+    run_check check-niri.sh
 fi
 
-"$repo_dir/tests/check-safe-rm.sh"
-"$repo_dir/tests/check-pi.sh"
-"$repo_dir/tests/check-skills.sh"
-"$repo_dir/tests/check-ssh.sh"
-"$repo_dir/tests/check-desktop.sh"
-"$repo_dir/tests/check-desktop-apps.sh"
-"$repo_dir/tests/check-desktop-profiles.sh"
-"$repo_dir/tests/check-tether.sh"
-"$repo_dir/tests/check-dms-apply-hints.sh"
-"$repo_dir/tests/check-keyring.sh"
+run_check check-pi.sh
+run_check check-skills.sh
+run_check check-ssh.sh
+run_check check-desktop.sh
+run_check check-desktop-apps.sh
+run_check check-desktop-profiles.sh
+run_check check-tether.sh
+run_check check-dms-apply-hints.sh
+run_check check-keyring.sh
 
 printf '%s\n' "source checks passed"

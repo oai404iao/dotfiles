@@ -33,8 +33,7 @@ Treat the repository as public and respect the ownership boundaries below.
 |   |-- waypaper/            # Wallpaper state bootstrap and theme hook
 |   |-- private_tether/      # Optional merged Bluetooth notification policy
 |   `-- private_pi/agent/    # Private-mode declarative Pi configuration
-|-- dot_local/bin/
-|   `-- executable_rm        # Optional recoverable recursive-removal wrapper
+|-- dot_local/bin/           # User commands
 |-- .chezmoitemplates/       # Shared Niri output and binding templates
 |-- run_after_check-dms-lyrics.sh.tmpl
 |                            # Reminder-only DMS dependency/preparation check
@@ -110,7 +109,7 @@ checking the resulting target path and mode with `chezmoi target-path` and
 Machine-local data comes from `.chezmoi.toml.tmpl`. Conditional deployment is
 implemented in `.chezmoiignore`. Deployment and rendering depend on `graphical`,
 `niri`, `desktopShell`, `tether`, `tetherMode`, `niriOutputProfile`, `sshAgent`,
-`sshInboundIdentity`, and `safeRm`. Prefer capability flags over hostname checks.
+and `sshInboundIdentity`. Prefer capability flags over hostname checks.
 
 ## Build, Test & Development Commands
 
@@ -120,7 +119,6 @@ implemented in `.chezmoiignore`. Deployment and rendering depend on `graphical`,
 
 # Targeted checks
 ./tests/check-niri.sh
-./tests/check-safe-rm.sh
 ./tests/check-pi.sh
 ./tests/check-git.sh
 ./tests/check-ssh.sh
@@ -149,16 +147,13 @@ chezmoi apply <target>
 ```
 
 `check-source.sh` invokes shell syntax/environment, rbw, Git, public-history,
-SSH, safe-rm, Pi, skills, desktop applications/profiles, Tether, DMS apply-hint,
+SSH, Pi, skills, desktop applications/profiles, Tether, DMS apply-hint,
 and keyring checks. Public checks cover all locally reachable history
 plus pending files. Neovim checks run when `nvim` is installed; Niri rendering
 and validation run when both `chezmoi` and `niri` are installed. Some desktop
 render/runtime checks skip when their tools are unavailable; report those skips.
 
-`check-safe-rm.sh` creates marked temporary directories, runs deterministic
-fake-command failure checks plus real GIO Trash operations with isolated
-HOME/XDG state, verifies the isolated payload and metadata, and cleans only
-captured marked paths. `check-pi.sh` renders the Telegram template with
+`check-pi.sh` renders the Telegram template with
 `tests/fixtures/pi/bin/rbw`; it must never contact the real vault.
 
 These checks are intended to be offline. Accessing the real vault, calling a
@@ -187,7 +182,7 @@ Git source state
 - **age:** SSH public selectors, host/user mappings, and other static encrypted
   files that genuinely need versioning; never commit the identity.
 - **Per-machine state:** legacy SSH migration copies, GPG private keys, SSH
-  host trust, Pi auth/trust/session data, editor state, caches, logs, and
+  host trust, Pi credentials/trust/session data, editor state, caches, logs, and
   downloaded packages/skills, Tether pairing data, and desktop keyring databases
   and backups.
 
@@ -257,10 +252,20 @@ it does not install dependencies, prepare the overlay, or restart services.
   name. It must preserve unknown/runtime keys while replacing only declared keys.
   `graphical` selects local notifications or Telegram at apply time; graphical
   profiles ignore the Telegram config directory without deleting existing files.
-- `private_models.json` omits API credentials. The ignored local `auth.json`
-  stores the shared `rbw` command reference for `deepseek`, `openai`, and `xai`;
-  `anthropic` uses a separate Krill credential. Pi caches resolved auth commands
-  for its process lifetime. Never put a literal key in managed model config.
+- `private_models.json` omits API credentials. `modify_private_auth.json` is a
+  Python modifier that merges API-key command references for `deepseek`,
+  `openai`, and `xai` (Spiredive) and `anthropic` (Krill), preserving all other
+  providers, values, and extra API-key fields. It rejects managed-provider
+  non-API-key entries and malformed, duplicate-key, or non-object JSON without
+  outputting credentials.
+  Apply never contacts `rbw`; Pi caches resolved commands for its process
+  lifetime. Never put a literal key in managed model config.
+- Only the auth modifier source is tracked, never rendered `auth.json` data.
+  Do not diff `auth.json`, even with `--skip-secrets`, or `chezmoi add` it.
+  Before targeted apply, exit active Pi processes and back up privately outside
+  the source and retained agent scratch. Follow
+  `docs/pi.md#apply-authentication-references-safely`; OAuth conflicts require
+  explicit user removal, not automatic replacement.
 - Keep Pi's `npmCommand` hoisted pnpm layout; it addresses extension import
   resolution and is not a global project policy. Applying settings does not
   rebuild existing installs. Follow `docs/pi.md#pi-package-layout-migration`
@@ -329,33 +334,17 @@ with a 24-hour cache; do not add a second local source file. Follow
 - Preserve the existing rbw lock state during checks. Never use `rbw lock` or
   `rbw stop-agent` as test cleanup because other programs share the agent.
 
-### Recoverable Removal
-
-`dot_local/bin/executable_rm` is an opt-in target gated by the `safeRm`
-machine key and is not applied by default. It delegates non-recursive removal
-to `/usr/bin/rm`, but recursive removal must pass full preflight and use GIO
-Trash. Do not weaken protected-root checks or add a permanent-delete fallback.
-Pass relative operands to GIO with an explicit `./` prefix so URI-shaped
-filenames retain local filesystem semantics.
-Keep direct execution pinned to the declared system commands; dependency
-injection exists only through the sourceable internal entry point used by
-tests.
-
-Repository scripts may call `/usr/bin/rm -rf` only for an intentionally
-disposable directory whose path was captured from `mktemp` and whose marker is
-verified immediately before cleanup. Never derive cleanup paths later from
-ambient `HOME` or XDG variables.
-
 ## Gotchas
 
 ### 1. A Diff Can Leak Existing Pi Credentials
 
 `--skip-secrets` prevents secret-template rendering, but an existing unmanaged
 or pre-takeover `models.json` can itself contain a literal key. Do not display
-or capture a Pi diff until such a file has been backed up privately, its value
+or capture its diff until such a file has been backed up privately, its value
 has been verified in Bitwarden, and the sanitized target has been applied
 directly. `--skip-secrets` is not a redaction filter for destination content.
-Never print `rbw get` output.
+Never diff `auth.json`: its modifier preserves other providers' secrets.
+Avoid whole-Pi-directory diffs and never print `rbw get` output.
 
 ### 2. Do Not Run an Unreviewed Full Apply
 
@@ -370,6 +359,11 @@ cleanup command into removal of real configuration and state roots. Capture a
 specific temporary path, validate its marker, and clean that path only. Never
 construct cleanup operands from ambient XDG variables after changing them.
 
+Repository scripts may call `/usr/bin/rm -rf` only for an intentionally
+disposable directory whose path was captured from `mktemp` and whose marker is
+verified immediately before cleanup. Never derive cleanup paths later from
+ambient `HOME` or XDG variables.
+
 ### 4. `chezmoi init` Regenerates Local Configuration
 
 On a fresh machine, `chezmoi init` is expected. On an initialized machine, do
@@ -379,8 +373,10 @@ or edit machine data deliberately with `chezmoi edit-config`.
 
 ### 5. Pi State Is Not Declarative Configuration
 
-Do not add `auth.json`, `trust.json`, `models-store.json`, installation IDs,
-sessions, package directories, logs, manifests, or disabled-extension state.
+Never `chezmoi add auth.json` or commit its rendered data; only
+`modify_private_auth.json` manages the declared command references.
+Do not add `trust.json`, `models-store.json`, installation IDs, sessions,
+package directories, logs, manifests, or disabled-extension state.
 When an extension creates a new runtime path, add a precise ignore and a
 corresponding assertion in `tests/check-pi.sh`.
 
@@ -437,7 +433,8 @@ not replace trusted commit review.
 
 1. Update the declarative source, never the target's mutable files.
 2. Keep model API keys out of `models.json`; use an `rbw` command reference in
-   local `auth.json`, or a template lookup when an extension requires one.
+   `modify_private_auth.json`, or a template lookup when an extension requires
+   one.
 3. Keep npm versions pinned and external local paths explicit.
 4. Update `tests/check-pi.sh` inventory and invariants.
 5. Test offline/fake-secret rendering before any expressly requested live test.
@@ -486,7 +483,6 @@ not replace trusted commit review.
 | Custom/DMS ownership and switching | `docs/desktop-shells.md` |
 | Tether modes, isolation, and manual setup | `docs/tether.md` |
 | Global skills ownership and installation | `docs/skills.md`, `scripts/skills.json` |
-| Recursive-removal contract | `docs/deletion-safety.md` |
 | Pi ownership and credential flow | `docs/pi.md` |
 | Pi settings source of truth | `dot_config/private_pi/agent/modify_private_settings.json.tmpl` |
 | Pi managed-inventory assertions | `tests/check-pi.sh` |
@@ -495,7 +491,6 @@ not replace trusted commit review.
 | SSH rendering assertions | `tests/check-ssh.sh` |
 | Publication gates | `docs/publication.md`, `tests/check-public.sh` |
 | Niri shared outputs and bindings | `.chezmoitemplates/niri-outputs.kdl`, `.chezmoitemplates/niri-binds.kdl` |
-| Optional safe recursive removal (`safeRm`) | `dot_local/bin/executable_rm` |
 | Age identity helpers | `scripts/backup-age-identity.sh`, `scripts/restore-age-identity.sh` |
 
 ## Code Style
@@ -503,7 +498,7 @@ not replace trusted commit review.
 - Match the existing language and file format; documentation and source
   comments are written in concise English.
 - POSIX shell scripts use `#!/bin/sh` with `set -eu`. Bash-only tests use strict
-  mode; the safe-rm wrapper uses explicit failure checks instead of `errexit`.
+  mode.
 - Quote path expansions and use `--` before filesystem operands.
 - JSON must parse strictly without duplicate keys. Keep template output valid
   after rendering.
