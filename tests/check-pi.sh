@@ -173,8 +173,8 @@ settings_modifier = source_dir / "modify_private_settings.json.tmpl"
 telegram_package = "npm:@oai404iao/pi-telegram-notify@0.6.0"
 common_packages = {
     "npm:@juicesharp/rpiv-ask-user-question@2.13.8",
-    "npm:@oai404iao/pi-codex-minimal-tools@5.0.0",
-    "npm:@oai404iao/pi-subagent@1.2.0",
+    "npm:@oai404iao/pi-codex-minimal-tools@5.1.1",
+    "npm:@oai404iao/pi-subagent@1.2.2",
 }
 expected_defaults = {
     "defaultProvider": "openai",
@@ -701,9 +701,9 @@ strictDepBuilds: true
         )
         rendered = load_json(result.stdout)
         package = (
-            "pi-subagent@1.2.0"
+            "pi-subagent@1.2.2"
             if relative == "private_subagent.json.tmpl"
-            else "pi-codex-runtime@2.0.0"
+            else "pi-codex-runtime@3.0.0"
         )
         schema = "models" if relative.endswith("private_models.json.tmpl") else "config"
         if rendered.get("$schema") != f"https://unpkg.com/@oai404iao/{package}/{schema}.schema.json":
@@ -722,7 +722,7 @@ strictDepBuilds: true
             if retired_keys & rendered.keys():
                 raise SystemExit("Pi subagent config retains retired settings")
             expected_subagent = {
-                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.2.0/config.schema.json",
+                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.2.2/config.schema.json",
                 "agentScope": "user",
                 "maxDepth": 3,
                 "maxConcurrentAgents": 4,
@@ -731,7 +731,7 @@ strictDepBuilds: true
                 "openAIIdentity": True,
             }
             if rendered != expected_subagent:
-                raise SystemExit("Pi subagent v1 asynchronous runtime configuration changed unexpectedly")
+                raise SystemExit("Pi subagent asynchronous multi-agent configuration changed unexpectedly")
         elif relative == "extensions/pi-codex-minimal-tools/private_config.json.tmpl":
             deprecated_keys = {
                 "directImageApiFallback",
@@ -749,6 +749,11 @@ strictDepBuilds: true
             }
             if deprecated_keys & rendered.keys():
                 raise SystemExit("Codex tools config retains deprecated settings")
+            for key in ("codexRequestExtensions", "applyPatch", "webSearch"):
+                if rendered.get(key) is not True:
+                    raise SystemExit(f"Codex tools global switch changed unexpectedly: {key}")
+            if rendered.get("endpoint_config") != []:
+                raise SystemExit("Codex tools must not invent endpoint capability declarations")
             if rendered.get("webSocketEnabled") is not True:
                 raise SystemExit("Codex tools WebSocket transport is disabled")
             if rendered.get("fastMode") is not False:

@@ -53,8 +53,12 @@ Model overrides set GPT-6 Astra/Luna/Sol, GPT-6.1 Sol, and DeepSeek Flash to
 The existing GPT-5.6 context settings remain unchanged. Providers do not override
 `User-Agent`; the client supplies its default.
 
-Codex tools 5.0.0 keeps the existing configuration paths, but its pinned schemas
-come from `pi-codex-runtime@2.0.0`. GPT-6 Astra/Sol/Luna deliberately retain
+The Codex bundle `pi-codex-minimal-tools@5.1.1` keeps the existing configuration
+paths and composes core `3.0.0` with tools `0.1.0`, sharing runtime `3.0.0`.
+Its pinned schemas come from `pi-codex-runtime@3.0.0`. Separate core/tools or
+compatibility package declarations are unnecessary for this setup: the bundle
+already supplies the engine, patch, search, and image implementations.
+GPT-6 Astra/Sol/Luna deliberately retain
 Lite, automatic WebSocket transport, prewarm, standalone search, and native
 Responses compaction rather than adopting the new Standard/SSE defaults.
 Astra needs explicit fields: its bundled defaults override inherited values
@@ -67,7 +71,11 @@ removed. Pi's native `read` handles local images; image generation remains
 disabled. Codex tools now hides `edit`/`write` declarations through Pi's loadout
 API while `apply_patch` is active, without disabling those tools or overriding
 explicit user exclusions. The new request-extension and endpoint-allowlist
-options retain their bundled defaults; no endpoint routing policy is added.
+options are explicit: `codexRequestExtensions:true` keeps optional Codex metadata,
+`applyPatch:true` and `webSearch:true` keep those capability gates open, and
+`endpoint_config:[]` preserves the model profiles without inventing endpoint
+capabilities. These controls remain independent from Lite format, transport and
+compaction; no endpoint routing policy is added.
 
 The removed `directImageApiFallback` property is no longer managed, including
 its former `false` value. Profiles already select standalone image generation
@@ -77,7 +85,7 @@ configured default; children follow the main session's selection.
 Historical opaque checkpoints remain protected; unrecognized custom-profile
 hashes fail closed rather than silently converting history to text.
 
-Subagent is pinned to **1.2.0**, using the asynchronous Codex multi-agent v2
+Subagent is pinned to **1.2.2**, using the asynchronous Codex multi-agent v2
 runtime. Its seven tools are model-only (not callable from native codemode);
 the managed scout/reviewer allowlists enable codemode alongside their existing
 ordinary tools. Mailbox waits now default to 120 seconds, with 300 seconds
@@ -229,7 +237,7 @@ layout still leaves jiti unable to resolve their replacements.
 
 Restart Pi after the rebuild and check `/codex-minimal-tools:doctor` on
 `openai/gpt-6.1-sol`: the model profile should no longer be `(none)`, the provider
-shim should be active, and `apply_patch` should be active. The 5.0.0 bundle
+shim should be active, and `apply_patch` should be active. The 5.1.1 bundle
 already supplies this model profile; adding it to user `models.json` is not the
 fix. Installation data, lockfiles, and backups remain machine-local and ignored.
 
@@ -273,7 +281,7 @@ Review only explicit safe targets and privately back up existing files first:
 ```sh
 chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/subagent.json
 chezmoi apply ~/.config/pi/agent/subagent.json
-pi install npm:@oai404iao/pi-subagent@1.2.0 --no-approve
+pi install npm:@oai404iao/pi-subagent@1.2.2 --no-approve
 ```
 
 The Pi install command updates that package declaration without resetting other
@@ -290,7 +298,7 @@ Telegram notifications.
 ### `createCodemodeExtension is not a function`
 
 This error occurs during child-runtime creation, before the child can execute
-its task. Check the host Pi version first: subagent 1.2.0 requires Pi 1.2.0 or
+its task. Check the host Pi version first: subagent 1.2.2 requires Pi 1.2.0 or
 newer, including its SDK factories. A newer `pi-coding-agent` dependency under
 `agent/npm/node_modules` does not upgrade the running host; Pi maps extension
 SDK imports to its own implementation.
