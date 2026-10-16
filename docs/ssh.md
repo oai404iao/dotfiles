@@ -1,25 +1,29 @@
-# SSH Management
+# Use Bitwarden-backed SSH
 
-Chezmoi manages OpenSSH client configuration, public selector keys, and
-optionally `authorized_keys`. Bitwarden native SSH key items hold the matching
-private keys, and `rbw-agent` performs signing without writing those private
-keys to managed files.
+Chezmoi manages OpenSSH client policy, public selector keys, and optional
+inbound `authorized_keys`. Private keys remain in native Bitwarden SSH items;
+`rbw-agent` signs without writing them to managed files.
+
+Start with [machine data](#machine-data) for a fresh profile or
+[takeover](#taking-over-an-existing-machine) for an existing installation.
+Network authentication and vault commands below are manual live operations,
+not offline tests.
 
 ## Ownership
 
 | Owner | Data |
 |---|---|
-| Git | Generic SSH policy plus age-encrypted selectors and host inventory |
-| Bitwarden | Native SSH key items and private key material |
-| Machine | `known_hosts*`, local config fragments, and legacy migration copies |
+| Git | Generic SSH policy and age-encrypted public selectors/host inventory |
+| Bitwarden | Native SSH items and private key material |
+| Machine | Host trust, local fragments, and legacy migration copies |
 
-The repository never manages OpenSSH private keys, host keys, `sshd_config`, or
-`known_hosts*`. Public keys are not credentials, but their fingerprints and the
-host/user mapping are encrypted to prevent correlation and topology disclosure.
+OpenSSH private keys, host keys, `sshd_config`, and `known_hosts*` are never
+managed here. Public keys are not credentials, but their fingerprints and
+host/user mapping are encrypted to avoid correlation and topology disclosure.
 
 ## Identities
 
-All managed keys are distinct Ed25519 keys.
+The six managed selectors are distinct Ed25519 public keys:
 
 | Selector | Purpose |
 |---|---|
@@ -30,53 +34,18 @@ All managed keys are distinct Ed25519 keys.
 | `github_primary` | One GitHub account |
 | `github_secondary` | The other GitHub account |
 
-The files under `~/.ssh/identities/` contain only public keys. OpenSSH accepts a
-public `IdentityFile` and asks the agent for the matching private key.
-`IdentitiesOnly yes` on every managed host prevents unrelated agent identities
-from being offered accidentally.
+Targets under `~/.ssh/identities/` contain public keys only. A public
+`IdentityFile` selects the matching agent key, and each managed host uses
+`IdentitiesOnly yes` to avoid offering unrelated identities.
 
-`rbw-agent` exposes every native SSH key item in the active vault. The selector
-files prevent accidental use, but do not isolate keys from other processes
-running as the same user.
+This is key selection, not isolation: rbw-agent exposes every native SSH key
+in the active vault to same-UID processes. Do not enable global agent
+forwarding or treat Host rules as a boundary around the vault.
 
-## Encrypted Source
+## Machine data
 
-The six selector files, the real Host blocks, and the conditional
-`authorized_keys` template use chezmoi's native `encrypted_` source attribute.
-They are age ciphertext in Git and are decrypted only while chezmoi computes a
-target. Git identity profiles and their account-specific URL rewrites are
-encrypted for the same metadata-privacy reason.
-
-The `20-uni.conf` fragment groups remote hosts using the `uni` selector before
-the `90-defaults.conf` catch-all.
-
-`--skip-secrets` does not exclude native encrypted source files. Broad review
-and bootstrap commands must use both:
-
-```sh
-chezmoi diff --skip-secrets --exclude=encrypted
-chezmoi apply --interactive --skip-secrets --exclude=encrypted
-```
-
-Before applying changed encrypted SSH data, run the no-output trusted check:
-
-```sh
-CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh
-```
-
-It decrypts into protected temporary directories, validates Git profiles and
-six distinct Ed25519 keys, allowlists Host directives, and checks that both
-inbound keys match their selector files. It never prints decrypted values. The
-default tests also render independently generated fake identities, keys, and
-hosts, so they remain usable without the real age identity.
-
-An age recipient authenticates ciphertext integrity, not its author. Review
-encrypted changes only from trusted commits, and require the trusted check
-before publishing or applying them.
-
-## Machine Data
-
-New machines configure two values during `chezmoi init`:
+Set these non-secret values in `[data]` during initialization, or use
+`chezmoi edit-config` on an initialized machine:
 
 ```toml
 [data]
@@ -84,43 +53,61 @@ New machines configure two values during `chezmoi init`:
     sshInboundIdentity = "none"
 ```
 
-- `sshAgent = true` deploys client config, public selectors, and the
-  `SSH_AUTH_SOCK` environment.
-- `sshAgent = false` leaves all client-side SSH files unmanaged.
-- `sshInboundIdentity = "private"` fully manages `authorized_keys` with the
-  `private` public key.
-- `sshInboundIdentity = "uni"` fully manages it with the `uni` public key.
-- `sshInboundIdentity = "none"` leaves an existing `authorized_keys`
-  untouched.
+| Setting | Ownership |
+|---|---|
+| `sshAgent = true` | Client config, public selectors, SSH socket environment |
+| `sshAgent = false` | No client-side SSH management |
+| `sshInboundIdentity = "private"` | Entire `authorized_keys` replaced with the `private` public key |
+| `sshInboundIdentity = "uni"` | Entire `authorized_keys` replaced with the `uni` public key |
+| `sshInboundIdentity = "none"` | Existing `authorized_keys` left unmanaged |
 
-For an already initialized machine, use `chezmoi edit-config` and add the
-values deliberately. Do not rerun `chezmoi init` merely to add them.
+Disabling a capability does not remove previously rendered files. Switching
+inbound ownership to `none` does not revoke access: remove or replace the old
+file explicitly if that is intended. Likewise, review old client config,
+selectors, and socket environment when retiring `sshAgent`.
 
-Changing an inbound identity to `none` relinquishes ownership; it does not
-delete a previously rendered file. Remove or replace that file explicitly if
-the intent is to disable SSH access.
+## Encrypted source
 
-Changing `sshAgent` from `true` to `false` likewise stops management without
-deleting client files rendered earlier. Review and remove the old config,
-selectors, and socket environment explicitly after changing the machine data.
+The six selectors, real Host blocks, and conditional authorized-keys template
+use native `encrypted_` sources. Git identity profiles and account routing
+use the same mechanism; see [Git](git.md).
 
-## Agent Lifecycle
+Exact Host blocks precede `90-defaults.conf`'s catch-all. The `20-uni.conf`
+fragment groups remote hosts using the `uni` selector. Every managed host
+must keep one public IdentityFile; do not add a global one.
 
-Use rbw's default one-hour inactivity timeout. If `lock_timeout` was explicitly
-configured, restore the default once:
+Never display decrypted inventory as a review diff. `--skip-secrets` does not
+exclude native encrypted sources; add `--exclude=encrypted` when inspecting
+other targets. For SSH changes, review the trusted source revision and run:
+
+```sh
+CHECK_PRIVATE_CONFIG=1 ./tests/check-ssh.sh
+```
+
+The trusted check decrypts into a protected temporary directory, validates
+six distinct Ed25519 keys, allowlists Host directives, and ensures both
+inbound keys match their selectors without printing values. Default fixture
+tests also work without the real identity. Before publishing changed encrypted
+data, run the complete trusted [publication gates](publication.md).
+
+The public age recipient lets anyone create replacement ciphertext. A valid
+payload is not proof of a trusted author.
+
+## Agent lifecycle
+
+The managed environment selects `$XDG_RUNTIME_DIR/rbw/ssh-agent-socket` while
+preserving an existing `SSH_AUTH_SOCK`, such as a forwarded agent. There is
+no managed systemd service or automatic unlock. `rbw unlock` starts the
+background agent when necessary.
+
+Use the default one-hour inactivity timeout. If the machine previously set an
+explicit timeout, restore the default once:
 
 ```sh
 rbw config unset lock_timeout
 ```
 
-The managed login and graphical-session environment uses:
-
-```text
-$XDG_RUNTIME_DIR/rbw/ssh-agent-socket
-```
-
-The shell fragment preserves an existing `SSH_AUTH_SOCK`, including a
-forwarded agent. Unlock explicitly when signing is needed:
+Before signing, explicitly synchronize/unlock and inspect the selected agent:
 
 ```sh
 rbw sync
@@ -128,96 +115,89 @@ rbw unlock
 ssh-add -l
 ```
 
-There is no automatic unlock and no managed systemd service. Running
-`rbw unlock` starts the rbw background agent when needed. Tests and migration
-commands must preserve the current rbw lock state: `rbw lock` and
-`rbw stop-agent` affect other programs sharing the agent, so only the user
-decides when to run them.
+The default 3600-second timeout slides after successful unlocks, secret
+decryptions (such as `rbw get`), and SSH identity listing/signing. Status
+queries (`rbw unlocked`), sync, and version checks do not reset it. Expiry or
+an explicit lock clears in-memory vault keys but leaves the agent running.
+Desktop screen locking is not connected to rbw locking here.
 
-The default 3600-second value is a sliding inactivity timeout. Successful
-unlocks, secret decryptions such as `rbw get`, and SSH identity listing or
-signing restart the timer. `rbw unlocked`, `rbw sync`, and version checks do
-not. Expiry or an explicit `rbw lock` clears the in-memory vault keys but
-leaves the agent process running. This repository does not connect rbw locking
-to the desktop lock screen.
+Preserve the user's current lock state during tests and migration.
+`rbw lock` and `rbw stop-agent` affect other applications sharing the agent;
+only the user decides when to run them.
 
-## GitHub Accounts
+## GitHub accounts
 
-One account remains the `github.com` default so existing repositories keep
-working. Use the account-specific aliases from the rendered SSH config for
-unambiguous remotes:
+One account remains the `github.com` default for existing repositories. Use
+explicit aliases when cloning or selecting a remote:
 
 ```sh
 git clone git@github-primary:OWNER/repository.git
 git clone git@github-secondary:OWNER/repository.git
-
-git remote set-url origin \
-  git@github-secondary:OWNER/repository.git
+git remote set-url origin git@github-secondary:OWNER/repository.git
 ```
 
-Verify each identity independently:
+Replace `OWNER/repository` with the intended repository. Conditional Git
+profiles rewrite `git@github.com:` for existing repositories, but the
+destination's conditional config is not active during the initial clone.
+Commit identity and SSH access remain separate; see [Git](git.md).
+
+When a live check is intended, verify each account independently:
 
 ```sh
 ssh -T git@github-primary
 ssh -T git@github-secondary
 ```
 
-Git commit identity and SSH authentication are separate. The path-specific Git
-profiles rewrite `git@github.com:` to the appropriate SSH alias. Use the alias
-explicitly when cloning because the destination repository's conditional Git
-config is not yet active. Public-facing profiles use each account's ID-based
-GitHub `noreply` address; the work profile retains its required identity only
-inside age ciphertext.
+Local fragments under `~/.ssh/config.local.d/` may add new aliases only.
+Do not overlap a managed alias or use `Host *`: IdentityFile is additive,
+so overlap can add another selector despite `IdentitiesOnly yes`.
 
-Local fragments under `~/.ssh/config.local.d/` are for additional aliases only.
-They must not match a managed alias or use `Host *`: `IdentityFile` is additive,
-so an overlapping fragment could add another selector despite
-`IdentitiesOnly yes`.
+## Taking over an existing machine
 
-## Taking Over an Existing Machine
+Keep an authenticated inbound session open until replacement access works.
+Backups and key imports below contain secrets and must remain private.
 
-Keep an authenticated SSH session open throughout an inbound-key migration.
-
-1. Back up the existing `~/.ssh/config` and `authorized_keys` privately.
-2. Import the legacy private keys into versioned native Bitwarden SSH items.
-3. Run `rbw sync`, `rbw unlock`, and compare public fingerprints.
-4. Temporarily append the selected inbound public key to the existing
-   `authorized_keys`, and register each replacement key remotely before
-   changing its client assignment.
-5. Open a second inbound session with the selected key while keeping the old
-   authenticated session open.
-6. Add `sshAgent = true` and the intended inbound identity with
+1. Back up existing `~/.ssh/config` and `authorized_keys` privately.
+2. Import legacy private keys into versioned native Bitwarden SSH items.
+3. Run `rbw sync` and `rbw unlock`; compare public fingerprints privately.
+4. Register every replacement key remotely before changing its client
+   assignment. Temporarily append the intended inbound public key to the
+   existing `authorized_keys`.
+5. Open a second inbound session with that key while retaining the old session.
+6. Set `sshAgent = true` and the intended inbound identity with
    `chezmoi edit-config`.
-7. Validate the source with `CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh`.
-8. Apply and test only the reviewed targets:
+7. Run `CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh`.
+8. Apply only the reviewed client targets and any related Git profiles:
 
    ```sh
-   chezmoi apply "$HOME/.gitconfig" "$HOME/.config/git"
-   chezmoi apply "$HOME/.ssh/identities"
-   chezmoi apply \
-     "$HOME/.config/environment.d/20-rbw-ssh-agent.conf" \
-     "$HOME/.config/shell/ssh-agent.sh" \
-     "$HOME/.config/shell/profile.sh"
-   chezmoi apply "$HOME/.ssh/config" "$HOME/.ssh/config.d"
+   chezmoi apply --exclude=scripts "$HOME/.gitconfig" "$HOME/.config/git"
+   chezmoi apply --exclude=scripts "$HOME/.ssh/identities"
+   chezmoi apply --exclude=scripts \
+       "$HOME/.config/environment.d/20-rbw-ssh-agent.conf" \
+       "$HOME/.config/shell/ssh-agent.sh" \
+       "$HOME/.config/shell/profile.sh"
+   chezmoi apply --exclude=scripts "$HOME/.ssh/config" "$HOME/.ssh/config.d"
    ```
 
-9. Test private, company, and GitHub aliases, then apply
-   `~/.ssh/authorized_keys` and open another fresh inbound session.
-10. Move legacy private-key files to the ignored `~/.ssh/legacy/` quarantine
-    after every required connection succeeds through `rbw-agent`. Delete them
-    only after the remaining rollback period.
+9. Activate the new environment and test required private, company, and GitHub
+   aliases. Only then apply `~/.ssh/authorized_keys` and verify another fresh
+   inbound session.
+10. After all required connections work through rbw-agent, move legacy private
+    files to ignored `~/.ssh/legacy/` quarantine. Retain them through the
+    rollback period; deletion is a separate decision.
 
-During the quarantine period, a rollback must restore both the old config and
-the required key files to their original `~/.ssh/` paths; the backup config
-still references those legacy paths.
+A rollback needs both the old config and its key files restored to their
+original paths. A config backup alone still references the legacy key paths.
 
 ## Rotation
 
-Create a new versioned Bitwarden item and keep the old item while both public
-keys are authorized. Update the encrypted selector and, for `private` or `uni`,
-the encrypted `authorized_keys` template. The trusted check rejects a mismatch.
-Sync and unlock rbw, test new connections, then remove the old authorization
-and item.
+1. Create a new versioned Bitwarden item; keep the old item authorized during
+   the transition.
+2. Register the new public key remotely, then update the encrypted selector.
+   For `private`/`uni`, update the encrypted authorized-keys template too.
+3. Run the trusted check; mismatched selectors and inbound keys must fail.
+4. Sync/unlock rbw, apply reviewed targets, and test new connections.
+5. Remove the old authorization and item only after replacement access works.
 
 Rotating `private` or `uni` affects every host in that shared trust domain.
 GitHub keys rotate independently per account.

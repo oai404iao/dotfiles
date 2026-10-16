@@ -1,12 +1,16 @@
-# Public Repository Safety
+# Publish the repository safely
 
-The repository is designed to be publicly readable, but the age-encrypted
-files still describe private topology and identity metadata when decrypted.
-Treat publication as a release process rather than a visibility toggle.
+Publication is a release process, not just a visibility toggle. Encrypted
+files still contain private topology and identity metadata when decrypted,
+and deleting plaintext at the latest commit does not remove older blobs.
 
-## Release Gates
+Read [Security](security.md) before inspecting destinations. This guide does
+not authorize history rewriting, ref deletion, force-pushing, or changing
+remote visibility; those require a deliberate publication task.
 
-Run the complete trusted validation with the real age identity available:
+## Release gates
+
+With the real age identity available, run from the source root:
 
 ```sh
 CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh
@@ -14,55 +18,58 @@ git diff --check
 git status --short
 ```
 
-`tests/check-public.sh` scans the working tree, index, non-ignored untracked
-files, and every commit reachable from any local ref. It rejects recognized
-private-key material, plaintext SSH public keys and inventory, unencrypted Git
-account routing, non-allowlisted email addresses, and commit identities that do
-not use an ID-based GitHub `noreply` address. It disables replacement-object
-processing, rejects replacement refs or grafts, and uses `age-inspect` to parse
-every armored ciphertext. `git status --short` must also be empty at the final
-gate.
+The final release gate requires an empty worktree status. Do not discard
+unrelated changes to achieve it; resolve their ownership separately.
 
-The private-config checks decrypt into protected temporary directories and
-validate structure without printing values. They do not prove that replacement
-ciphertext came from a trusted author, so encrypted changes still require
-trusted commit review.
+`tests/check-public.sh` scans the worktree, index, non-ignored untracked files,
+and every commit reachable from any local ref. Its checks reject:
 
-## History Rewrites
+- Recognized private-key material and plaintext SSH keys/inventory.
+- Unencrypted account-specific Git routing and non-allowlisted email addresses.
+- Commit identities that do not use an ID-based GitHub `noreply` address.
+- Replacement refs or grafts; replacement-object processing is disabled.
+- Malformed armored ciphertext, parsed with `age-inspect`.
 
-Deleting a file in a new commit does not remove its older blobs. Before
-publishing a repository that previously contained private metadata:
+Private-config validators check decrypted structure without printing values
+or contacting the vault. They cannot prove who authored replacement
+ciphertext: trusted commit review is still required.
+
+## History rewrites
+
+If private metadata exists in history, prepare recovery before rewriting:
 
 1. Freeze pushes and close or merge open pull requests.
-2. Store a pre-rewrite bundle outside the repository with directory mode
-   `0700` and file mode `0600`.
-3. Rewrite every affected local branch and tag, including author and committer
-   addresses when they expose private email.
-4. Remove local backup/original refs and stale remote-tracking refs, expire
-   reflogs, and garbage-collect unreachable objects.
-5. Run the release gates against every remaining ref.
-6. Keep the private bundle isolated; never push it or place it below the
-   chezmoi source directory.
+2. Store a pre-rewrite bundle outside the source with directory mode `0700`
+   and file mode `0600`. Keep it private; never push it.
+3. Rewrite every affected local branch/tag, including author and committer
+   addresses that expose private email.
+4. Remove reviewed backup/original refs and stale remote-tracking refs, expire
+   reflogs, and garbage-collect unreachable objects as part of the authorized
+   rewrite. These are destructive operations, not routine cleanup.
+5. Rerun the release gates against every remaining ref.
 
 Old clones can reintroduce removed commits through an ordinary merge or push.
-Replace them with fresh clones, or clean and rebase them deliberately.
+Replace them with fresh clones or deliberately clean/rebase them before reuse.
+Keep the isolated pre-rewrite bundle for recovery, never below the chezmoi source.
 
-## Remote Publication
+## Remote publication
 
-Prefer pushing the sanitized history to a new empty repository. If an existing
-private remote has received the old history, do not merely change its
-visibility. Either delete and recreate it before the first public push, or
-follow GitHub's complete sensitive-data removal process.
+Prefer a new empty remote containing only the sanitized history. If an old
+private remote received sensitive history, do not simply change its
+visibility. Delete/recreate it deliberately or follow the hosting provider's
+complete sensitive-data removal process.
 
-A force-push alone may leave old objects reachable through forks, pull-request
-refs, or cached views. GitHub documents the limitations and support process in
-[Removing sensitive data from a repository][github-sensitive-data].
+A force-push alone may leave objects accessible through forks, pull-request
+refs, or cached views. Consult GitHub's
+[sensitive-data removal procedure](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository)
+for its limitations and support process.
 
-After publishing:
+After the intended publication:
 
-1. Clone the public remote into a new temporary directory.
-2. Run `./tests/check-public.sh` in that clone.
+1. Clone the public remote into a fresh task-local directory.
+2. Run `./tests/check-public.sh` from that clone.
 3. Compare its `main^{tree}` object ID with the reviewed local tree.
-4. Only then treat the public remote as the canonical source.
+4. Only then treat the remote as canonical or announce it.
 
-[github-sensitive-data]: https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository
+Report which history and remote were verified. A local source check alone
+does not verify the contents of a newly published remote.

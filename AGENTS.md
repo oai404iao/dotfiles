@@ -1,528 +1,225 @@
-# AGENTS.md - Personal Chezmoi Dotfiles
+# Repository instructions
 
-> Context for AI coding agents working on this repository. Read this before making changes.
+This is the chezmoi source for a personal Arch Linux environment, not an
+application or a backup of `$HOME`. Work from the source root, normally
+`~/.local/share/chezmoi`. Treat the repository as public.
 
-## What Is This Repository?
+## Find the owning source
 
-This is the chezmoi source state for a personal Arch Linux environment. It
-manages shell, Git, Neovim, Niri desktop, terminal, and Pi configuration across
-desktop, laptop, and server roles. It is a configuration repository rather
-than an application: changes are rendered by chezmoi into the destination
-home directory and are validated with repository scripts.
-
-Treat the repository as public and respect the ownership boundaries below.
-
-## Repository Layout
-
-```text
-.
-|-- .chezmoi.toml.tmpl       # Generates machine-local chezmoi data and secret backends
-|-- .chezmoiignore           # Machine conditions plus generated/state exclusions
-|-- .chezmoiversion          # Minimum compatible chezmoi version
-|-- private_dot_ssh/         # Generic config plus age-encrypted SSH inventory
-|-- dot_config/
-|   |-- shell/               # Shared POSIX login/session environment
-|   |-- bash/ and zsh/       # Shell-specific interactive configuration
-|   |-- git/                 # Path-specific identities and global ignores
-|   |-- nvim/                # LazyVim bootstrap and locked plugin revisions
-|   |-- niri/                # Modular Niri config and custom/DMS profile adapters
-|   |-- DankMaterialShell/   # Merged desktop settings; plugins live separately
-|   |-- waybar/              # Bar config and guarded helper scripts
-|   |-- kitty/, fuzzel/      # Terminal and launcher configuration
-|   |-- mako/, matugen/      # Notifications and generated theme templates
-|   |-- waypaper/            # Wallpaper state bootstrap and theme hook
-|   |-- private_tether/      # Optional merged Bluetooth notification policy
-|   `-- private_pi/agent/    # Private-mode declarative Pi configuration
-|-- dot_local/bin/           # User commands
-|-- .chezmoitemplates/       # Shared Niri output and binding templates
-|-- run_after_check-dms-lyrics.sh.tmpl
-|                            # Reminder-only DMS dependency/preparation check
-|-- run_once_before_disable-swayidle-service.sh.tmpl
-|                            # Transfers swayidle ownership to Niri once
-|-- scripts/                 # Age helpers and skills installer
-|-- tests/                   # Offline source, rendering, and helper checks
-`-- docs/                    # Configuration and publication operating notes
-```
-
-Root `dot_*` files map to home-directory files such as `~/.zshenv` and
-`~/.gitconfig`. `README.md`, `README.zh-CN.md`, `AGENTS.md`, `docs/`,
-`scripts/`, and `tests/` are source-only and must remain listed in
-`.chezmoiignore`.
-
-## Workspace / Package Rules
-
-- Run repository commands from the source root, normally
-  `~/.local/share/chezmoi`.
-- This is not a monorepo and has no repository-wide package bootstrap or build
-  command. System packages are installed separately; individual helpers may
-  manage their own dependencies.
-- Do not edit caches, downloaded plugins, package installations, histories,
-  sessions, databases, or generated runtime state into source control.
-- DMS plugin implementations belong to
-  [oai404iao/dms-plugins](https://github.com/oai404iao/dms-plugins), normally checked
-  out at `~/Dev/local/dms-plugins`. That repository owns `plugins/{lyrics,dankTodo}`,
-  the native media overlay/preparer, `bin/dms-with-lyrics`, its explicit installer,
-  and related logic/QML/overlay tests. Edit and test those there, not in chezmoi.
-  All deployed plugins, the launcher, plugin preferences/lockfiles, todo data, and
-  generated `$XDG_DATA_HOME/dms-media-lyrics/` trees stay ignored here.
-- Chezmoi owns only DMS desktop integration and a reminder-only apply hook.
-  Before a fresh DMS session, clone a reviewed plugin revision, run its offline
-  tests, and explicitly install its plugin/launcher symlinks with backups; see
-  `docs/desktop-shells.md#bilingual-lyrics`. There is no external auto-fetch.
-  Niri still starts `dms-with-lyrics`, which falls back to stock DMS without a
-  matching prepared tree; the launcher itself must already be installed.
-  Never patch installed packages or read-only shell extractions. Run
-  `tests/check-desktop-profiles.sh` and `tests/check-dms-apply-hints.sh` for the
-  integration and reminders.
-- Preserve lockfiles unless the task explicitly updates dependencies. In
-  particular, do not regenerate `dot_config/nvim/lazy-lock.json` incidentally.
-- Pi npm declarations in `modify_private_settings.json.tmpl` are pinned and
-  require Pi 1.2.0 or newer and Node.js 22.19 or newer. Fully restart Pi after
-  upgrading its host; `/reload` does not update the running SDK.
-  Graphical profiles load local notifications through
-  `~/.local/share/pi/extensions/pi-local-notify`; its source symlink is
-  machine-local and ignored. Headless profiles use Telegram.
-- Use a focused development branch and Conventional Commits. Do not mix
-  unrelated changes or overwrite an existing dirty worktree.
-- Keep `README.md` and `README.zh-CN.md` semantically synchronized.
-- Add targets one at a time after classifying them. Never recursively
-  `chezmoi add` `$HOME`, `.config`, or an XDG root.
-- Do not use destructive Git cleanup (`git clean -fdx`, `reset --hard`, or
-  forced checkout) to obtain a clean worktree.
-
-## Chezmoi Source Conventions
-
-| Source pattern | Destination behavior |
+| Change | Read before working |
 |---|---|
-| `dot_name` | Writes `.name` |
-| `executable_name` | Writes `name` with executable mode |
-| `private_name` | Writes `name` with private permissions |
-| `create_name` | Creates `name` only when it does not already exist |
-| `modify_name` | Transforms the existing target; stdin is old content |
-| `name.tmpl` | Renders a Go template before applying |
-| `run_once_before_*` | Runs once, before target updates |
-
-Prefixes can be combined. Do not rename an attributed source file without
-checking the resulting target path and mode with `chezmoi target-path` and
-`chezmoi status`.
-
-Machine-local data comes from `.chezmoi.toml.tmpl`. Conditional deployment is
-implemented in `.chezmoiignore`. Deployment and rendering depend on `graphical`,
-`niri`, `desktopShell`, `tether`, `tetherMode`, `niriOutputProfile`, `sshAgent`,
-and `sshInboundIdentity`. Prefer capability flags over hostname checks.
-
-## Build, Test & Development Commands
-
-```bash
-# Canonical complete source validation
-./tests/check-source.sh
-
-# Targeted checks
-./tests/check-niri.sh
-./tests/check-pi.sh
-./tests/check-git.sh
-./tests/check-ssh.sh
-./tests/check-public.sh
-./tests/check-shell.sh
-./tests/check-rbw.sh
-./tests/check-skills.sh
-./tests/check-desktop-profiles.sh
-./tests/check-dms-apply-hints.sh
-./tests/check-tether.sh
-./tests/check-keyring.sh
-CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh
-
-# Patch hygiene
-git diff --check
-git diff --cached --check
-
-# Inspect status for an explicit target
-chezmoi status --skip-secrets --exclude=encrypted <target>
-
-# Diff only a sanitized target known not to contain plaintext credentials
-chezmoi diff --skip-secrets --exclude=encrypted <target>
-
-# Apply only a reviewed target
-chezmoi apply <target>
-```
-
-`check-source.sh` invokes shell syntax/environment, rbw, Git, public-history,
-SSH, Pi, skills, desktop applications/profiles, Tether, DMS apply-hint,
-and keyring checks. Public checks cover all locally reachable history
-plus pending files. Neovim checks run when `nvim` is installed; Niri rendering
-and validation run when both `chezmoi` and `niri` are installed. Some desktop
-render/runtime checks skip when their tools are unavailable; report those skips.
-
-`check-pi.sh` renders the Telegram template with
-`tests/fixtures/pi/bin/rbw`; it must never contact the real vault.
-
-These checks are intended to be offline. Accessing the real vault, calling a
-paid model API, or sending a Telegram notification requires an explicit user
-request, and returned credential values must never be printed.
-
-## Architecture
-
-### Configuration Flow
-
-```text
-Git source state
-  + machine data from ~/.config/chezmoi/chezmoi.toml
-  + rbw/age references where required
-  -> chezmoi template, create, or modify semantics
-  -> reviewed target files under $HOME
-  -> applications create local mutable state outside source control
-```
-
-### Ownership Boundaries
-
-- **Git:** reproducible configuration, templates, pinned versions, public
-  recipients, and credential references.
-- **Bitwarden/rbw:** SSH private keys, Pi model key, Telegram credentials, and
-  the backed-up age identity.
-- **age:** SSH public selectors, host/user mappings, and other static encrypted
-  files that genuinely need versioning; never commit the identity.
-- **Per-machine state:** legacy SSH migration copies, GPG private keys, SSH
-  host trust, Pi credentials/trust/session data, editor state, caches, logs, and
-  downloaded packages/skills, Tether pairing data, and desktop keyring databases
-  and backups.
-
-## Core Patterns
-
-### Shell Selection
-
-Both Bash and zsh trees are deployed; `shell` records a preference and does
-not change the login shell. Keep `dot_config/shell/profile.sh` as the shared
-public environment. Do not move
-shell-specific completion, options, bindings, or prompts into the shared
-profile, and do not retrieve secrets during shell startup.
-
-`dot_config/shell/toolchains.sh` owns shared XDG/toolchain paths. pnpm is
-system-package-managed; its user Node.js runtime and global npm tools live
-under `PNPM_HOME`. Do not restore nvm startup loaders; `.chezmoiremove` retires
-the old loaders without uninstalling their runtime or packages. See `README.md`
-for migration, and run `tests/check-shell.sh` for shell environment changes.
-
-### Generated Desktop State
-
-Matugen color outputs and Waypaper state use `create_` files so a fresh machine
-gets a valid fallback without later applies reverting application-generated
-values. Change the generator/template when appropriate; do not convert these
-targets to ordinary overwrite-managed files without an explicit requirement.
-
-### Niri Profiles
-
-`dot_config/niri/config.kdl.tmpl` selects the include graph for `desktopShell`
-(`custom` or `dms`; missing values retain `custom`). Shared output and binding
-definitions live in `.chezmoitemplates/niri-{outputs,binds}.kdl`; the profile
-files are adapters. Unknown hardware should use `niriOutputProfile = "auto"`.
-When adding an output profile, update the choice list in `.chezmoi.toml.tmpl`
-and the shared output template, then run `tests/check-niri.sh` and
-`tests/check-desktop-profiles.sh`.
-
-In DMS mode, `dot_config/niri/dms/create_empty_*` fragments are seeds only:
-DMS owns subsequent edits, including empty files. Preserve `create_empty_`
-so Niri's included files are not deleted when empty. DMS starts through
-`dms-with-lyrics`; do not also enable `dms.service`. Custom-only files become
-ignored, not deleted. Before switching an existing machine, follow
-`docs/desktop-shells.md#switch-an-existing-machine` for retained services,
-settings, and palettes. The DMS apply hook only emits preparation reminders;
-it does not install dependencies, prepare the overlay, or restart services.
-
-### Tether and Desktop Keyring
-
-- Tether is opt-in for graphical Niri/DMS profiles. `tetherMode` defaults to
-  `notifications`; `wifi-clipboard` deliberately grants host network and
-  clipboard access. Keep both service drop-ins managed across mode switches,
-  preserve local device/runtime fields in the Bluetooth modifier, and read
-  `docs/tether.md` before changing policy or performing live setup.
-- Verify the intended Tether service is active before using its CLI/GUI:
-  clients can otherwise auto-start an unsandboxed daemon. Changing capabilities
-  only ignores targets; it does not stop an enabled service. Disable the service
-  explicitly before retiring the profile.
-- Desktop keyring activation uses the two managed user D-Bus overrides under
-  `dot_local/share/dbus-1/services/` and the packaged GNOME Keyring unit/socket.
-  Do not add daemon startup commands to Niri or shells, change `SSH_AUTH_SOCK`,
-  restart the session bus, or delete keyrings to repair activation. PAM,
-  service enablement, and keyring migration are manual work described in
-  `docs/desktop.md#desktop-keyring`; databases/backups remain unmanaged.
-
-### Pi Configuration
-
-- `modify_private_settings.json.tmpl` renders Python under a chezmoi modifier
-  name. It must preserve unknown/runtime keys while replacing only declared keys.
-  `graphical` selects local notifications or Telegram at apply time; graphical
-  profiles ignore the Telegram config directory without deleting existing files.
-- `private_models.json` omits API credentials. `modify_private_auth.json` is a
-  Python modifier that merges API-key command references for `deepseek`,
-  `openai`, and `xai` (Spiredive), `anthropic` (Krill), and `typesafe` (Command Code),
-  preserving all other providers, values, and extra API-key fields. It rejects
-  managed-provider non-API-key entries and malformed, duplicate-key, or non-object
-  JSON without outputting credentials.
-  Apply never contacts `rbw`; Pi caches resolved commands for its process
-  lifetime. Never put a literal key in managed model config.
-- Only the auth modifier source is tracked, never rendered `auth.json` data.
-  Do not diff `auth.json`, even with `--skip-secrets`, or `chezmoi add` it.
-  Before targeted apply, exit active Pi processes and back up privately outside
-  the source and retained agent scratch. Follow
-  `docs/pi.md#apply-authentication-references-safely`; OAuth conflicts require
-  explicit user removal, not automatic replacement.
-- Keep Pi's `npmCommand` hoisted pnpm layout; it addresses extension import
-  resolution and is not a global project policy. Applying settings does not
-  rebuild existing installs. Follow `docs/pi.md#pi-package-layout-migration`
-  without discarding or regenerating the machine-local lockfile.
-- `npm/modify_private_pnpm-workspace.yaml` is the sole managed npm-state
-  exception: it merges exact reviewed build approvals while preserving unrelated
-  settings. Other npm manifests, lockfiles, and packages remain local.
-  Dependency rebuilds execute package code and are not offline checks or hooks.
-- Telegram config is rendered from `rbw` because the extension does not support
-  command interpolation. The destination contains plaintext credentials and
-  must remain mode `0600`.
-- `.chezmoiignore` is authoritative for Pi mutable/generated state.
-- `tests/check-pi.sh` uses an exact managed-file inventory. Update that
-  inventory intentionally whenever a Pi source file is added or removed.
-- Disabled Pi packages and their configuration are not managed.
-
-### Global Skills
-
-`scripts/skills.json` and `scripts/install-skills.py` own installation intent,
-not downloaded skill content. Read `docs/skills.md` when changing selections;
-use `python3 scripts/install-skills.py --dry-run` for offline validation.
-Real installation is an explicit network operation that can replace local
-edits; back them up first. Chezmoi apply never installs skills, and removing
-a manifest entry does not uninstall anything. Keep `~/.agents/skills/` and CLI
-lock state unmanaged; do not duplicate skills under Pi's config directory.
-Run `tests/check-skills.sh` for manifest/installer changes.
-
-The root `AGENTS.md` is repository guidance, not the installed global Pi
-instructions. For the latter, edit `prompts/pi-global-agents.md` in `my_skills`
-and publish it to that repository's `main`. `.chezmoiexternal.toml` fetches it
-with a 24-hour cache; do not add a second local source file. Follow
-`docs/pi.md#global-agent-instructions` for reviewed refresh and deployment.
-
-### Git Identities
-
-- `dot_gitconfig` contains only public behavior and includes the encrypted
-  default identity plus encrypted path-specific profiles.
-- Names, email addresses, and account-specific GitHub SSH rewrites must stay in
-  `encrypted_private_dot_gitconfig-*.age`.
-- Public-facing identities use ID-based GitHub `noreply` addresses; the
-  organization profile may retain its required address inside ciphertext.
-- Update `tests/check-git.sh` when changing the profile inventory or schema,
-  and run the trusted private-config check before applying new ciphertext.
-
-### SSH Identities
-
-- Bitwarden native SSH key items are the source of truth for client private
-  keys; private key bytes must never enter the repository or a rendered target.
-- Encrypted sources under `private_dot_ssh/` contain public selectors and real
-  host/user mappings. Target files under `~/.ssh/identities/` contain only the
-  decrypted public selectors used by `rbw-agent`.
-- Every managed host uses one public `IdentityFile` and `IdentitiesOnly yes`.
-  Exact host blocks precede `Host *`. Local fragments may add new aliases but
-  must not overlap managed aliases or use `Host *`, because `IdentityFile` is
-  additive.
-- `sshAgent` controls client deployment. `sshInboundIdentity` selects complete
-  `authorized_keys` ownership for `private` or `uni`; `none` leaves the target
-  unmanaged.
-- `known_hosts*`, local config fragments, host keys, and server configuration
-  remain machine-local.
-- SSH tests generate fake keys and hosts offline. Before applying or publishing
-  changed ciphertext, run `CHECK_PRIVATE_CONFIG=1 ./tests/check-ssh.sh` to decrypt
-  and validate the real payload without printing it.
-- Accessing the real vault or running a live authentication check requires an
-  explicit user request.
-- Preserve the existing rbw lock state during checks. Never use `rbw lock` or
-  `rbw stop-agent` as test cleanup because other programs share the agent.
-
-## Gotchas
-
-### 1. A Diff Can Leak Existing Pi Credentials
-
-`--skip-secrets` prevents secret-template rendering, but an existing unmanaged
-or pre-takeover `models.json` can itself contain a literal key. Do not display
-or capture its diff until such a file has been backed up privately, its value
-has been verified in Bitwarden, and the sanitized target has been applied
-directly. `--skip-secrets` is not a redaction filter for destination content.
-Never diff `auth.json`: its modifier preserves other providers' secrets.
-Avoid whole-Pi-directory diffs and never print `rbw get` output.
-
-### 2. Do Not Run an Unreviewed Full Apply
-
-Agents must inspect and apply explicit target paths. Back up a pre-existing
-target before forcing ownership. Do not run `chezmoi apply`, `chezmoi update`,
-or equivalent full-HOME operations merely to validate a source change.
-
-### 3. Do Not Rebind XDG Roots Around Cleanup
-
-The repository exists because temporary `HOME`/XDG scoping once turned a
-cleanup command into removal of real configuration and state roots. Capture a
-specific temporary path, validate its marker, and clean that path only. Never
-construct cleanup operands from ambient XDG variables after changing them.
-
-Repository scripts may call `/usr/bin/rm -rf` only for an intentionally
-disposable directory whose path was captured from `mktemp` and whose marker is
-verified immediately before cleanup. Never derive cleanup paths later from
-ambient `HOME` or XDG variables.
-
-### 4. `chezmoi init` Regenerates Local Configuration
-
-On a fresh machine, `chezmoi init` is expected. On an initialized machine, do
-not run it blindly to silence a template-change warning: it can rewrite
-`~/.config/chezmoi/chezmoi.toml`. Back up and review the generated diff first,
-or edit machine data deliberately with `chezmoi edit-config`.
-
-### 5. Pi State Is Not Declarative Configuration
-
-Never `chezmoi add auth.json` or commit its rendered data; only
-`modify_private_auth.json` manages the declared command references.
-Do not add `trust.json`, `models-store.json`, installation IDs, sessions,
-package directories, logs, manifests, or disabled-extension state.
-When an extension creates a new runtime path, add a precise ignore and a
-corresponding assertion in `tests/check-pi.sh`.
-
-### 6. Ignored Files Are Not Disposable
-
-`.gitignore` and `.chezmoiignore` protect worktrees, recovery copies, and
-machine-local secrets. Do not use `git clean -fdx` or another broad cleanup;
-ignored content can be the only remaining copy of data.
-
-### 7. SSH Selection Is Not Agent Isolation
-
-`rbw-agent` exposes every native SSH key in the active vault.
-`IdentityFile <public-key>` with `IdentitiesOnly yes` prevents accidental key
-selection, but another same-UID process can still request signatures. Never
-enable agent forwarding globally or claim that Host rules isolate vault keys.
-
-### 8. Encrypted SSH Diffs Reveal the Inventory
-
-`--skip-secrets` does not exclude native encrypted source files, and a diff can
-print decrypted public keys, addresses, and usernames. Broad status/diff/apply
-commands must add `--exclude=encrypted`; review SSH ciphertext with the
-no-output trusted validator and apply only explicit targets. The public age
-recipient permits anyone to create replacement ciphertext, so encryption does
-not replace trusted commit review.
-
-## Adding or Changing Managed Configuration
-
-1. Classify the target as declarative configuration, generated state, mutable
-   state, or secret material.
-2. For mutable state or unversioned secrets, add a precise ignore instead of a
-   managed file.
-3. Choose the correct chezmoi attributes and machine conditions.
-4. Update the domain test when its inventory, profile set, or invariant
-   changes.
-5. Run `./tests/check-source.sh` and `git diff --check`.
-6. Scan the source diff for credentials or machine-local state.
-7. Preview only an explicit, sanitized destination with `--skip-secrets` and
-   `--exclude=encrypted`.
-   For Pi or another target that may already contain credentials, follow its
-   documented direct-sanitization workflow instead of diffing.
-8. Back up an existing destination before a reviewed targeted apply.
-
-## Common Workflows
-
-### Add a Machine Capability
-
-1. Add a non-secret prompt/data key to `.chezmoi.toml.tmpl`.
-2. Consume it in a narrow template or `.chezmoiignore` condition.
-3. Add render coverage for every supported value.
-4. Document migration for already initialized machines; do not silently
-   regenerate their config.
-
-### Change Pi Providers or Extensions
-
-1. Update the declarative source, never the target's mutable files.
-2. Keep model API keys out of `models.json`; use an `rbw` command reference in
-   `modify_private_auth.json`, or a template lookup when an extension requires
-   one.
-3. Keep npm versions pinned and external local paths explicit.
-4. Update `tests/check-pi.sh` inventory and invariants.
-5. Test offline/fake-secret rendering before any expressly requested live test.
-
-### Change SSH Identities or Hosts
-
-1. Keep private keys in native Bitwarden SSH items and commit only age
-   ciphertext for public selectors and real host inventory.
-2. Assign each exact host to one selector; do not add a global `IdentityFile`.
-3. Register a replacement public key remotely before changing client config or
-   fully managed `authorized_keys`.
-4. Keep the encrypted `authorized_keys` template consistent with the
-   `private` and `uni` selector files.
-5. Run `CHECK_PRIVATE_CONFIG=1 ./tests/check-ssh.sh` before applying or
-   publishing.
-6. Run offline checks before any expressly requested live authentication.
-
-### Commit a Change
-
-1. Confirm the branch and worktree are appropriate and clean of unrelated work.
-2. Stage only task-related paths; note that the user's global Git ignore may
-   ignore newly created `AGENTS.md` files.
-3. Review `git diff --cached` and run `git diff --cached --check`.
-4. Use a focused Conventional Commit such as
-   `docs(agents): add repository operating guide`.
-
-### Publish the Repository
-
-1. Follow `docs/publication.md`; deleting plaintext only at the tip is
-   insufficient.
-2. Run `CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh` against the rewritten
-   history.
-3. Prefer a new empty remote over changing an old private remote directly to
-   public.
-4. Verify a fresh clone before changing visibility or announcing the remote.
-
-## Key Files Quick Reference
-
-| What | Where |
-|---|---|
-| Human overview and bootstrap | `README.md` |
-| Machine-data source | `.chezmoi.toml.tmpl` |
-| Conditional and state exclusions | `.chezmoiignore` |
-| Full validation entry point | `tests/check-source.sh` |
-| Desktop ownership and dependencies | `docs/desktop.md` |
-| Custom/DMS ownership and switching | `docs/desktop-shells.md` |
-| Tether modes, isolation, and manual setup | `docs/tether.md` |
-| Global skills ownership and installation | `docs/skills.md`, `scripts/skills.json` |
-| Pi ownership and credential flow | `docs/pi.md` |
-| Pi settings source of truth | `dot_config/private_pi/agent/modify_private_settings.json.tmpl` |
-| Pi managed-inventory assertions | `tests/check-pi.sh` |
-| SSH operations and migration | `docs/ssh.md` |
-| Encrypted SSH inventory | `private_dot_ssh/` |
-| SSH rendering assertions | `tests/check-ssh.sh` |
-| Publication gates | `docs/publication.md`, `tests/check-public.sh` |
-| Niri shared outputs and bindings | `.chezmoitemplates/niri-outputs.kdl`, `.chezmoitemplates/niri-binds.kdl` |
-| Age identity helpers | `scripts/backup-age-identity.sh`, `scripts/restore-age-identity.sh` |
-
-## Code Style
-
-- Match the existing language and file format; documentation and source
+| Source naming, ownership, generated vs mutable state | [How it works](docs/how-it-works.md) |
+| Machine flags, deployment conditions, new capabilities | [Configuration](docs/configuration.md) |
+| Shell environment, Node paths, or Zsh dependencies | [Shell](docs/shell.md), then [Zsh](docs/zsh.md) for external changes |
+| Desktop apps, locale, keyring, or output profiles | [Desktop](docs/desktop.md) and its linked task guide |
+| Niri custom/DMS switching or DMS integration | [Desktop shells](docs/desktop-shells.md) |
+| DMS plugins, overlay, or launcher | [DMS plugin ownership](docs/dms-plugins.md) |
+| Tether policy or live setup | [Tether](docs/tether.md) |
+| Pi providers, extensions, modifiers, or agents | [Pi](docs/pi.md) and the relevant linked guide |
+| Shared skills selection/installer | [Skills](docs/skills.md) |
+| Git identity inventory or encrypted routing | [Git](docs/git.md) |
+| SSH identities, hosts, or inbound ownership | [SSH](docs/ssh.md) |
+| Publishing or rewriting history | [Publication](docs/publication.md) |
+
+Read only the task-relevant guides. The [documentation index](docs/index.md)
+is the human navigation entry; detailed procedures belong in their owning
+guide rather than being duplicated here.
+
+## Preserve ownership
+
+- Edit declarative sources, not installed targets, caches, histories,
+  sessions, databases, generated runtime state, or downloaded packages.
+- Before adding a target, classify it as declarative configuration, generated
+  state, mutable state, or secret material. Add targets one at a time; never
+  recursively `chezmoi add` `$HOME`, `.config`, or an XDG root.
+- Git owns reproducible settings, templates, pins, recipients, and secret
+  references. Bitwarden owns credentials and SSH private keys. age owns
+  versioned static encrypted metadata. Applications own mutable state.
+- `README.md`, `README.zh-CN.md`, `AGENTS.md`, `docs/`, `scripts/`, and `tests/`
+  are source-only and must remain listed in `.chezmoiignore`.
+- Preserve lockfiles unless explicitly updating dependencies. Do not
+  incidentally regenerate `dot_config/nvim/lazy-lock.json`.
+- Use a focused development branch and Conventional Commits. Preserve an
+  existing dirty worktree; do not mix unrelated work or use destructive Git
+  cleanup (`git clean -fdx`, `reset --hard`, forced checkout).
+- Keep both READMEs semantically synchronized. Documentation and source
   comments are written in concise English.
-- POSIX shell scripts use `#!/bin/sh` with `set -eu`. Bash-only tests use strict
-  mode.
-- Quote path expansions and use `--` before filesystem operands.
-- JSON must parse strictly without duplicate keys. Keep template output valid
-  after rendering.
-- Keep KDL modules ordered by their numeric prefix.
-- Prefer small, surgical edits. Do not reformat unrelated configuration.
-- Do not add a dependency, package bootstrap layer, or generated artifact
-  unless the task explicitly requires it.
 
-## Code Comments Rules (Strict)
+## Protect credentials and destination state
 
-- Prefer self-explanatory code through clear naming and structure. Comments are secondary.
-- ONLY add or update comments when the logic is **not self-evident**.
-- Comment these things (and only these):
-  - Non-obvious intent and design decisions (the "why")
-  - Important constraints, invariants, ordering requirements, and error modes
-  - Interface/usage contracts that prevent plausible misuse
-  - Business rules or domain constraints that cannot be expressed in code alone
-  - Non-obvious edge cases or workarounds (with brief reason)
-- Do NOT:
-  - Restate what the code obviously does
-  - Add comments to code you did not change
-  - Write play-by-play, change history, ticket numbers, or "TODO/FIXME" status notes
-  - Invent undocumented behavior or constraints
-  - Repeat the same fact across callers and implementations (keep each fact at its owning interface)
-  - Leave tombstones, removed-code explanations, or boilerplate
-- Keep comments short, precise, and up-to-date. Outdated comments are worse than no comments.
-- When in doubt, write clearer code instead of a longer comment.
+Read [Security](docs/security.md) before secret-related previews or takeover.
+
+- `--skip-secrets` does not redact existing destination credentials and does
+  not exclude native encrypted sources. Broad status/diff/apply commands must
+  also use `--exclude=encrypted`; this still does not make secret-bearing
+  destination diffs safe.
+- Never diff Pi `auth.json`, even after migration. Its modifier preserves
+  other providers' keys/tokens. Never `chezmoi add` it or commit rendered data.
+- Never display a diff of an existing Pi `models.json` that might contain
+  literal keys. Use the direct-sanitization procedure in
+  [Pi authentication](docs/pi-authentication.md).
+- Never print `rbw get` output or decrypted SSH/Git inventory. Validate real
+  ciphertext with the no-output trusted checks, and review trusted commits:
+  anyone holding the public age recipient can create replacement ciphertext.
+- Accessing the real vault, calling a paid model API, sending Telegram, or
+  running live authentication requires an explicit user request. Offline
+  tests must not do these things. Preserve rbw's current lock state; do not
+  run `rbw lock` or `rbw stop-agent` as cleanup.
+- Inspect and apply explicit reviewed target paths only. Back up an existing
+  destination before forcing ownership. Do not run an unreviewed full-HOME
+  `chezmoi apply`, `chezmoi update`, or equivalent just to validate changes.
+- On initialized machines, do not rerun `chezmoi init` to silence a warning.
+  It can rewrite local machine data; back up/review intentionally or use
+  `chezmoi edit-config`.
+- Ignored files are not disposable. Capability changes usually relinquish
+  ownership, not delete targets or stop enabled services.
+
+Agent scratch work belongs in fresh task directories below
+`~/.local/state/agents/tmp/`, not `/tmp` or `/var/tmp`. Follow the
+[scratch-path procedure](docs/security.md#use-task-local-scratch-paths), capture
+absolute paths before rebinding HOME/XDG, and retain the directories. Never
+store credentials in retained scratch. Existing tests retain their documented
+isolation contracts. Repository scripts may use `/usr/bin/rm -rf` only for a
+disposable `mktemp` path whose marker is verified immediately before cleanup;
+never derive cleanup operands from rebound HOME/XDG variables.
+
+## Subsystem contracts
+
+### Shell and desktop
+
+- `dot_config/shell/profile.sh` is the shared public POSIX login environment.
+  Keep shell-specific completion, options, bindings, and prompts out of it.
+  Do not retrieve secrets at startup.
+- `dot_config/shell/toolchains.sh` owns XDG/toolchain paths. pnpm is a system
+  package; user Node/global tools live under `PNPM_HOME`. Do not restore nvm
+  loaders; retirement does not uninstall old runtimes/packages.
+- Keep generated Matugen/Waypaper values as `create_` seeds. Change their
+  generator/template instead of converting them to overwrite-managed files.
+- Niri shared outputs/bindings live in `.chezmoitemplates/niri-{outputs,binds}.kdl`;
+  profile files are adapters. Unknown hardware uses `auto`. New output
+  profiles require both the initialization choice and shared output template.
+- Missing `desktopShell` retains `custom`. In DMS mode preserve `create_empty_`
+  Niri fragments, including intentionally empty files. DMS owns later edits.
+- Niri starts `dms-with-lyrics`; do not also enable `dms.service`. Custom-only
+  files are ignored, not deleted. Read the switching guide for retained
+  services, settings, and palettes.
+- DMS plugin implementations belong to `oai404iao/dms-plugins`, normally
+  `~/Dev/local/dms-plugins`: `plugins/{lyrics,dankTodo}`, native overlay/preparer,
+  launcher, explicit installer, and their tests. Edit/test those there, not
+  here or in installed packages/read-only shell extractions. Chezmoi owns
+  integration and a reminder-only apply hook, never auto-fetch/install,
+  dependency preparation, or restarts. Plugin data and generated trees stay ignored.
+- Tether is opt-in for graphical Niri/DMS. Preserve both mode drop-ins and
+  local device/runtime fields. `notifications` is the default;
+  `wifi-clipboard` deliberately adds network/clipboard access. Verify the
+  intended service before using clients, which can auto-start an unsandboxed
+  daemon. Disable it explicitly before retiring the profile.
+- Desktop keyring activation uses the two managed user D-Bus overrides and
+  packaged GNOME Keyring unit/socket. Do not add daemon startup commands,
+  change `SSH_AUTH_SOCK`, restart the session bus, or delete keyrings as a fix.
+  PAM, service enablement, and migration are manual; data/backups stay unmanaged.
+
+### Pi and skills
+
+- `modify_private_settings.json.tmpl` renders a Python modifier. Preserve
+  unknown/runtime keys and replace only declared keys. `graphical` selects
+  local notifications or Telegram without deleting the other profile's files.
+- Keep model credentials out of `private_models.json`. The auth modifier
+  merges API-key command references for `deepseek`, `openai`, `xai`,
+  `anthropic`, and `typesafe`, preserving other providers and extra fields.
+  Reject managed-provider non-API-key conflicts and malformed, duplicate-key,
+  or non-object JSON without exposing credentials.
+- Auth apply must not contact rbw. Before targeted apply, exit active Pi
+  processes and privately back up existing auth data outside both the source
+  and retained agent scratch. Follow the authentication guide. OAuth conflicts
+  require explicit user removal, never automatic replacement. Pi caches
+  resolved key commands for its process lifetime.
+- Pinned npm declarations require Pi ≥ 1.2.0 and Node.js ≥ 22.19. Restart Pi
+  after a host upgrade; `/reload` does not update the running SDK. Graphical
+  local-notify source symlinks are machine-local, not managed plugin code.
+- Keep Pi's hoisted-pnpm `npmCommand`. Settings apply does not rebuild existing
+  installs; follow the layout migration without discarding/regenerating the
+  machine-local lockfile. `npm/modify_private_pnpm-workspace.yaml` is the sole
+  managed npm-state exception: merge exact reviewed approvals, preserve other
+  settings. Rebuilds execute dependency code and are not offline checks/hooks.
+- Telegram renders plaintext credentials from rbw and must remain mode `0600`.
+  `.chezmoiignore` owns mutable/generated exclusions. Update the exact inventory
+  in `tests/check-pi.sh` for every added/removed Pi source; add precise ignores
+  and assertions for new runtime paths. Disabled packages/config are unmanaged.
+- Global Pi instructions are owned by `my_skills/prompts/pi-global-agents.md`,
+  published to that repository's `main`. `.chezmoiexternal.toml` fetches with a
+  24-hour cache. Do not add a second local source or confuse this root
+  `AGENTS.md` with that deployed file; follow the reviewed refresh procedure.
+- Skill intent belongs to `scripts/skills.json` and `scripts/install-skills.py`.
+  Use `python3 scripts/install-skills.py --dry-run` offline. Real installation
+  is an explicit network operation that can replace edits; back up first.
+  Apply never installs skills, and manifest removal does not uninstall them.
+  Keep downloaded `~/.agents/skills/` and CLI lock state unmanaged; do not
+  duplicate skills under Pi configuration.
+
+### Git and SSH
+
+- Keep identity names, addresses, and account-specific GitHub SSH rewrites in
+  encrypted Git profiles, not `dot_gitconfig`. Public-facing profiles use
+  ID-based GitHub `noreply` addresses; the organization address stays encrypted.
+- SSH private bytes must never enter source or rendered targets. Files under
+  `~/.ssh/identities/` are public selectors for rbw-agent only.
+- Every managed host has one public `IdentityFile` and `IdentitiesOnly yes`.
+  Exact Host blocks precede `Host *`; do not add a global IdentityFile.
+  Local fragments may add aliases but must not overlap managed ones or use
+  `Host *`, because IdentityFile is additive.
+- `sshAgent` controls client deployment; `sshInboundIdentity` selects complete
+  `authorized_keys` ownership for `private`/`uni`, while `none` is unmanaged.
+  Host trust, local fragments, host keys, and server config remain local.
+- Register a replacement key remotely before changing its client selector or
+  inbound ownership. Keep the encrypted authorized-keys template consistent
+  with the selected public key. Keep authenticated access open during migration.
+- Run trusted private-config checks before applying or publishing changed Git/SSH
+  ciphertext. Host selectors prevent accidental key choice, not same-UID
+  access to every key exposed by rbw-agent. Do not enable global forwarding.
+
+## Verify the change
+
+Run from the source root:
+
+```sh
+./tests/check-source.sh
+git diff --check
+```
+
+See [the check matrix](docs/development.md#checks-by-area) for targeted
+iteration commands. Pi tests must use `tests/fixtures/pi/bin/rbw`, never the
+real vault. Neovim checks require nvim; Niri rendering/validation requires
+chezmoi and Niri. Report optional skips, not just wrapper success.
+
+Use `CHECK_PRIVATE_CONFIG=1 ./tests/check-git.sh` and/or
+`CHECK_PRIVATE_CONFIG=1 ./tests/check-ssh.sh` for changed real ciphertext.
+Publication requires `CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh` and the
+full [publication procedure](docs/publication.md).
+
+When adding capabilities, update the non-secret initialization data, narrow
+template/ignore condition, supported-value render coverage, and initialized-
+machine migration notes. Do not silently regenerate machine config.
+When changing an inventory or invariant, update its domain test intentionally.
+
+Before an authorized commit, stage task-related paths only, inspect the staged
+diff, and run `git diff --cached --check`. Newly created AGENTS files can be
+hidden by the global ignore. Report completed work, checks actually run, skips,
+and blockers; do not claim live behavior from static rendering.
+
+## Code and comment style
+
+- Match nearby format. POSIX scripts use `#!/bin/sh` and `set -eu`; Bash-only
+  tests use strict mode. Quote path expansions and use `--` before filesystem
+  operands. Keep KDL modules numerically ordered.
+- JSON must parse strictly without duplicate keys; rendered template output
+  must remain valid. Preserve modifier interface contracts and error handling.
+- Prefer surgical edits. Do not reformat unrelated files or add dependencies,
+  package bootstrap layers, or generated artifacts without task authorization.
+- Prefer self-explanatory code. Add/update comments only for non-obvious intent,
+  constraints, invariants, ordering, error modes, interface contracts, domain
+  rules, or edge-case workarounds. Keep them short, precise, and current.
+- Do not restate code, comment unchanged code, add play-by-play/change history,
+  ticket numbers or TODO/FIXME status notes, invent constraints, duplicate a
+  rule across callers, or leave tombstones/boilerplate. Write clearer code
+  instead of a longer comment when possible.

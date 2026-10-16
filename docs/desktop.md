@@ -1,22 +1,52 @@
 # Desktop configuration
 
-Niri machines select `desktopShell = "custom"` or `"dms"` during init.
-Missing values retain the custom stack. See
-[desktop shell profiles](desktop-shells.md) for DMS dependencies, ownership,
-keybindings, and the explicit migration/rollback procedure. The Waybar,
-Waypaper, Mako, swaylock, and Matugen pipeline below describes **custom**;
-fonts, locale, portals, and keyring remain shared.
+Use this repository to configure a Niri desktop with either independent
+components (`custom`) or DankMaterialShell (`dms`). Packages and system services
+must already be prepared: chezmoi deploys configuration, not a desktop installer.
 
-The desktop profile is intentionally split by ownership:
+Choose the guide for your task:
 
-- chezmoi owns hand-written Kitty, Fuzzel, Mako, Waybar, Matugen, and Niri
-  configuration.
-- Fontconfig owns the generic application font stacks, while GTK settings
-  select the UI font.
-- Matugen owns generated color files after their first creation.
-- Waypaper owns its selected-wallpaper state after its first creation.
-- Application caches, histories, databases, and downloaded plugins stay out of
-  source state.
+| Task | Guide |
+|---|---|
+| Select DMS, switch stacks, or return to custom | [Desktop shell profiles](desktop-shells.md) |
+| Set up fonts, GTK, Nautilus, input methods, or application themes | [Desktop applications](desktop-applications.md) |
+| Configure locale, English folders, sudo dialogs, or the keyring | [Desktop session setup](desktop-session.md) |
+| Install the DMS launcher, lyrics, or todo plugin | [DMS plugins and native lyrics](dms-plugins.md) |
+| Forward iPhone notifications or opt into clipboard sharing | [Tether](tether.md) |
+
+The palette, Waybar, and temperature procedures below are for **custom**.
+DMS uses its own wallpaper, palette, locking, and night-mode controls. Fonts,
+locale, portals, Kitty, Fcitx5, and the keyring remain shared.
+
+## Prepare a desktop
+
+1. Review the [runtime dependencies](#runtime-dependencies) for your chosen
+   shell and install them separately.
+2. On a new machine, select `graphical=true`, `niri=true`, and the desktop shell
+   during initialization. Missing `desktopShell` keeps `custom`. On an existing
+   machine, follow [the switching procedure](desktop-shells.md#switch-an-existing-machine)
+   instead of rerunning init or applying mid-session.
+3. Prepare [session prerequisites](desktop-session.md) and
+   [application dependencies](desktop-applications.md). For DMS, install the
+   [launcher](dms-plugins.md) before the first session.
+4. Back up existing targets privately, run the offline source checks, and
+   review only explicit desktop paths before applying them. Do not use a
+   whole-home apply as a validation step.
+5. Start a fresh Niri session. Test the lock screen and suspend/resume yourself;
+   rendering a valid configuration does not prove authentication works.
+
+## Custom wallpaper and palettes
+
+Change a wallpaper through Waypaper to regenerate custom colors. Do not force
+chezmoi to overwrite existing generated palettes when refreshing a theme.
+
+| Owner | Files or state |
+|---|---|
+| Chezmoi | Hand-written Kitty, Fuzzel, Mako, Waybar, Matugen, and Niri configuration |
+| Fontconfig / GTK settings | Generic font stacks / application UI font |
+| Matugen | Generated color files after their first creation |
+| Waypaper | Selected-wallpaper state after its first creation |
+| Applications | Caches, histories, databases, and downloaded plugins; never source state |
 
 Generated color files use chezmoi's `create_` attribute. This gives a fresh
 machine a valid fallback without reverting colors after Matugen changes them:
@@ -43,352 +73,31 @@ Waypaper runs `~/.config/waypaper/apply-theme` without interpolating the
 wallpaper filename into a shell command. The hook reads the active image from
 `awww query --json` and invokes Matugen with an argument vector.
 
-## Graphical sudo prompts
-
-Graphical profiles deploy `~/.local/bin/sudo-askpass`. It runs
-`/usr/bin/zenity --password` as the calling user and sends the entered
-password directly to sudo through the askpass interface. Install `sudo` and
-`zenity` separately; chezmoi does not install packages:
-
-```sh
-sudo pacman -S --needed sudo zenity
-```
-
-The shared Bash/Zsh login environment sets `SUDO_ASKPASS` when the helper
-is executable, preserving any non-empty custom value. Invoke it explicitly:
-
-```sh
-sudo -A /usr/bin/id
-```
-
-Ordinary `sudo` is unchanged. To ignore an existing authentication timestamp
-for one command, use `sudo -A -k /usr/bin/id`; sudoers may still exempt a
-command from password authentication. The dialog is authentication, not
-per-command approval, and does not display the full command. Do not grant
-a root shell or run the whole agent as root to avoid repeated prompts.
-
-For an existing machine, back up both targets if present, review their
-sanitized diff, then apply only these files:
-
-```sh
-chezmoi diff --skip-secrets --exclude=encrypted \
-  ~/.local/bin/sudo-askpass ~/.config/shell/profile.sh
-chezmoi apply --skip-secrets --exclude=scripts,encrypted \
-  ~/.local/bin/sudo-askpass ~/.config/shell/profile.sh
-```
-
-New login sessions inherit the setting. In an already open terminal, set it
-explicitly before starting Pi, or pass it on the individual command:
-
-```sh
-export SUDO_ASKPASS="$HOME/.local/bin/sudo-askpass"
-# Start a new Pi process after exporting; existing processes retain their environment.
-```
-
-The calling process must have access to the graphical session. This setup
-does not forward prompts from remote SSH sessions or containers. Never run
-the helper alone through an agent tool, capture its stdout, or log passwords.
-Canceling the dialog fails authentication; there is no password-storage or
-terminal fallback in the helper.
-
-Headless profiles ignore the helper, not delete it. When retiring graphical
-configuration, move a retained helper out of its target path and unset the
-managed `SUDO_ASKPASS` value before starting new processes. Login export is
-based on the helper's executable presence, not a runtime display check.
-
-## Fonts
-
-Graphical profiles install `~/.config/fontconfig/fonts.conf` with these generic
-stacks:
-
-- `sans-serif`: Adwaita Sans, Simplified Chinese Noto Sans, color emoji, then
-  Noto symbols;
-- `serif`: Noto Serif, Simplified Chinese Noto Serif, color emoji, then Noto
-  symbols;
-- `monospace`: JetBrainsMono Nerd Font Mono, Simplified Chinese Noto Sans Mono,
-  color emoji, then Noto symbols.
-
-Strong Fontconfig aliases keep the primary Latin family stable under the
-Chinese session locale while retaining per-character fallback.
-Kitty and the generic monospace alias use JetBrainsMono Nerd Font Mono for
-predictable one-cell widths. Waybar uses JetBrainsMono Nerd Font Propo so icon
-layout advances match their drawn widths, without shrinking icons to one cell.
-GTK and browser UI explicitly use
-Adwaita Sans instead, avoiding the observed private-use codepoint collision in
-Waybar's primary font. The GTK 2 modifier replaces only `gtk-font-name` and
-preserves the target's other legacy settings. Browsers use the GTK UI setting
-and Fontconfig generic families; a website or browser profile that names a
-specific font still takes precedence.
-
-On Arch Linux, install the required font providers:
-
-```sh
-sudo pacman -S --needed \
-  fontconfig adwaita-fonts noto-fonts noto-fonts-extra noto-fonts-cjk \
-  noto-fonts-emoji ttf-jetbrains-mono-nerd
-```
-
-A package that declares `provides = noto-fonts` can supply the base Noto
-families instead.
-
-### Waybar icon alignment
-
-The font choice follows
-[shorin-niri's Waybar style](https://github.com/SHORiN-KiWATA/shorin-niri/blob/main/dotfiles/.config/waybar/style.css).
-The plain `JetBrainsMono Nerd Font` variant can draw icons beyond their layout
-cells, shifting them relative to hover backgrounds and crowding adjacent text.
-Use the installed `Propo` family rather than compensating with spaces or
-asymmetric launcher padding. Workspace hover transitions change only colors;
-GTK theme gradients and text shadows are disabled on those buttons. Reserve
-workspace icon width on the label itself: Niri's non-expanding label would
-otherwise sit at the left of a wider button.
-
-The launcher uses upstream's `` (U+F303) Arch icon. Newer Waybar custom modules
-use `AIconLabel`, which places the module ID on a box rather than the label.
-Its child label must inherit the module's minimum width and font size;
-otherwise the global font rule resets the glyph size and the wider box leaves
-unused space on the right. Desktop checks exercise both widget structures when
-GTK 3 Python bindings and a display are available.
-
-Waybar uses logical dimensions; Niri applies each output's scale. At 150%,
-a logical offset is magnified and rounding can add a small visual difference.
-Keep relative spacing rather than adding resolution-specific pixel offsets.
-Check the selected family with `fc-match 'JetBrainsMono Nerd Font Propo'`.
-Tray and privacy icons are images, not Nerd Font glyphs; their internal margins
-depend on the supplied artwork.
-
-## Desktop applications
-
-- Satty starts with the arrow tool and uses Adwaita Sans with Chinese fallback.
-  Enter saves the edited file and exits; Escape exits without saving. The
-  screenshot helpers supply output paths and copy saved edits after Satty exits.
-  Standalone use needs `--output-filename` for Enter-to-save; the copy button
-  remains available.
-- btop selects the generated `matugen` theme through a modifier. Its other
-  preferences, including layout and update interval, remain application-owned.
-- Fcitx5 Classic UI selects Matugen, uses Adwaita Sans 11, and keeps native
-  fractional scaling without forcing DPI. Its modifier preserves candidate
-  orientation, tray preferences, and unknown keys. Input groups, Rime schemes,
-  dictionaries, and learned words remain unmanaged. Outlined monochrome menu
-  assets stay visible on both normal and selected backgrounds.
-  Matugen reloads a running Fcitx instance rather
-  than replacing the process.
-- swaylock-effects keeps the existing blurred screenshot background, with a
-  smaller indicator, thin ring, matching text colors, and a compact clock.
-  The Matugen template owns the full configuration; no grace period is enabled.
-  Blurred screenshots are not an opaque privacy screen. Lock-before-sleep and
-  lock-before-monitor-off ordering stays in Niri.
-- Nautilus remains the graphical file manager. GTK 3/4 import the generated
-  palette for applications and file choosers; modifiers preserve other CSS.
-  In the custom profile, GTK 3 selects `adw-gtk3-dark` with dark preference
-  enabled; this requires the separately installed `adw-gtk-theme` package.
-  A missing theme can silently fall back to light Adwaita even when the
-  desktop prefers dark mode.
-  On Niri, the FileChooser portal prefers GNOME/Nautilus with GTK as fallback;
-  other portal preferences remain untouched. No folder history, bookmarks,
-  default applications, icon theme, or dconf database is taken
-  over. Matugen no longer forces a particular GTK theme via GSettings.
-  Both custom and DMS graphical profiles import a separate GTK 4 `nautilus.css`
-  after their palette (`colors.css` or DMS's `dank-colors.css`): Nautilus main
-  windows and its portal file choosers share the view background at 90% opacity.
-  Only their background layers change; text, icons, context menus, and dropdown
-  popovers retain their original opacity. Other GTK applications are not targeted.
-  This is background transparency, not compositor opacity or blur.
-
-SwayOSD is not enabled by this configuration; volume bindings retain their
-existing WirePlumber behavior.
-
-After reviewing and backing up explicit targets, apply their declarative
-files. Existing `create_` targets are deliberately left untouched: regenerate
-their palettes through Matugen/Waypaper rather than forcing chezmoi ownership.
-Reopen GTK applications to check their styles; test a file chooser separately
-from Nautilus. Test the lock screen interactively, not as an automated check.
-Neither source checks nor theme rendering invokes the lock screen.
-
-### Nautilus background style
-
-To update only this style on an existing graphical custom or DMS machine,
-back up and review both explicit targets, then apply them:
-
-```sh
-chezmoi diff --skip-secrets --exclude=encrypted \
-  ~/.config/gtk-4.0/gtk.css ~/.config/gtk-4.0/nautilus.css
-chezmoi apply --exclude=scripts,encrypted \
-  ~/.config/gtk-4.0/gtk.css ~/.config/gtk-4.0/nautilus.css
-```
-
-The modifier preserves unrelated CSS and imports the profile palette followed
-by `nautilus.css` exactly once. DMS still owns its generated `dank-colors.css`;
-this update does not enable legacy user Matugen templates. Save work and reopen
-Nautilus and affected GTK applications yourself, then test a portal file chooser
-separately. Apply does not automatically quit applications.
-
-### Nautilus copy-path scripts
-
-Graphical profiles manage two executable scripts under
-`~/.local/share/nautilus/scripts/`: `复制相对路径` and `复制绝对路径`.
-Select files or folders, then choose **Scripts → 复制相对路径** or
-**Scripts → 复制绝对路径** from the context menu. This uses
-[Nautilus's built-in script support](https://help.gnome.org/gnome-help/nautilus-behavior.html),
-not a Python extension. Python and `wl-clipboard` must be installed; clipboard
-copying requires a Wayland session.
-
-Relative paths use the current browsing directory, with `./` for descendants
-and `../` for parent traversal; absolute paths retain symlink names rather than
-resolving them. Multiple selections produce one unquoted path per line, with
-no trailing newline. Spaces and Unicode are preserved. These are plain text
-paths, not shell-escaped arguments or Nautilus file-copy clipboard data.
-Remote locations and filenames containing line breaks are rejected before
-copying; an empty selection leaves the clipboard unchanged. Relative copying
-requires a local current directory, so virtual search/recent views are not
-supported for that action.
-
-Apply only the two script targets after reviewing them; other user scripts
-remain unmanaged. If the Scripts submenu is not visible, reopen Nautilus.
-`tests/check-nautilus-scripts.py` validates rendering and clipboard calls offline
-without replacing the real clipboard.
-
-### GTK theme prerequisites
-
-On Arch Linux:
-
-```sh
-sudo pacman -S --needed adw-gtk-theme
-gsettings set org.gnome.desktop.interface gtk-theme 'adw-gtk3-dark'
-gsettings set org.gnome.desktop.interface color-scheme 'prefer-dark'
-```
-
-The GTK 3 theme consumes the generated named colors. Nautilus uses GTK 4 and
-libadwaita instead, so it does not use the GTK 3 theme package. Do not force
-`GTK_THEME` globally to make the two match.
-
-Reopen applications after installing the theme. Source checks
-verify effective GTK 3 window and list colors when the theme, GTK Python
-bindings, Matugen, and a display are available, rather than only checking that
-palette files exist.
-
-### File chooser portal
-
-On Niri, `~/.config/xdg-desktop-portal/niri-portals.conf` manages only
-`org.freedesktop.impl.portal.FileChooser=gnome;gtk;` in `[preferred]`.
-With a recent GNOME portal backend and Nautilus installed, this uses the
-Nautilus file chooser instead of GTK 3's chooser, avoiding its clipped
-file-type dropdown near screen edges. GTK remains a fallback backend;
-this does not fix GTK 3 menus embedded directly in applications.
-
-After backing up and applying that explicit target, log out and back in,
-or restart `xdg-desktop-portal.service` once file dialogs and portal-based
-screen sharing have ended. Reopen a portal-using application's file chooser
-to check it. The preference list selects an available backend; it does not
-guarantee retrying GTK if a running GNOME backend fails.
-
-### Bruno on Niri
-
-The user-level `~/.local/share/applications/bruno.desktop` overrides the
-`bruno-bin` launcher at `/opt/Bruno/bruno` with `--ozone-platform=wayland`.
-It is deployed only for graphical Niri profiles and retains the `bruno://`
-URL handler. This leaves the GNOME/Nautilus file chooser preference unchanged
-for every application.
-
-Bruno 4.2.1 (Electron 37.6.1) under XWayland triggered a Nautilus 51 file chooser
-crash in a local test. With the same isolated Bruno profile, native Wayland
-opened the Nautilus chooser successfully. This is an application-scoped
-compatibility workaround, not a patch to Nautilus or a global portal change.
-After applying the launcher, fully quit Bruno and reopen it from the
-application launcher; an existing single-instance process keeps its original
-display backend. For terminal launches, use `bruno --ozone-platform=wayland`.
-
-## Desktop keyring
-
-When both `graphical` and `niri` are enabled, chezmoi manages these user D-Bus
-activation overrides:
-
-```text
-~/.local/share/dbus-1/services/org.freedesktop.secrets.service
-~/.local/share/dbus-1/services/org.gnome.keyring.service
-```
-
-Both keep the packaged daemon command as a fallback and set
-`SystemdService=gnome-keyring-daemon.service`. D-Bus activation therefore uses
-the same unit as socket activation instead of launching a separate transient
-daemon after a restart. The packaged service and socket remain unchanged;
-do not add a daemon startup command to Niri or shell profiles. This coordinates
-activation, not a fix for every possible daemon crash.
-
-GNOME Keyring's Secret Portal is an interface on `org.freedesktop.secrets`.
-It does not need a third override named `org.freedesktop.impl.portal.Secret`.
-The Niri portal preference file still manages only the file chooser.
-
-Install `gnome-keyring`, `libsecret`, and `seahorse` separately. Use the
-packaged `gnome-keyring-daemon.socket` for socket activation (enable it with
-`systemctl --user enable --now gnome-keyring-daemon.socket` if needed).
-PAM, not Niri, supplies the login password for unlocking. On an Arch TTY login,
-review `/etc/pam.d/login` for these entries after the corresponding included
-authentication and session stacks:
-
-```pam
-auth       optional    pam_gnome_keyring.so
-session    optional    pam_gnome_keyring.so auto_start
-```
-
-If using a display manager, review its PAM stack instead. For password
-changes, review `/etc/pam.d/passwd` for
-`password optional pam_gnome_keyring.so use_authtok` after the password stack.
-Back up PAM files before editing; do not replace the existing stack or add
-duplicate entries. System package installation, PAM edits, and service
-enablement are manual prerequisites, not chezmoi apply hooks.
-
-Use Seahorse to make **Login** the default password keyring, with its password
-matching the login password. Passwordless login cannot supply that password
-to PAM. Changing the default does not migrate existing entries: any migration
-must separately preserve conflicting application keys and verify the affected
-applications. Do not delete or recreate keyrings to fix a missing UI category.
-SSH continues to use `rbw-agent`; do not change `SSH_AUTH_SOCK` for this setup.
-
-`~/.local/share/keyrings/` (including the default selector) and
-`~/.local/state/keyring-backups/` are machine-local, ignored state. Never add
-their contents to chezmoi or Git, even as encrypted recovery copies.
-
-Before taking over existing activation files, back up and review only these
-two non-secret targets. Then apply them explicitly:
-
-```sh
-mkdir -p ~/.local/share/dbus-1/services
-chezmoi diff --skip-secrets --exclude=encrypted \
-  ~/.local/share/dbus-1/services/org.freedesktop.secrets.service \
-  ~/.local/share/dbus-1/services/org.gnome.keyring.service
-chezmoi apply \
-  ~/.local/share/dbus-1/services/org.freedesktop.secrets.service \
-  ~/.local/share/dbus-1/services/org.gnome.keyring.service
-```
-
-Log out completely and log in again to load the overrides and exercise PAM
-unlocking. On an existing dbus-broker session, `systemctl --user reload
-dbus.service` reloads activation metadata without restarting the bus, but
-does not remove an already running extra daemon. Do not restart the session
-bus. A deliberate keyring-service restart drops its unlocked state, so
-applications may ask for the keyring password again. GNOME Keyring also reads
-the Portal's default collection at startup; after changing the default,
-use a fresh session or a deliberate keyring-service restart.
-
-Offline coverage is in `tests/check-keyring.sh`; it neither contacts the
-live keyring nor starts services. After a real login, check the service status
-and verify that Seahorse shows Login and applications retain their credentials.
-If moving to a different desktop or Secret Service provider, explicitly retire
-these two overrides after review: ignoring them in another profile does not
-remove previously deployed files.
-
-References: [GNOME Keyring PAM](https://wiki.gnome.org/Projects/GnomeKeyring/Pam)
-and [D-Bus service activation](https://dbus.freedesktop.org/doc/dbus-daemon.1.html).
-
 ## Manual color temperature
 
-Install `wl-gammarelay-rs` separately (`yay -S wl-gammarelay-rs` on Arch).
-The Waybar temperature module next to brightness displays the current Kelvin
-value. Scroll up for +100K (cooler), down for -100K (warmer), or left-click
-to toggle between 6500K and 4500K. Clicking at any value other than 6500K
-returns to 6500K. It adjusts all connected displays; the displayed value is
-their average if their temperatures differ. Hardware brightness is unchanged.
+Use the Waybar module next to brightness to adjust every connected display.
+Hardware brightness is unchanged. If outputs differ, the displayed Kelvin
+value is their average.
+
+1. Install `wl-gammarelay-rs` separately (`yay -S wl-gammarelay-rs` on Arch).
+2. Back up and review `~/.config/systemd/user/waybar-gammarelay.service`
+   before applying that target.
+3. Run `systemctl --user daemon-reload` and reload Waybar. Do not enable the
+   unit or add another Niri startup command: the helper starts it on demand.
+
+| Action | Result |
+|---|---|
+| Scroll up | +100 K, cooler |
+| Scroll down | −100 K, warmer |
+| Left-click at 6500 K | Switch to 4500 K |
+| Left-click at any other temperature | Return to 6500 K |
+
+The module is hidden when its dependencies are missing. Temperature is
+session-local: restarting the service resets it to 6500 K. Do not run
+wlsunset, gammastep, or another gamma controller alongside it. Output/driver
+support is required; a changing number does not prove the display accepted it.
+
+### Service behavior
 
 Waybar polls the temperature over D-Bus every two seconds. Its helper starts
 the user unit `waybar-gammarelay.service` before reading the value, with a
@@ -396,125 +105,37 @@ three-second timeout for each command. Finite queries avoid the continuous
 custom-module teardown race observed with Waybar 0.15.0 during monitor
 disconnects. The unit waits for D-Bus ownership and owns gamma control
 independently of the bars. No Niri startup entry or `systemctl enable` is
-needed; the service stops with the graphical session.
-The module is hidden when its dependencies are missing. After applying the
-unit, run `systemctl --user daemon-reload` and reload Waybar. Event commands do
-not trigger extra queries; a failed query is retried at the next interval.
-
-Temperature is session-local, not persisted: restarting the service
-resets it to 6500K. Do not run wlsunset, gammastep, or another gamma controller
-at the same time. Gamma adjustment still depends on driver/output support;
-a changing number alone does not prove the display accepted the change.
+needed; the service stops with the graphical session. Event commands do not
+trigger extra queries; a failed query is retried at the next interval.
 
 Upstream references:
 [wl-gammarelay-rs](https://github.com/MaxVerevkin/wl-gammarelay-rs) and
 [Waybar custom modules](https://github.com/Alexays/Waybar/blob/master/man/waybar-custom.5.scd).
 
-## Locale split
-
-The login, desktop, and user-service environments default to
-`LANG=zh_CN.UTF-8` and `LANGUAGE=zh_CN:zh`, without persistent `LC_ALL`.
-`niri-session` imports the login environment before starting graphical
-services; the login profile first clears all inherited `LC_*` overrides so an
-English parent shell cannot take precedence. Bash and Zsh then source
-`~/.config/shell/interactive.sh` only for interactive shells, which clear
-`LC_*` overrides and select a complete English locale.
-
-Direct launches from an interactive shell inherit its English environment;
-being a GUI application does not automatically select Chinese. On Niri, use
-the shared interactive `gui` helper to launch through the compositor instead:
-
-```sh
-gui nautilus "$HOME/Documents"
-```
-
-It delegates to `niri msg action spawn -- "$@"`, launching asynchronously
-with Niri's desktop environment. It does not wait for the application or
-preserve the caller's working directory; pass absolute file paths. This
-requires a running Niri session, and application-specific language settings
-can still override the locale defaults.
-
-Both locales must already exist in `locale -a`; this repository does not edit
-the system-owned `/etc/locale.gen`. When migrating from persistent `LC_ALL`,
-after reviewing and applying the explicit locale targets, reload the user
-manager's configuration and remove its stale override once:
-
-```sh
-systemctl --user daemon-reload
-systemctl --user unset-environment LC_ALL
-```
-
-Importing the new login environment does not remove variables absent from it.
-Do not globally import the English terminal's environment into the user
-manager. These commands do not restart services: existing processes and legacy
-D-Bus activation environments still retain their old values. Terminate the
-full user session and sign in again; reboot if lingering keeps the user
-manager alive.
-
-For DMS, stop its old supervisor and relaunch through Niri as
-described in [the immediate overlay switch](desktop-shells.md#native-media-page-overlay);
-`dms restart` alone retains the supervisor's environment.
-
-## XDG user directories
-
-On graphical machines, the managed
-`~/.config/systemd/user/xdg-user-dirs.service.d/10-english.conf` gives only the
-login folder updater an English locale. Its service-local `LC_ALL` overrides
-inherited Chinese `LC_*` values without changing the desktop environment.
-Missing mappings are generated with English names even when the desktop is
-Chinese; surviving custom mappings are retained.
-
-`~/.config/user-dirs.dirs` and `user-dirs.locale` remain generated,
-machine-local files. After reviewing and applying the explicit drop-in target,
-run `systemctl --user daemon-reload`. The override must be restored before
-the updater runs if the user configuration tree is lost.
-
-The service override does not affect manual commands or other desktop folder
-renamers. For manual generation, use:
-
-```sh
-LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US:en xdg-user-dirs-update
-```
-
-An existing Chinese mapping is not renamed automatically. Back up the two
-machine-local files before migration, create the intended English directories,
-and set each mapping explicitly, for example:
-
-```sh
-mkdir -p -- "$HOME/Downloads"
-LC_ALL=en_US.UTF-8 LANG=en_US.UTF-8 LANGUAGE=en_US:en \
-    xdg-user-dirs-update --set DOWNLOAD "$HOME/Downloads"
-```
-
-Setting mappings does not move files from the old directories. Restart
-applications that cache these paths; explicit application download settings
-may still need updating. Do not use `--force` as a migration shortcut.
-
 ## Runtime dependencies
 
-Core session:
+This is the custom stack's dependency reference, not a package installer.
+For DMS's replacement components and dependencies, use
+[Selection and packages](desktop-shells.md#selection-and-packages).
 
-- niri, kitty, fuzzel, waybar, mako
-- swaylock, swayidle, copyq
-- awww, waypaper, matugen
-- wireplumber (`wpctl`), playerctl, brightnessctl
-- fontconfig, adwaita-fonts, noto-fonts, noto-fonts-extra, noto-fonts-cjk
-- noto-fonts-emoji
-- ttf-jetbrains-mono-nerd
-- adw-gtk-theme
-- xdg-desktop-portal, xdg-desktop-portal-gnome, xdg-desktop-portal-gtk
-- gnome-keyring, libsecret, seahorse
+| Use | Packages / commands |
+|---|---|
+| Compositor and custom UI | niri, kitty, fuzzel, waybar, mako |
+| Custom lock, idle, clipboard | swaylock (styled for swaylock-effects), swayidle, copyq |
+| Custom wallpaper and colors | awww, waypaper, matugen |
+| Media and brightness | wireplumber (`wpctl`), playerctl, brightnessctl |
+| Shared fonts | fontconfig, adwaita-fonts, noto-fonts, noto-fonts-extra, noto-fonts-cjk, noto-fonts-emoji, ttf-jetbrains-mono-nerd |
+| GTK 3 theme | adw-gtk-theme |
+| Shared portals | xdg-desktop-portal, xdg-desktop-portal-gnome, xdg-desktop-portal-gtk |
+| Shared keyring | gnome-keyring, libsecret, seahorse |
+| Optional capture / clipboard actions | grim, slurp, satty, wl-clipboard, wf-recorder |
+| Optional Waybar actions | ddcutil, hyprpicker, pavucontrol, wlogout, blueberry |
+| Manual color temperature | wl-gammarelay-rs, systemd (`busctl`) |
+| Long-screenshot helper | uv |
+| Additional application adapters | btop, Fcitx5 with fcitx5-rime, Nautilus |
 
-Optional Waybar actions:
-
-- grim, slurp, satty, wl-clipboard, wf-recorder
-- ddcutil, hyprpicker, pavucontrol, wlogout, blueberry
-- wl-gammarelay-rs, systemd (`busctl`) for manual color temperature
-- uv for the long-screenshot helper
-
-Desktop application styling also supports Satty, btop, Fcitx5 with
-fcitx5-rime, Nautilus, and swaylock-effects. These packages are installed
-separately; the source checks do not install or start them.
+Satty and swaylock-effects styling is also managed. All packages are installed
+separately; source checks do not install or start them.
 
 Kitty scrollback integration also expects
 `mikesmithgh/kitty-scrollback.nvim`, installed by the Neovim configuration.
@@ -529,24 +150,95 @@ In DMS mode this profile seeds `~/.config/niri/dms/outputs.kdl` only once;
 subsequent output edits belong to DMS Settings. The procedure below applies
 to custom mode.
 
-For an already initialized machine, run `chezmoi edit-config`, set
-`niriOutputProfile = "desktop-single-4k"` under `[data]`, then apply only the
-reviewed output target:
+To change an initialized **custom** machine:
+
+1. Back up the local chezmoi config and existing output target privately.
+2. Run `chezmoi edit-config` and set
+   `niriOutputProfile = "desktop-single-4k"` under the existing `[data]` section.
+3. Review and apply only the output target, then ask Niri to reload:
 
 ```sh
+chezmoi diff --skip-secrets --exclude=encrypted ~/.config/niri/conf.d/20-outputs.kdl
 chezmoi apply ~/.config/niri/conf.d/20-outputs.kdl
 niri msg action load-config-file
 ```
 
 ## Validation
 
+Run source checks from the repository root. The remaining commands are manual
+configuration checks on a prepared desktop; replace the wallpaper placeholder.
+
 ```sh
-tests/check-source.sh
-fc-match sans-serif
-fc-match monospace
-fc-match 'monospace:charset=4e2d'
+./tests/check-source.sh
+git diff --check
 fuzzel --check-config
 matugen --dry-run image /path/to/wallpaper
 niri validate --config ~/.config/niri/config.kdl
 chezmoi diff --skip-secrets --exclude=encrypted ~/.config/niri
 ```
+
+Source checks do not install packages or start a desktop. Optional rendering,
+GTK, and compositor checks can skip when their dependencies are absent.
+
+## Troubleshooting
+
+| Symptom | Check |
+|---|---|
+| Theme colors revert or stop following wallpaper | Edit the generator/template, not a generated `create_` target; select the wallpaper again |
+| Wrong bar, notifications, or gamma controller after switching | Follow [startup and rollback checks](desktop-shells.md#switch-an-existing-machine); ignored services are not stopped |
+| Chinese desktop but English GUI launched from a terminal | Use [the `gui` helper](desktop-session.md#locale-split) |
+| Missing or misaligned glyphs | Check [fonts and Waybar icon alignment](desktop-applications.md#fonts) |
+| Number changes but display temperature does not | Verify output/driver gamma support and that no second controller is running |
+
+## Related setup
+
+Older links into this page remain available below. The detailed procedures now
+live in the application and session guides.
+
+## Graphical sudo prompts
+
+See [graphical sudo prompts](desktop-session.md#graphical-sudo-prompts).
+
+## Fonts
+
+See [fonts](desktop-applications.md#fonts).
+
+## Waybar icon alignment
+
+See [waybar icon alignment](desktop-applications.md#waybar-icon-alignment).
+
+## Desktop applications
+
+See [desktop applications](desktop-applications.md#application-behavior).
+
+## Nautilus background style
+
+See [Nautilus background style](desktop-applications.md#nautilus-background-style).
+
+## Nautilus copy-path scripts
+
+See [Nautilus copy-path scripts](desktop-applications.md#nautilus-copy-path-scripts).
+
+## GTK theme prerequisites
+
+See [GTK theme prerequisites](desktop-applications.md#gtk-theme-prerequisites).
+
+## File chooser portal
+
+See [file chooser portal](desktop-applications.md#file-chooser-portal).
+
+## Bruno on Niri
+
+See [Bruno on Niri](desktop-applications.md#bruno-on-niri).
+
+## Desktop keyring
+
+See [desktop keyring](desktop-session.md#desktop-keyring).
+
+## Locale split
+
+See [locale split](desktop-session.md#locale-split).
+
+## XDG user directories
+
+See [XDG user directories](desktop-session.md#xdg-user-directories).
