@@ -18,7 +18,10 @@
       "skills": [
         "agents-md",
         "frontend-design",
-        "development-workflow"
+        "development-workflow",
+        "api-design",
+        "deployment-standards",
+        "llm-prompt-design"
       ]
     }
   ]

@@ -70,7 +70,10 @@ assert declared["sources"] == [
     {"source": "schpet/linear-cli", "skills": ["linear-cli"]},
     {
         "source": "oai404iao/my_skills",
-        "skills": ["agents-md", "frontend-design", "development-workflow"],
+        "skills": [
+            "agents-md", "frontend-design", "development-workflow",
+            "api-design", "deployment-standards", "llm-prompt-design",
+        ],
     },
 ]
 
