@@ -174,7 +174,7 @@ telegram_package = "npm:@oai404iao/pi-telegram-notify@0.6.0"
 common_packages = {
     "npm:@juicesharp/rpiv-ask-user-question@2.13.8",
     "npm:@oai404iao/pi-codex-minimal-tools@5.1.1",
-    "npm:@oai404iao/pi-subagent@1.2.2",
+    "npm:@oai404iao/pi-subagent@1.3.0",
 }
 expected_defaults = {
     "defaultProvider": "openai",
@@ -701,7 +701,7 @@ strictDepBuilds: true
         )
         rendered = load_json(result.stdout)
         package = (
-            "pi-subagent@1.2.2"
+            "pi-subagent@1.3.0"
             if relative == "private_subagent.json.tmpl"
             else "pi-codex-runtime@3.0.0"
         )
@@ -722,10 +722,10 @@ strictDepBuilds: true
             if retired_keys & rendered.keys():
                 raise SystemExit("Pi subagent config retains retired settings")
             expected_subagent = {
-                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.2.2/config.schema.json",
+                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.3.0/config.schema.json",
                 "agentScope": "user",
                 "maxDepth": 3,
-                "maxConcurrentAgents": 4,
+                "maxConcurrentAgents": 8,
                 "inheritExtensions": True,
                 "maxOutputBytes": 51200,
                 "openAIIdentity": True,

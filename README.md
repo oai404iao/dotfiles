@@ -66,8 +66,8 @@ credentials and mutable application state out of Git.
 - [Jev via Command Code](docs/pi.md#jev-task-triage) supports one root-only
   workflow/review classification per new task. Simple work stays direct;
   delegation and independent review are not mandatory pipeline stages.
-- Pi Codex bundle 5.1.1 and subagent 1.2.2 are pinned. Subagent uses seven
-  asynchronous plaintext tools, a tree-wide concurrency limit of 4, and a
+- Pi Codex bundle 5.1.1 and subagent 1.3.0 are pinned. Subagent uses seven
+  asynchronous plaintext tools, a tree-wide concurrency limit of 8, and a
   120-second default mailbox wait; see the [migration guide](docs/pi.md#subagent-100-migration).
 - [Agent delegation guidance](docs/pi.md#agent-delegation-guidance) defines
   scoped assignments: scout/reviewer inspect read-only, while worker executes

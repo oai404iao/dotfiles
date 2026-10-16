@@ -85,7 +85,7 @@ configured default; children follow the main session's selection.
 Historical opaque checkpoints remain protected; unrecognized custom-profile
 hashes fail closed rather than silently converting history to text.
 
-Subagent is pinned to **1.2.2**, using the asynchronous Codex multi-agent v2
+Subagent is pinned to **1.3.0**, using the asynchronous Codex multi-agent v2
 runtime. Its seven tools are model-only (not callable from native codemode);
 the managed scout/reviewer allowlists enable codemode alongside their existing
 ordinary tools. Mailbox waits now default to 120 seconds, with 300 seconds
@@ -244,10 +244,11 @@ fix. Installation data, lockfiles, and backups remain machine-local and ignored.
 ## Subagent 1.0.0 migration
 
 The managed `subagent.json` no longer contains `runtimeMode`. Foreground mode is
-removed, not renamed. `maxConcurrentAgents: 4` limits active child runs across
-the whole root tree; root does not count. Depth remains 3, with extension
-inheritance, the optional OpenAI identity lifecycle, and the 51200-byte output
-cap preserved.
+removed, not renamed. `maxConcurrentAgents: 8` limits active child runs across
+the whole root tree; root does not count. Waiting children still occupy slots,
+and admission fails immediately at capacity rather than queuing. Depth remains
+3, with extension inheritance, the optional OpenAI identity lifecycle, and the
+51200-byte output cap preserved.
 
 Other retired settings (`maxConcurrentBackgroundRuns`, `maxIdleRuntimes`,
 `defaultBackground`, `enableRunInBackground`, `backgroundProtocol`,
@@ -281,7 +282,7 @@ Review only explicit safe targets and privately back up existing files first:
 ```sh
 chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/subagent.json
 chezmoi apply ~/.config/pi/agent/subagent.json
-pi install npm:@oai404iao/pi-subagent@1.2.2 --no-approve
+pi install npm:@oai404iao/pi-subagent@1.3.0 --no-approve
 ```
 
 The Pi install command updates that package declaration without resetting other
@@ -298,7 +299,7 @@ Telegram notifications.
 ### `createCodemodeExtension is not a function`
 
 This error occurs during child-runtime creation, before the child can execute
-its task. Check the host Pi version first: subagent 1.2.2 requires Pi 1.2.0 or
+its task. Check the host Pi version first: subagent 1.3.0 requires Pi 1.2.0 or
 newer, including its SDK factories. A newer `pi-coding-agent` dependency under
 `agent/npm/node_modules` does not upgrade the running host; Pi maps extension
 SDK imports to its own implementation.

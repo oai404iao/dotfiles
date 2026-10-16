@@ -56,8 +56,8 @@
   [兼容性与子代理限制](docs/pi.md#codemode)。
 - [通过 Command Code 接入 Jev](docs/pi.md#jev-task-triage)，支持主代理每个新任务
   仅分类一次，辅助判断派工与 review；简单任务直接完成，不强制走子代理流水线。
-- Pi 固定使用 Codex 组合包 5.1.1 和 subagent 1.2.2。Subagent 使用七个异步
-  明文工具，全树并发上限为 4，邮箱默认等待 120 秒；参见
+- Pi 固定使用 Codex 组合包 5.1.1 和 subagent 1.3.0。Subagent 使用七个异步
+  明文工具，全树并发上限为 8，邮箱默认等待 120 秒；参见
   [迁移说明](docs/pi.md#subagent-100-migration)。
 - [Agent 派工说明](docs/pi.md#agent-delegation-guidance) 要求明确任务范围：
   scout/reviewer 负责只读检查，worker 使用继承的工具策略执行子任务，
