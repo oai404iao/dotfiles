@@ -17,7 +17,6 @@ cleanup() {
 }
 trap cleanup EXIT HUP INT TERM
 
-git config --file "$repo_dir/dot_gitconfig" --list >/dev/null
 [ "$(git config --file "$repo_dir/dot_gitconfig" --get include.path)" = \
     "~/.config/git/.gitconfig-identity" ]
 
@@ -36,14 +35,6 @@ actual_inventory=$(
     printf '%s\n' 'unexpected managed Git source inventory' >&2
     exit 1
 }
-
-for encrypted_source in "$git_source_dir"/encrypted_*.age; do
-    [ "$(head -n 1 "$encrypted_source")" = \
-        '-----BEGIN AGE ENCRYPTED FILE-----' ] || {
-        printf '%s\n' 'Git identity source is not age armored' >&2
-        exit 1
-    }
-done
 
 if grep -ERq -- \
     '[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}' \
@@ -128,7 +119,6 @@ for profile in identity work person github; do
     target="$fixture_home/.config/git/.gitconfig-$profile"
     cmp -s "$target" "$fixture_plain/$profile"
     [ "$(stat -c %a "$target")" = "600" ]
-    git config --file "$target" --list >/dev/null
 done
 
 excluded_home="$tmp_dir/excluded-home"

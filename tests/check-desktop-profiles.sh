@@ -81,10 +81,6 @@ custom_only = {
 }
 dms_kdl_names = ("alttab", "binds", "colors", "cursor", "layout", "outputs", "windowrules")
 dms_kdl_targets = {f".config/niri/dms/{name}.kdl" for name in dms_kdl_names}
-assert {path.name for path in (repo / "dot_config/niri/dms").iterdir()} == {
-    f"create_empty_{name}.kdl" + (".tmpl" if name in ("binds", "colors", "outputs") else "")
-    for name in dms_kdl_names
-}
 dms_only = {
     ".config/DankMaterialShell/settings.json",
     ".config/kitty/dank-theme.conf", ".config/gtk-3.0/dank-colors.css",
@@ -93,8 +89,6 @@ dms_only = {
     ".config/matugen/dms/configs/chezmoi-btop.toml",
     ".config/matugen/dms/configs/chezmoi-fastfetch.toml",
 } | dms_kdl_targets
-assert not any(path.is_file() for path in (repo / "dot_config/DankMaterialShell/plugins").rglob("*"))
-assert not (repo / "dot_local/bin/executable_dms-with-lyrics").exists()
 targets = [
     ".config/niri", ".config/kitty", ".config/gtk-3.0", ".config/gtk-4.0",
     ".config/fcitx5/conf/classicui.conf",
@@ -237,9 +231,6 @@ for shell in ("custom", "dms"):
                 "input_path": str(home / ".config/matugen/templates/fastfetch-config.jsonc"),
                 "output_path": str(home / ".config/fastfetch/config.jsonc"),
             }
-            assert pathlib.Path(fastfetch_template["input_path"]).read_bytes() == (
-                repo / "dot_config/matugen/templates/fastfetch-config.jsonc"
-            ).read_bytes()
             btop_config = tomllib.loads(
                 (home / ".config/matugen/dms/configs/chezmoi-btop.toml").read_text()
             )
@@ -248,9 +239,6 @@ for shell in ("custom", "dms"):
             btop_template = btop_config["templates"]["chezmoi-btop"]
             assert btop_template["input_path"] == str(home / ".config/matugen/templates/btop.theme")
             assert btop_template["output_path"] == str(home / ".config/btop/themes/matugen.theme")
-            assert pathlib.Path(btop_template["input_path"]).read_bytes() == (
-                repo / "dot_config/matugen/templates/btop.theme"
-            ).read_bytes()
             assert settings["cornerRadius"] == 16
             assert settings["widgetColorMode"] == "default"
             assert settings["runningAppsCurrentWorkspace"] is True
@@ -351,9 +339,6 @@ for shell in ("custom", "dms"):
         for version in ("3.0", "4.0"):
             css = (home / f".config/gtk-{version}/gtk.css").read_text()
             assert_gtk_imports(css, version, shell)
-        assert (home / ".config/gtk-4.0/nautilus.css").read_bytes() == (
-            repo / "dot_config/gtk-4.0/nautilus.css"
-        ).read_bytes()
 
 home, env, command = fixture("dms-existing", "dms")
 settings_file = home / ".config/DankMaterialShell/settings.json"

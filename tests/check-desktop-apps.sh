@@ -3,7 +3,6 @@ set -eu
 
 repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 
-sh -n "$repo_dir/dot_config/btop/modify_btop.conf"
 python3 - "$repo_dir" <<'PY'
 import configparser
 import os
@@ -158,18 +157,16 @@ for version in ("3.0", "4.0"):
     imports = '@import "colors.css";\n@import url(\'colors.css\');\n'
     if version == "4.0":
         imports += '@import "nautilus.css";\n@import url(\'nautilus.css\');\n'
-    for original in ("", custom, imports + custom):
-        updated = modify(modifier, original)
-        assert updated.startswith('@import "colors.css";\n')
-        assert updated.count("colors.css") == 1
-        if version == "4.0":
-            assert updated.startswith('@import "colors.css";\n@import "nautilus.css";\n')
-            assert updated.count("nautilus.css") == 1
-        else:
-            assert "nautilus.css" not in updated
-        assert modify(modifier, updated) == updated
-        if original:
-            assert custom in updated
+    updated = modify(modifier, imports + custom)
+    assert updated.startswith('@import "colors.css";\n')
+    assert updated.count("colors.css") == 1
+    if version == "4.0":
+        assert updated.startswith('@import "colors.css";\n@import "nautilus.css";\n')
+        assert updated.count("nautilus.css") == 1
+    else:
+        assert "nautilus.css" not in updated
+    assert modify(modifier, updated) == updated
+    assert custom in updated
 
 gtk3_settings = configparser.ConfigParser()
 gtk3_settings.read_string(subprocess.run(

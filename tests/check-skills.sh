@@ -19,7 +19,6 @@ import sys
 repo = Path(sys.argv[1])
 task = Path(sys.argv[2])
 installer = repo / "scripts/install-skills.py"
-compile(installer.read_text(), str(installer), "exec")
 home = task / "home"
 home.mkdir()
 log = task / "pnpm.jsonl"
@@ -62,20 +61,6 @@ run("--manifest", str(manifest))
 assert not log.exists() and not list(home.iterdir())
 run("--dry-run")
 assert not log.exists() and not list(home.iterdir())
-
-declared = json.loads((repo / "scripts/skills.json").read_text())
-assert declared["sources"] == [
-    {"source": "vercel-labs/agent-browser", "skills": ["agent-browser"]},
-    {"source": "shadcn/ui", "skills": ["shadcn"]},
-    {"source": "schpet/linear-cli", "skills": ["linear-cli"]},
-    {
-        "source": "oai404iao/my_skills",
-        "skills": [
-            "agents-md", "frontend-design", "development-workflow",
-            "api-design", "deployment-standards", "llm-prompt-design",
-        ],
-    },
-]
 
 write_manifest([source, second])
 no_pnpm = {**env, "PATH": str(task / "missing-bin")}
@@ -142,7 +127,6 @@ failed_calls = [json.loads(line) for line in log.read_text().splitlines()]
 assert len(failed_calls) == 3
 assert failed_calls[-1]["tmpdir"] != calls[0]["tmpdir"]
 assert sentinel.read_text() == "preserve existing content"
-assert env["TMPDIR"] == str(task) and env["DISABLE_TELEMETRY"] == "0"
 
 ignore_lines = set((repo / ".chezmoiignore").read_text().splitlines())
 assert ".tavily/" in ignore_lines

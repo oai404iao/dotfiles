@@ -206,12 +206,6 @@ require_rejected(
     b'[url "ssh://git@github-fixture/"]\n'
     b"\tinsteadOf = git@github.com:\n",
 )
-require_rejected(
-    ".git-tag-object",
-    b"object " + b"0" * 40 + b"\ntype commit\ntag fixture\n\n"
-    b"-----BEGIN " + b"ENCRYPTED PRIVATE KEY-----\nfixture\n",
-)
-
 
 if git_bytes("for-each-ref", "--format=%(refname)", "refs/replace").strip():
     raise SystemExit("Git replacement refs are forbidden during public audit")

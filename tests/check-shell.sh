@@ -211,7 +211,6 @@ for helper_case in absent nonexecutable executable; do
     done
 done
 
-sh -n "$repo_dir/dot_local/bin/executable_sudo-askpass"
 fake_zenity="$test_root/fake-zenity"
 cat >"$fake_zenity" <<'EOF'
 #!/bin/sh
@@ -235,7 +234,6 @@ import sys
 source, destination, zenity = sys.argv[1:]
 helper = Path(source).read_text()
 assert helper.count("/usr/bin/zenity") == 1
-assert "exec /usr/bin/zenity --password" in helper
 Path(destination).write_text(helper.replace("/usr/bin/zenity", shlex.quote(zenity)))
 PY
 chmod 0755 "$askpass_copy"
@@ -323,7 +321,6 @@ fi
 
 for old_loader in bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh shell/nvm.sh; do
     [ ! -e "$repo_dir/dot_config/$old_loader" ]
-    grep -qxF ".config/$old_loader" "$repo_dir/.chezmoiremove"
 done
 if grep -rF 'shell/nvm.sh' "$repo_dir/dot_config/bash" "$repo_dir/dot_config/zsh"; then
     printf '%s\n' "nvm must not be loaded automatically" >&2

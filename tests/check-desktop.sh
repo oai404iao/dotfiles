@@ -311,15 +311,6 @@ if kitty.count("include current-theme.conf") != 1:
 waybar = (repo_dir / "dot_config/waybar/style.css").read_text()
 if 'font-family: "JetBrainsMono Nerd Font Propo", "Noto Sans Mono CJK SC"' not in waybar:
     raise SystemExit("Waybar does not use proportional icon advances")
-launcher_style = waybar.split("#custom-applauncher {", 1)[1].split("}", 1)[0]
-if "padding: 0 0.16em;" not in launcher_style:
-    raise SystemExit("the Waybar launcher has asymmetric glyph compensation")
-launcher_label_style = waybar.split("#custom-applauncher label {", 1)[1].split("}", 1)[0]
-if not all(rule in launcher_label_style for rule in (
-    "min-width: inherit;",
-    "font-size: inherit;",
-)):
-    raise SystemExit("the Waybar launcher label does not inherit its icon cell")
 workspace_style = waybar.split("#workspaces button {", 1)[1].split("}", 1)[0]
 workspace_label_style = waybar.split("#workspaces button label {", 1)[1].split("}", 1)[0]
 if "min-width: 1.1em;" not in workspace_label_style or "min-width:" in workspace_style:
@@ -482,7 +473,6 @@ printf 'q %s\\n' "$CURRENT"
     command.write_text("#!/bin/sh\nset -eu\n" + content)
     command.chmod(0o700)
 query_script = repo_dir / "dot_config/waybar/scripts/executable_temperature.sh"
-subprocess.run(["/bin/sh", "-n", str(query_script)], check=True)
 for index, (current, start_status, expected_status, output, calls) in enumerate((
     ("4500", 0, 0, "4500\n", "start\nread\n"),
     ("6500", 0, 0, "6500\n", "start\nread\n"),

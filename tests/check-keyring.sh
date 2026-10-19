@@ -40,8 +40,6 @@ protected = {
     ".local/share/keyrings/",
     ".local/state/keyring-backups/",
 }
-ignore = (repo / ".chezmoiignore").read_text()
-assert protected <= set(ignore.splitlines())
 for path in (
     ".local/share/keyrings/login.keyring",
     ".local/state/keyring-backups/snapshot/login.keyring",

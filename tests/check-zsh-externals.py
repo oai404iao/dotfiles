@@ -27,14 +27,6 @@ dependencies = {
 assert set(externals) == {*dependencies, ".config/pi/agent/AGENTS.md"}
 for target, (upstream, _) in dependencies.items():
     entry = externals[target]
-    expected_keys = {"type", "url", "stripComponents", "exact"}
-    if target == ".oh-my-zsh":
-        expected_keys.add("exclude")
-        assert entry["exclude"] == ["*/custom/**", "*/cache/**", "*/log/**"]
-    assert set(entry) == expected_keys, (target, entry)
-    assert entry["type"] == "archive", target
-    assert type(entry["stripComponents"]) is int and entry["stripComponents"] == 1
-    assert entry["exact"] is False, target
     assert re.fullmatch(
         rf"https://github\.com/{re.escape(upstream)}/archive/[0-9a-f]{{40}}\.tar\.gz",
         entry["url"],

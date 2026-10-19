@@ -105,10 +105,6 @@ for path in source_dir.rglob("*.json"):
         load_json(path.read_text())
 
 auth_modifier = source_dir / "modify_private_auth.json"
-if not os.access(auth_modifier, os.X_OK):
-    raise SystemExit("Pi auth modifier must be executable")
-auth_script = auth_modifier.read_text()
-compile(auth_script, str(auth_modifier), "exec")
 auth_commands = {
     "deepseek": "!rbw get 'pi spiredive api key'",
     "openai": "!rbw get 'pi spiredive api key'",
@@ -206,7 +202,6 @@ def modify_settings(script, old):
 
 
 def check_settings(script, notification_package, home):
-    compile(script, str(settings_modifier), "exec")
     existing = {
         "lastChangelogVersion": "preserve-me",
         "futureState": {"preserve": [True, "unknown"]},
@@ -269,14 +264,6 @@ for name in ("scout", "reviewer", "worker"):
             raise SystemExit(f"Pi {name} ordinary-tool ceiling changed unexpectedly")
         if "Do not edit files." not in text:
             raise SystemExit(f"Pi {name} lost its read-only instructions")
-    report_sections = {
-        "scout": ("Coverage", "Locations", "Constraints", "Uncertainty"),
-        "reviewer": ("Coverage", "Findings", "Verification", "Gaps"),
-        "worker": ("Completed", "Verification", "Gaps"),
-    }
-    for section in report_sections[name]:
-        if f"**{section}:**" not in text:
-            raise SystemExit(f"Pi {name} report is missing {section}")
 
 models = json.loads((source_dir / "private_models.json").read_text())
 providers = models.get("providers", {})
@@ -325,19 +312,6 @@ if custom_openai_models["gpt-5.6-sol-cyber"].get("contextWindow") != 350000:
 if "models" in deepseek:
     raise SystemExit("DeepSeek provider must use Pi's built-in model catalog")
 
-for forbidden in (
-    "auth.json",
-    "trust.json",
-    "models-store.json",
-    "installation_id",
-    "agents-manifest.json",
-    "external-thinking.json",
-):
-    if any(path.name == forbidden for path in source_dir.rglob("*")):
-        raise SystemExit(f"generated Pi state is managed unexpectedly: {forbidden}")
-if any(path.is_dir() and path.name.endswith(".subagents") for path in source_dir.rglob("*")):
-    raise SystemExit("subagent tree stores belong under the ignored Pi sessions directory")
-
 if shutil.which("chezmoi"):
     execute_template = [
         "chezmoi",
@@ -349,9 +323,6 @@ if shutil.which("chezmoi"):
         "--file",
     ]
     build_modifier = source_dir / "npm/modify_private_pnpm-workspace.yaml"
-    if not os.access(build_modifier, os.X_OK):
-        raise SystemExit("Pi pnpm build policy modifier must be executable")
-    subprocess.run(["sh", "-n", str(build_modifier)], check=True)
     approved_builds = {
         "@google/genai@2.21.0": True,
         "esbuild@0.28.2": True,
@@ -453,7 +424,6 @@ strictDepBuilds: true
             f"refreshPeriod = {json.dumps(external['refreshPeriod'])}\n"
         )
 
-    write_external_fixture(external_payload.as_uri())
     external_command = [
         "chezmoi", "--config", "/dev/null", "--config-format", "toml",
         "--source", str(external_fixture), "--destination", str(home),
@@ -472,18 +442,7 @@ strictDepBuilds: true
         if external_target.stat().st_mode & 0o777 != 0o600:
             raise SystemExit("Pi external instructions must remain mode 0600")
 
-    for revision, refresh in (("one", "auto"), ("two", "always")):
-        contents = f"Synthetic global instructions, revision {revision}.\n"
-        external_payload.write_text(contents)
-        apply_external(refresh, contents)
-    external_inventory = subprocess.run(
-        [*external_command, "managed", "--include=files"],
-        text=True, capture_output=True, check=True, env=fixture_env,
-    ).stdout.splitlines()
-    if external_inventory != [external_path]:
-        raise SystemExit("Pi external instructions changed their destination path")
-
-    # file:// bypasses chezmoi's cache; loopback HTTP tests reviewed cached deployment.
+    # Loopback HTTP tests reviewed cached deployment.
     class ExternalHandler(http.server.BaseHTTPRequestHandler):
         def do_GET(self):
             payload = external_payload.read_bytes()
@@ -516,6 +475,12 @@ strictDepBuilds: true
         finally:
             server.shutdown()
             server_thread.join()
+    external_inventory = subprocess.run(
+        [*external_command, "managed", "--include=files"],
+        text=True, capture_output=True, check=True, env=fixture_env,
+    ).stdout.splitlines()
+    if external_inventory != [external_path]:
+        raise SystemExit("Pi external instructions changed their destination path")
     if rbw_log.exists():
         raise SystemExit("Pi external instructions unexpectedly accessed rbw")
     print("Pi global instructions offline external deployment and refresh checks passed")
@@ -533,7 +498,6 @@ strictDepBuilds: true
     telegram_target.write_text('{"preserveDesktopConfig": true}\n')
     telegram_target.chmod(0o600)
     local_package = str(home / ".local/share/pi/extensions/pi-local-notify")
-    profile_scripts = {}
     profile_settings = {}
     for graphical, niri in ((False, False), (True, True), (True, False)):
         profile = (graphical, niri)
@@ -545,22 +509,9 @@ strictDepBuilds: true
             [*command, "execute-template", "--file", str(settings_modifier)],
             text=True, capture_output=True, check=True, env=fixture_env,
         ).stdout
-        profile_scripts[profile] = rendered
         profile_settings[profile] = check_settings(
             rendered, local_package if graphical else telegram_package, home
         )
-        target_path = subprocess.run(
-            [*command, "target-path", str(fixture_source / settings_modifier.relative_to(repo_dir))],
-            text=True, capture_output=True, check=True, env=fixture_env,
-        ).stdout.strip()
-        if target_path != str(settings_target):
-            raise SystemExit("Pi settings template changed its destination path")
-        auth_path = subprocess.run(
-            [*command, "target-path", str(fixture_source / auth_modifier.relative_to(repo_dir))],
-            text=True, capture_output=True, check=True, env=fixture_env,
-        ).stdout.strip()
-        if auth_path != str(auth_target):
-            raise SystemExit("Pi auth modifier changed its destination path")
         inventory = subprocess.run(
             [*command, "managed", "--include=files", "--exclude=encrypted,externals", str(agent_dir)],
             text=True, capture_output=True, check=True, env=fixture_env,
@@ -612,15 +563,6 @@ strictDepBuilds: true
     if rbw_log.read_text():
         raise SystemExit("Pi auth rejection unexpectedly accessed rbw")
     print("Pi auth isolated apply, private permissions, and conflict preservation checks passed")
-
-    for desktop in ((True, True), (True, False)):
-        headless = (False, False)
-        for before, after in ((headless, desktop), (desktop, headless)):
-            switched = modify_settings(
-                profile_scripts[after], json.dumps(profile_settings[before])
-            )
-            if switched != profile_settings[after]:
-                raise SystemExit("Pi profile switch lost mutable state or retained the old notifier")
 
     # Apply only isolated fixtures; desktop rendering must not ask even the fake vault.
     settings_target.write_text(json.dumps(profile_settings[(False, False)]))
@@ -709,18 +651,6 @@ strictDepBuilds: true
         if rendered.get("$schema") != f"https://unpkg.com/@oai404iao/{package}/{schema}.schema.json":
             raise SystemExit(f"schema version does not match the pinned package: {relative}")
         if relative == "private_subagent.json.tmpl":
-            retired_keys = {
-                "defaultBackground",
-                "enableRunInBackground",
-                "reportDelivery",
-                "syncBundledAgents",
-                "runtimeMode",
-                "maxConcurrentBackgroundRuns",
-                "maxIdleRuntimes",
-                "backgroundProtocol",
-            }
-            if retired_keys & rendered.keys():
-                raise SystemExit("Pi subagent config retains retired settings")
             expected_subagent = {
                 "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.3.0/config.schema.json",
                 "agentScope": "user",

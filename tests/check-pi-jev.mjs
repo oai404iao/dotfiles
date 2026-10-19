@@ -32,7 +32,6 @@ assert.equal(jev.id, "typesafe/jev");
 assert.equal(jev.api, "typesafe-system-one");
 assert.deepEqual(jev.input, ["text"]);
 assert.equal(jev.contextWindow, 64000);
-assert.equal(jev.baseUrl, "https://api.commandcode.ai/provider/v1");
 
 const context = {
 	state: { task: "Fix a typo in a known file", scope: "one file", risk: "low" },

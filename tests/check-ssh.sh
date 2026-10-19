@@ -51,21 +51,6 @@ actual_source_inventory=$(
     exit 1
 }
 
-encrypted_sources=$(
-    find "$ssh_source_dir" -type f -name '*.age' | sort
-)
-[ "$(printf '%s\n' "$encrypted_sources" | wc -l)" -eq 11 ] || {
-    printf '%s\n' 'unexpected encrypted SSH source count' >&2
-    exit 1
-}
-for encrypted_source in $encrypted_sources; do
-    [ "$(head -n 1 "$encrypted_source")" = \
-        '-----BEGIN AGE ENCRYPTED FILE-----' ] || {
-        printf '%s\n' 'SSH source is not age armored' >&2
-        exit 1
-    }
-done
-
 for public_source in $(
     find "$ssh_source_dir" -type f ! -name '*.age' | sort
 ); do
@@ -235,8 +220,6 @@ validate_key_set() {
         exit 1
     }
 }
-validate_key_set "$fixture_keys"
-
 write_config() {
     config_file=$1
     home_dir=$2

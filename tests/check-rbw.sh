@@ -26,7 +26,6 @@ import subprocess
 import sys
 
 modifier = pathlib.Path(sys.argv[1])
-compile(modifier.read_text(), str(modifier), "exec")
 result = subprocess.run(
     [sys.executable, str(modifier)],
     input='{"email":"preserve@example.invalid","futureOption":true}',

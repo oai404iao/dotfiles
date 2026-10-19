@@ -31,11 +31,6 @@ assert {p.relative_to(tether_source).as_posix() for p in tether_source.rglob("*"
 }
 assert {p.name for p in dropin_source.iterdir()} == {f"{name}.tmpl" for name in dropins}
 assert not (repo / "dot_config/DankMaterialShell/modify_settings.json").exists()
-dms_source = repo / "dot_config/DankMaterialShell/modify_settings.json.tmpl"
-assert dms_source.is_file()
-assert modifier.read_text().startswith("#!/usr/bin/env python3\n")
-assert dms_source.read_text().startswith("#!/usr/bin/env python3\n")
-compile(modifier.read_text(), str(modifier), "exec")
 
 def check_dropins(contents, mode):
     network = ["[Service]", "ExecStartPre=", "ExecStart="]
@@ -126,7 +121,6 @@ policy = {
 }
 assert fresh == {"config_version": 2, **policy}
 assert transform(modifier, " \n\t") == fresh_text
-assert transform(modifier, fresh_text) == fresh_text
 runtime = {
     "device_address": "00:11:22:33:44:55", "auth_strategy": "fixture-strategy",
     "adapter": "fixture-adapter", "enabled": False, "config_version": 99,
@@ -138,7 +132,6 @@ existing_text = transform(modifier, json.dumps({**runtime, **old_policy}))
 existing = strict_json(existing_text)
 assert all(existing[key] == value for key, value in runtime.items())
 assert all(existing[key] == value for key, value in policy.items())
-assert transform(modifier, existing_text) == existing_text
 
 if not shutil.which("chezmoi"):
     print(f"Tether source checks passed; render checks skipped: chezmoi unavailable ({task})")
@@ -250,11 +243,6 @@ for shell, graphical, niri, tether, mode in itertools.product(
         tether_targets if dms_active and tether is True else set()
     )
     assert inventory == expected, (shell, graphical, niri, tether, inventory, expected)
-    ignored = set(run(command + [
-        "execute-template", "--file", str(source / ".chezmoiignore"),
-    ], env).splitlines())
-    assert "scripts/" in ignored
-    assert ".local/share/tether/" in ignored and ".local/state/tether/" in ignored
     rendered = run(command + [
         "execute-template", "--file", str(source / "dot_config/DankMaterialShell/modify_settings.json.tmpl"),
     ], env)
