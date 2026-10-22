@@ -23,14 +23,14 @@ settings.update(
         ],
         "npmCommand": ["pnpm", "--config.node-linker=hoisted"],
         "packages": [
-            "npm:@juicesharp/rpiv-ask-user-question@2.13.8",
+            "npm:@juicesharp/rpiv-ask-user-question@2.13.9",
 {{- if .graphical }}
             {{ joinPath .chezmoi.homeDir ".local/share/pi/extensions/pi-local-notify" | toJson }},
 {{- else }}
-            "npm:@oai404iao/pi-telegram-notify@0.6.0",
+            "npm:@oai404iao/pi-telegram-notify@1.0.0",
 {{- end }}
-            "npm:@oai404iao/pi-codex-minimal-tools@5.1.1",
-            "npm:@oai404iao/pi-subagent@1.3.0",
+            "npm:@oai404iao/pi-codex-minimal-tools@5.1.2",
+            "npm:@oai404iao/pi-subagent@1.3.1",
         ],
         "theme": "dark",
         "sessionDir": "~/.local/state/pi/agent/sessions",

@@ -69,7 +69,7 @@ unreviewed or unfinished requirements is partial work, not overall success.
 
 ## Runtime and lifecycle reference
 
-Subagent **1.3.0** uses the asynchronous Codex multi-agent v2 runtime.
+Subagent **1.3.1** uses the asynchronous Codex multi-agent v2 runtime.
 The managed `subagent.json` sets:
 
 | Setting | Value and meaning |
@@ -103,7 +103,7 @@ Spawn and follow-up accept explicit `model` and `thinking` selections, added
 in 1.2.0, in addition to role defaults/inheritance. Closing is not cleanup,
 rollback, or a reusable pause; choose interruption when more work may follow.
 
-Mailbox waits default to **120 seconds** in 1.3.0; use **300 seconds** for
+Mailbox waits default to **120 seconds** in 1.3.1; use **300 seconds** for
 longer tasks. Incoming activity wakes the caller early. This is a plugin
 default, not a `subagent.json` key. Wait only when no independent work remains
 and progress depends on incoming work; a timeout is not task failure.
@@ -207,7 +207,7 @@ can resolve successfully as a promise while reporting a nonzero `exit_code`.
 - Scout/reviewer allowlists explicitly include codemode without adding editing
   tools. Child scripts stay within their fixed ceilings and have no `models`
   API. Bash remains subject to read-only instructions, not filesystem isolation.
-- Ask-user-question 2.13.8 has default `direct` exposure and is script-callable,
+- Ask-user-question 2.13.9 has default `direct` exposure and is script-callable,
   but direct questions are preferred. Parallel dialogs and script cancellation
   around them have not been validated; this setup uses `on`, not `only`.
 - Telegram listens for UI prompts and settled runs rather than individual
@@ -324,7 +324,7 @@ then deliberately install the pinned package:
 ```sh
 chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/subagent.json
 chezmoi apply --exclude=scripts,encrypted ~/.config/pi/agent/subagent.json
-pi install npm:@oai404iao/pi-subagent@1.3.0 --no-approve
+pi install npm:@oai404iao/pi-subagent@1.3.1 --no-approve
 ```
 
 The install updates that package declaration without resetting other local
@@ -336,7 +336,7 @@ paid model calls or Telegram delivery.
 
 ### `createCodemodeExtension is not a function`
 
-This error occurs before a child can execute its task. Subagent 1.3.0 needs
+This error occurs before a child can execute its task. Subagent 1.3.1 needs
 Pi 1.2.0+ and its SDK factories. A newer dependency under
 `agent/npm/node_modules` does not upgrade the running host: Pi maps extension
 SDK imports to its own implementation.

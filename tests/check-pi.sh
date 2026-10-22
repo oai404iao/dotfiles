@@ -166,11 +166,11 @@ for invalid in invalid_auth:
 print("Pi auth command-reference merge and rejection checks passed")
 
 settings_modifier = source_dir / "modify_private_settings.json.tmpl"
-telegram_package = "npm:@oai404iao/pi-telegram-notify@0.6.0"
+telegram_package = "npm:@oai404iao/pi-telegram-notify@1.0.0"
 common_packages = {
-    "npm:@juicesharp/rpiv-ask-user-question@2.13.8",
-    "npm:@oai404iao/pi-codex-minimal-tools@5.1.1",
-    "npm:@oai404iao/pi-subagent@1.3.0",
+    "npm:@juicesharp/rpiv-ask-user-question@2.13.9",
+    "npm:@oai404iao/pi-codex-minimal-tools@5.1.2",
+    "npm:@oai404iao/pi-subagent@1.3.1",
 }
 expected_defaults = {
     "defaultProvider": "openai",
@@ -589,7 +589,7 @@ strictDepBuilds: true
             if not rbw_log.read_text():
                 raise SystemExit("Headless Pi apply did not render Telegram credentials")
             telegram = load_json(telegram_target.read_text())
-            if telegram.get("$schema") != "https://unpkg.com/@oai404iao/pi-telegram-notify@0.6.0/config.schema.json":
+            if telegram.get("$schema") != "https://unpkg.com/@oai404iao/pi-telegram-notify@1.0.0/config.schema.json":
                 raise SystemExit("Telegram schema version does not match the pinned package")
             if telegram["botToken"] != "123456:test-token" or telegram["chatId"] != "-123456789":
                 raise SystemExit("Telegram template did not use the fake rbw values")
@@ -643,16 +643,16 @@ strictDepBuilds: true
         )
         rendered = load_json(result.stdout)
         package = (
-            "pi-subagent@1.3.0"
+            "pi-subagent@1.3.1"
             if relative == "private_subagent.json.tmpl"
-            else "pi-codex-runtime@3.0.0"
+            else "pi-codex-runtime@3.0.1"
         )
         schema = "models" if relative.endswith("private_models.json.tmpl") else "config"
         if rendered.get("$schema") != f"https://unpkg.com/@oai404iao/{package}/{schema}.schema.json":
             raise SystemExit(f"schema version does not match the pinned package: {relative}")
         if relative == "private_subagent.json.tmpl":
             expected_subagent = {
-                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.3.0/config.schema.json",
+                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.3.1/config.schema.json",
                 "agentScope": "user",
                 "maxDepth": 3,
                 "maxConcurrentAgents": 8,

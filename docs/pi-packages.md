@@ -9,11 +9,11 @@ downloads, manifests, lockfiles, and package checkouts remain machine-local.
 
 | Purpose | Declaration |
 | --- | --- |
-| Structured questions | `npm:@juicesharp/rpiv-ask-user-question@2.13.8` |
-| Codex tools and provider integration | `npm:@oai404iao/pi-codex-minimal-tools@5.1.1` |
-| Asynchronous child agents | `npm:@oai404iao/pi-subagent@1.3.0` |
+| Structured questions | `npm:@juicesharp/rpiv-ask-user-question@2.13.9` |
+| Codex tools and provider integration | `npm:@oai404iao/pi-codex-minimal-tools@5.1.2` |
+| Asynchronous child agents | `npm:@oai404iao/pi-subagent@1.3.1` |
 | Graphical notifications | `~/.local/share/pi/extensions/pi-local-notify` |
-| Headless notifications | `npm:@oai404iao/pi-telegram-notify@0.6.0` |
+| Headless notifications | `npm:@oai404iao/pi-telegram-notify@1.0.0` |
 
 Chezmoi selects exactly one notification declaration from `graphical` machine
 data. All npm declarations are pinned; this does not pin every transitive
@@ -39,7 +39,7 @@ system-managed Arch package with `sudo pacman -Syu pi`, then fully restart Pi.
    ```
 
 3. Reconcile/install packages deliberately. For example, the subagent upgrade
-   uses `pi install npm:@oai404iao/pi-subagent@1.3.0 --no-approve`.
+   uses `pi install npm:@oai404iao/pi-subagent@1.3.1 --no-approve`.
    Installation may access the registry and execute approved dependency code;
    it is not an offline configuration check. `--no-approve` skips trust-gated
    project resources, not package-code execution.
@@ -65,8 +65,8 @@ does not rebuild an existing installation; use the
 
 ## Codex tools reference
 
-Bundle `5.1.1` composes core `3.0.0` and tools `0.1.0`, sharing runtime `3.0.0`.
-The managed config/model schemas use `pi-codex-runtime@3.0.0`. Do not add
+Bundle `5.1.2` composes core `3.0.1` and tools `0.1.1`, sharing runtime `3.0.1`.
+The managed config/model schemas use `pi-codex-runtime@3.0.1`. Do not add
 separate core/tools or compatibility declarations: the bundle supplies the
 engine, patch, search, and image implementations.
 
@@ -140,6 +140,11 @@ and non-interactive modes do not notify. Managed tmux enables
 The plugin reports settled runs, not blocking questionnaires or approvals as
 Telegram can. Manually run `/local-notify-test` in Kitty to test delivery and
 click-to-focus; this sends a real notification, unlike the offline checks.
+
+Telegram 1.0.0 sends automatic notifications only for user runs, not
+extension-triggered `custom` runs or aborted runs. Notifications include the
+absolute working directory and an answer, error, prompt, or dialog-title
+summary; truncation does not redact sensitive content.
 
 ### Switch an existing machine
 
