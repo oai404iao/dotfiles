@@ -31,6 +31,7 @@ DankMaterialShell，并包含 LazyVim、Git、SSH 和 Pi 配置。机器能力�
 | Niri custom/DMS 选择与迁移 | [桌面方案](docs/desktop-shells.md) |
 | 可选的 iPhone 通知与剪贴板 | [Tether](docs/tether.md) |
 | 模型、通知、扩展与代理 | [Pi](docs/pi.md) |
+| 可选的本地代理服务，不启动 Web UI | [Paseo](docs/paseo.md) |
 | 共享的代理技能 | [Skills](docs/skills.md) |
 | 提交身份与 SSH 认证 | [Git](docs/git.md) 与 [SSH](docs/ssh.md) |
 

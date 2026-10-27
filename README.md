@@ -33,6 +33,7 @@ Already using this repository?
 | Niri custom/DMS selection and migration | [Desktop shells](docs/desktop-shells.md) |
 | Optional iPhone notifications and clipboard | [Tether](docs/tether.md) |
 | Models, notifications, extensions, and agents | [Pi](docs/pi.md) |
+| Optional local agent daemon without web UI | [Paseo](docs/paseo.md) |
 | Shared agent skills | [Skills](docs/skills.md) |
 | Commit identities and SSH authentication | [Git](docs/git.md) and [SSH](docs/ssh.md) |
 

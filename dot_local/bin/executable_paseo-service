@@ -1,0 +1,5 @@
+#!/bin/sh
+set -eu
+
+. "${XDG_CONFIG_HOME:-$HOME/.config}/shell/profile.sh"
+exec "$PNPM_HOME/bin/paseo" daemon run

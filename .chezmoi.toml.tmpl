@@ -26,6 +26,7 @@
 {{-   fail "tetherMode must be notifications or wifi-clipboard" -}}
 {{- end -}}
 {{- $work := promptBoolOnce . "work" "Work machine" false -}}
+{{- $paseo := promptBoolOnce . "paseo" "Manage local Paseo service" false -}}
 {{- $sshAgent := promptBoolOnce . "sshAgent" "Use rbw SSH agent" (ne $role "server") -}}
 {{- $sshInboundIdentities := list "none" "private" "uni" -}}
 {{- $sshInboundIdentity := promptChoiceOnce . "sshInboundIdentity" "SSH authorized_keys identity" $sshInboundIdentities "none" -}}
@@ -61,6 +62,7 @@ mode = "file"
     tetherMode = {{ $tetherMode | quote }}
     niriOutputProfile = {{ $niriOutputProfile | quote }}
     work = {{ $work }}
+    paseo = {{ $paseo }}
     sshAgent = {{ $sshAgent }}
     sshInboundIdentity = {{ $sshInboundIdentity | quote }}
     secretBackend = "rbw"

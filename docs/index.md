@@ -30,6 +30,7 @@ of everything under `$HOME`.
 | Install the separately maintained DMS launcher and plugins | [DMS plugins](dms-plugins.md) |
 | Integrate an iPhone with DMS | [Tether](tether.md) |
 | Configure Pi models, packages, notifications, or agents | [Pi](pi.md) |
+| Run a local Paseo daemon without the web UI | [Paseo](paseo.md) |
 | Adopt Pi credential references or render Telegram credentials | [Pi authentication](pi-authentication.md) |
 | Manage Pi pins, builds, notifications, or package layout | [Pi packages](pi-packages.md) |
 | Coordinate child agents, codemode, Jev, or global instructions | [Pi agents](pi-agents.md) |

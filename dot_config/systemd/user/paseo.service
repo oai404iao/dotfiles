@@ -1,0 +1,19 @@
+[Unit]
+Description=Paseo daemon
+
+[Service]
+Type=exec
+WorkingDirectory=%h
+ExecStart=/bin/sh %h/.local/bin/paseo-service
+Environment=PASEO_HOME=%h/.local/share/paseo
+Environment=PASEO_LISTEN=0.0.0.0:6767
+Environment=PASEO_WEB_UI_ENABLED=false
+Environment=PASEO_RELAY_ENABLED=false
+Environment=PASEO_SERVICE_PROXY_ENABLED=false
+UMask=0077
+Restart=on-failure
+RestartSec=5s
+TimeoutStopSec=30s
+
+[Install]
+WantedBy=default.target

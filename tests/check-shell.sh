@@ -143,21 +143,28 @@ for interpreter in sh bash zsh; do
             HOME_CASE="$home_case" TEST_ROOT="$test_root" \
             "$interpreter" -c '
                 expected="$HOME/.local/share/dsh"
+                expected_paseo="$HOME/.local/share/paseo"
                 case "$HOME_CASE" in
-                    empty) DSH_HOME="" ;;
+                    empty) DSH_HOME=""; PASEO_HOME="" ;;
                     xdg)
                         XDG_DATA_HOME="$TEST_ROOT/custom data"
                         expected="$XDG_DATA_HOME/dsh"
+                        expected_paseo="$XDG_DATA_HOME/paseo"
                         ;;
                     override)
                         DSH_HOME="$TEST_ROOT/custom dsh"
                         expected="$DSH_HOME"
+                        PASEO_HOME="$TEST_ROOT/custom paseo"
+                        expected_paseo="$PASEO_HOME"
                         ;;
                 esac
                 . "$ENTRYPOINT"
                 [ "$DSH_HOME" = "$expected" ] || exit 1
+                [ "$PASEO_HOME" = "$expected_paseo" ] || exit 1
                 sh -c '"'"'[ "$DSH_HOME" = "$1" ]'"'"' sh "$expected" || exit 1
+                sh -c '"'"'[ "$PASEO_HOME" = "$1" ]'"'"' sh "$expected_paseo" || exit 1
                 . "$ENTRYPOINT"
+                [ "$PASEO_HOME" = "$expected_paseo" ] || exit 1
                 [ "$DSH_HOME" = "$expected" ]
             '
     done

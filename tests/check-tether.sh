@@ -334,7 +334,7 @@ for (shell, graphical, niri, enabled), mode in itertools.product((
         "Niri output profile=auto,SSH authorized_keys identity=none"
         + (f",Tether mode={mode}" if mode else ""),
         "--promptBool", f"Graphical machine={str(graphical).lower()},Use niri={str(niri).lower()},Work machine=false,"
-        "Use rbw SSH agent=false,"
+        "Use rbw SSH agent=false,Manage local Paseo service=false,"
         f"Use Tether iPhone notifications={str(enabled).lower()}",
         "--file", str(source / ".chezmoi.toml.tmpl"),
     ], init_env)

@@ -27,6 +27,7 @@ and review that file before any intentional reinitialization.
 | `tetherMode` | `notifications`, `wifi-clipboard`; `notifications` | Tether network and clipboard permissions |
 | `niriOutputProfile` | `auto`, `laptop-dual-1080p`, `desktop-single-4k`; `auto` | Output definitions selected at render time |
 | `work` | boolean; `false` | Work-machine metadata |
+| `paseo` | boolean; `false` | Manage the local Paseo daemon on `0.0.0.0:6767`; missing values leave it unmanaged |
 | `sshAgent` | boolean; defaults true except for `server` | rbw-backed SSH client configuration |
 | `sshInboundIdentity` | `none`, `private`, `uni`; `none` | Complete `authorized_keys` ownership, or no ownership |
 | `secretBackend` | `rbw` | Secret-backend marker written by initialization |
@@ -45,6 +46,7 @@ capability flags over hostname-specific behavior when extending the repository.
 | iPhone notifications | DMS profile plus `tether = true`; leave `tetherMode = "notifications"` unless wider access is intended |
 | Unknown display hardware | `niriOutputProfile = "auto"` |
 | SSH client only | `sshAgent = true`, `sshInboundIdentity = "none"` |
+| Paseo with an existing native client | `paseo = true`; see [Paseo](paseo.md) for network access precautions |
 
 Selecting a capability does not install packages, change the login shell,
 pair an iPhone, or enable all required services. See the
@@ -62,3 +64,4 @@ Use [desktop switching](desktop-shells.md#switch-an-existing-machine),
 [Tether retirement](tether.md#disable-or-change-desktop-profiles), or
 [SSH ownership](ssh.md#machine-data) for the affected subsystem. Changing an
 ignore condition alone does not remove old files or revoke access.
+For the local agent daemon, follow [Paseo setup and retirement](paseo.md).

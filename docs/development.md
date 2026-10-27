@@ -58,6 +58,7 @@ iterating; they do not replace the required complete source check.
 | Public files and reachable Git history | `./tests/check-public.sh` |
 | SSH selectors, hosts, inbound ownership | `./tests/check-ssh.sh` |
 | Pi models, modifiers, package policy, agent roles | `./tests/check-pi.sh` |
+| Paseo user service and listener configuration | `./tests/check-paseo.sh` |
 | Skill manifest and installer | `./tests/check-skills.sh` |
 | Desktop environment, XDG directories, Waybar helpers | `./tests/check-desktop.sh` |
 | GTK, fonts, Nautilus, and application settings | `./tests/check-desktop-apps.sh` |

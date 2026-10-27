@@ -47,6 +47,12 @@ data together there; the whole root stays unmanaged. Existing `~/.dsh` data
 is not moved automatically. Set an override in the launch environment, not in
 DSH's `.env` file.
 
+The shared login environment exports `PASEO_HOME`, defaulting to
+`$XDG_DATA_HOME/paseo`, so the CLI uses the same home as the managed service
+on the standard XDG layout. The service explicitly uses
+`~/.local/share/paseo`; custom shell overrides do not relocate it. See
+[Paseo migration](paseo.md#migrate-an-existing-home) before moving existing data.
+
 ## User-level Node.js
 
 Install pnpm 12 separately using the selected system package provider, for

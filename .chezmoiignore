@@ -37,6 +37,7 @@ secrets/
 .local/state/chezmoi/
 .local/share/keyrings/
 .local/state/keyring-backups/
+.local/state/deployment-backups/
 
 # XDG directory mappings and translation metadata remain machine-local.
 .config/user-dirs.dirs
@@ -44,6 +45,15 @@ secrets/
 
 # Unmanaged CLI credentials and session state.
 .tavily/
+
+# Paseo owns configuration, credentials, worktrees, and runtime state.
+.paseo/
+.local/share/paseo/
+.config/systemd/user/default.target.wants/paseo.service
+{{- if not (get . "paseo" | default false) }}
+.local/bin/paseo-service
+.config/systemd/user/paseo.service
+{{- end }}
 
 # Retained agent scratch work is machine-local mutable state.
 .local/state/agents/tmp/

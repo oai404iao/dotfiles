@@ -403,7 +403,7 @@ for shell in ("dms", "custom"):
         ["chezmoi", "--config", str(empty), "--source", str(source),
          "execute-template", "--init", "--promptChoice",
          f"Machine role=laptop,Default shell=zsh,Desktop shell: DMS or custom components={shell},Niri output profile=auto,SSH authorized_keys identity=none",
-         "--promptBool", "Graphical machine=true,Use niri=true,Use Tether iPhone notifications=false,Work machine=false,Use rbw SSH agent=false",
+         "--promptBool", "Graphical machine=true,Use niri=true,Use Tether iPhone notifications=false,Work machine=false,Use rbw SSH agent=false,Manage local Paseo service=false",
          "--file", str(repo / ".chezmoi.toml.tmpl")], env,
     )
     assert tomllib.loads(rendered)["data"]["desktopShell"] == shell

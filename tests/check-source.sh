@@ -63,6 +63,7 @@ then
 fi
 
 run_check check-pi.sh
+run_check check-paseo.sh
 run_check check-skills.sh
 run_check check-ssh.sh
 run_check check-desktop.sh
