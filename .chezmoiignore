@@ -242,6 +242,9 @@ secrets/
 
 {{- if not (and .graphical .niri) }}
 .local/share/applications/bruno.desktop
+.config/brave-flags.conf
+.config/chrome-flags.conf
+.config/chromium-flags.conf
 .config/spotify-launcher.conf
 .config/niri/
 .config/waybar/

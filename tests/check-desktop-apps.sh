@@ -98,6 +98,12 @@ assert satty["font"]["fallback"] == ["Noto Sans CJK SC"]
 spotify = tomllib.loads((repo / "dot_config/spotify-launcher.conf").read_text())
 assert spotify["spotify"]["extra_arguments"] == ["--ozone-platform=wayland"]
 
+for browser in ("brave", "chrome", "chromium"):
+    flags = (repo / f"dot_config/{browser}-flags.conf").read_text().splitlines()
+    assert flags == [
+        "--ozone-platform=wayland", "--enable-wayland-ime", "--wayland-text-input-version=3",
+    ]
+
 shardx = repo / "dot_local/share/applications/shardx-launcher.desktop"
 launcher = configparser.ConfigParser(interpolation=None)
 launcher.optionxform = str
@@ -125,6 +131,8 @@ niri = ignore.split("{{- if not (and .graphical .niri) }}", 1)[1].split("{{- end
 assert ".config/xdg-desktop-portal/niri-portals.conf" in niri.splitlines()
 assert ".config/spotify-launcher.conf" in niri.splitlines()
 assert ".local/share/applications/bruno.desktop" in niri.splitlines()
+for browser in ("brave", "chrome", "chromium"):
+    assert f".config/{browser}-flags.conf" in niri.splitlines()
 for path in (
     ".config/btop/", ".config/fcitx5/", ".config/satty/", ".config/swaylock/",
     ".config/gtk-3.0/", ".config/gtk-4.0/", ".local/share/fcitx5/themes/Matugen/",

@@ -89,11 +89,12 @@ dms_only = {
     ".config/matugen/dms/configs/chezmoi-btop.toml",
     ".config/matugen/dms/configs/chezmoi-fastfetch.toml",
 } | dms_kdl_targets
+browser_flags = {f".config/{browser}-flags.conf" for browser in ("brave", "chrome", "chromium")}
 targets = [
     ".config/niri", ".config/kitty", ".config/gtk-3.0", ".config/gtk-4.0",
     ".config/fcitx5/conf/classicui.conf",
     ".config/nvim/lua/plugins/dms-colorscheme.lua",
-]
+] + sorted(browser_flags)
 
 def managed(command, env):
     return set(run(command + ["managed", "--include", "files"], env).splitlines())
@@ -162,6 +163,7 @@ for shell in ("custom", "dms"):
     for output in ("auto", "laptop-dual-1080p", "desktop-single-4k"):
         home, env, command = fixture(f"{shell}-{output}", shell, output=output)
         inventory = managed(command, env)
+        assert browser_flags <= inventory
         assert not any(path.startswith(".config/DankMaterialShell/plugins/") for path in inventory)
         assert ".local/bin/dms-with-lyrics" not in inventory
         assert ".config/gtk-4.0/nautilus.css" in inventory
@@ -178,6 +180,8 @@ for shell in ("custom", "dms"):
         else:
             assert not any(path.startswith(".config/matugen/dms/") for path in matugen_files)
         apply(home, env, command, shell)
+        for path in browser_flags:
+            assert (home / path).read_bytes() == (repo / path.replace(".config/", "dot_config/", 1)).read_bytes()
         if shutil.which("nvim"):
             run([
                 "nvim", "--headless", "-u", "NONE", "-i", "NONE", "-n",
@@ -366,11 +370,13 @@ home, env, command = fixture("legacy")
 assert custom_only <= managed(command, env)
 assert not dms_only & managed(command, env)
 assert ".config/gtk-4.0/nautilus.css" in managed(command, env)
+assert browser_flags <= managed(command, env)
 for shell in ("dms", "custom"):
     for graphical, niri in ((False, False), (False, True), (True, False)):
         home, env, command = fixture(f"{shell}-{graphical}-{niri}", shell, graphical, niri)
         inventory = managed(command, env)
         assert not dms_only & inventory
+        assert not browser_flags & inventory
         assert (".config/gtk-4.0/nautilus.css" in inventory) == graphical
         plugin_file = home / ".config/nvim/lua/plugins/dms-colorscheme.lua"
         plugin_file.parent.mkdir(parents=True)

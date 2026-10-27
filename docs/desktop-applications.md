@@ -213,6 +213,41 @@ this does not fix GTK 3 menus embedded directly in applications.
 The preference list selects an available backend; it does not guarantee
 retrying GTK if a running GNOME backend fails.
 
+## Chromium browsers on Niri
+
+Graphical Niri profiles manage `~/.config/brave-flags.conf`,
+`~/.config/chrome-flags.conf`, and `~/.config/chromium-flags.conf` as ordinary
+overwrite-managed configuration. Both custom and DMS select native Wayland
+and the `text-input-v3` input method path:
+
+```text
+--ozone-platform=wayland
+--enable-wayland-ime
+--wayland-text-input-version=3
+```
+
+These files are read by the corresponding Arch package launchers, not by
+every Chromium-based application. They do not manage browser profiles or
+Fcitx5 input schemes and dictionaries. See
+[Fcitx5's Wayland guide](https://fcitx-im.org/wiki/Using_Fcitx_5_on_Wayland#Chromium_/_Electron)
+for the input method paths; do not combine this path with `--gtk-version=4`.
+
+On an initialized machine, back up any existing flags files, then review and
+apply only these targets:
+
+```sh
+chezmoi diff --skip-secrets --exclude=encrypted \
+  ~/.config/brave-flags.conf ~/.config/chrome-flags.conf ~/.config/chromium-flags.conf
+chezmoi apply --exclude=scripts,encrypted \
+  ~/.config/brave-flags.conf ~/.config/chrome-flags.conf ~/.config/chromium-flags.conf
+```
+
+Fully quit the browser, including background processes, before reopening it.
+Use the package launcher rather than bypassing it with the browser binary.
+Verify Chinese composition in the address bar and affected web inputs manually;
+static checks do not prove intermittent input loss is
+fixed. Disabling graphical Niri management leaves existing flags files in place.
+
 ## Bruno on Niri
 
 The user-level `~/.local/share/applications/bruno.desktop` overrides the
