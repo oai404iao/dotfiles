@@ -75,7 +75,7 @@ Standard/SSE defaults:
 
 | Area | Managed contract |
 | --- | --- |
-| Model profiles | GPT-5.6 Sol is the Lite parent; GPT-6 Astra/Luna/Sol extend it. GPT-6.1 Sol is supplied by the bundle. |
+| Model profiles | GPT-5.6 Sol is the Lite parent; GPT-6 Astra/Luna/Sol extend it. GPT-6.1 Terra extends GPT-6 Astra. GPT-6.1 Sol is supplied by the bundle. |
 | Responses | Provider shim, developer system-prompt placement, automatic transport, WebSocket enabled/prewarm, automatic reasoning summaries. |
 | Tools | Custom `apply_patch`; standalone web search for text/images; parallel tool calls disabled in these profiles. |
 | Compaction | Native Responses compaction, using `compaction_trigger`. |

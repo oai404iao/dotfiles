@@ -185,6 +185,7 @@ expected_defaults = {
         "openai/gpt-6-astra",
         "openai/gpt-6-luna",
         "openai/gpt-6.1-sol",
+        "openai/gpt-6.1-terra",
         "deepseek/deepseek-flash",
     ],
     "npmCommand": ["pnpm", "--config.node-linker=hoisted"],
@@ -702,8 +703,14 @@ strictDepBuilds: true
                 "openai/gpt-6-astra",
                 "openai/gpt-6-luna",
                 "openai/gpt-6-sol",
+                "openai/gpt-6.1-terra",
             }:
                 raise SystemExit("unexpected Codex tool profile inventory")
+            if profiles["openai/gpt-6.1-terra"] != {
+                "id": "openai/gpt-6.1-terra",
+                "extends": "openai/gpt-6-astra",
+            }:
+                raise SystemExit("GPT-6.1 Terra must inherit the GPT-6 Astra profile")
             parent_responses = profiles.get(
                 "openai/gpt-5.6-sol", {}
             ).get("responses", {})

@@ -84,7 +84,7 @@ It is not an import mechanism for arbitrary runtime settings.
 
 The enabled-model list is `anthropic/claude-opus-5-5`,
 `openai/gpt-5.6-sol`, `openai/gpt-6-astra`, `openai/gpt-6-luna`,
-`openai/gpt-6.1-sol`, and `deepseek/deepseek-flash`.
+`openai/gpt-6.1-sol`, `openai/gpt-6.1-terra`, and `deepseek/deepseek-flash`.
 It is a selection scope, not the full provider catalog.
 
 Provider metadata routes `openai`, `deepseek`, and `xai` through
