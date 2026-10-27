@@ -8,8 +8,8 @@
 pnpm-bin               # pnpm 12; conflicts with official pnpm; Node/npm/npx use PNPM_HOME.
 noto-fonts-lite        # Installed here instead of official noto-fonts; choose one.
 
-# Graphical: optional managed desktop launcher.
-shardx-launcher-bin    # Provides shardx-launcher for the .desktop entry.
+# Graphical: optional browser launcher.
+shardx-launcher-bin    # ShardBrowser Launcher with its packaged desktop entry.
 
 # Niri + custom: runtime and active Waybar actions.
 waypaper-git           # Installed Waypaper provider; conflicts with waypaper.

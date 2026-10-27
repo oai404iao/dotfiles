@@ -104,16 +104,6 @@ for browser in ("brave", "chrome", "chromium"):
         "--ozone-platform=wayland", "--enable-wayland-ime", "--wayland-text-input-version=3",
     ]
 
-shardx = repo / "dot_local/share/applications/shardx-launcher.desktop"
-launcher = configparser.ConfigParser(interpolation=None)
-launcher.optionxform = str
-launcher.read(shardx)
-assert launcher["Desktop Entry"]["Exec"] == "env GTK_IM_MODULE=fcitx shardx-launcher"
-assert launcher["Desktop Entry"]["Type"] == "Application"
-assert not launcher["Desktop Entry"].getboolean("Terminal")
-if shutil.which("desktop-file-validate"):
-    subprocess.run(["desktop-file-validate", str(shardx)], check=True)
-
 bruno = repo / "dot_local/share/applications/bruno.desktop"
 launcher = configparser.ConfigParser(interpolation=None)
 launcher.optionxform = str
@@ -136,7 +126,6 @@ for browser in ("brave", "chrome", "chromium"):
 for path in (
     ".config/btop/", ".config/fcitx5/", ".config/satty/", ".config/swaylock/",
     ".config/gtk-3.0/", ".config/gtk-4.0/", ".local/share/fcitx5/themes/Matugen/",
-    ".local/share/applications/shardx-launcher.desktop",
 ):
     assert path in graphical.splitlines(), path
 for path in (".config/fcitx5/profile", ".config/fcitx5/config", ".local/share/fcitx5/rime/"):
