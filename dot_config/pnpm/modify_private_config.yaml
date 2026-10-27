@@ -1,0 +1,32 @@
+#!/bin/sh
+set -eu
+
+exec chezmoi --config /dev/null --config-format toml execute-template --with-stdin '
+{{- if regexMatch "(?m)^(---|\\.\\.\\.)([ \\t\\r]|$)" .chezmoi.stdin -}}
+{{-   fail "pnpm config must be one mapping without YAML document markers" -}}
+{{- end -}}
+{{- $settings := dict -}}
+{{- if ne (trim .chezmoi.stdin) "" -}}
+{{-   $settings = fromYaml .chezmoi.stdin -}}
+{{-   if not (kindIs "map" $settings) -}}
+{{-     fail "pnpm config must be a YAML mapping" -}}
+{{-   end -}}
+{{- end -}}
+{{- $exclude := list -}}
+{{- if hasKey $settings "minimumReleaseAgeExclude" -}}
+{{-   $exclude = get $settings "minimumReleaseAgeExclude" -}}
+{{-   if not (kindIs "slice" $exclude) -}}
+{{-     fail "pnpm minimumReleaseAgeExclude must be a list of strings" -}}
+{{-   end -}}
+{{-   range $exclude -}}
+{{-     if not (kindIs "string" .) -}}
+{{-       fail "pnpm minimumReleaseAgeExclude must be a list of strings" -}}
+{{-     end -}}
+{{-   end -}}
+{{- end -}}
+{{- if not (has "@getpaseo/*" $exclude) -}}
+{{-   $exclude = append $exclude "@getpaseo/*" -}}
+{{- end -}}
+{{- $_ := set $settings "minimumReleaseAgeExclude" $exclude -}}
+{{ $settings | toYaml -}}
+'

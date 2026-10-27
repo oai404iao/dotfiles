@@ -274,20 +274,58 @@ grep -qxF '.local/share/dsh/' "$repo_dir/.chezmoiignore"
 grep -qxF '.dsh/' "$repo_dir/.chezmoiignore"
 
 if command -v chezmoi >/dev/null 2>&1; then
+    python3 - "$repo_dir" <<'PY'
+import json
+from pathlib import Path
+import subprocess
+import sys
+
+modifier = Path(sys.argv[1]) / "dot_config/pnpm/modify_private_config.yaml"
+
+def modify(value):
+    return subprocess.run(["sh", str(modifier)], input=value, text=True,
+                          capture_output=True, check=True).stdout
+
+def decode(value):
+    result = subprocess.run(
+        ["chezmoi", "--config", "/dev/null", "--config-format", "toml",
+         "execute-template", "--with-stdin", "{{ .chezmoi.stdin | fromYaml | toJson }}"],
+        input=value, text=True, capture_output=True, check=True,
+    )
+    return json.loads(result.stdout)
+
+for settings in ({}, {"globalShims": {"node": "auto"}, "minimumReleaseAge": 2880,
+                     "minimumReleaseAgeExclude": ["existing-package"]},
+                 {"minimumReleaseAgeExclude": ["@getpaseo/*"]}):
+    result = modify(json.dumps(settings))
+    expected = dict(settings)
+    expected["minimumReleaseAgeExclude"] = list(settings.get("minimumReleaseAgeExclude", []))
+    if "@getpaseo/*" not in expected["minimumReleaseAgeExclude"]:
+        expected["minimumReleaseAgeExclude"].append("@getpaseo/*")
+    assert decode(result) == expected
+    assert modify(result) == result
+assert decode(modify("")) == {"minimumReleaseAgeExclude": ["@getpaseo/*"]}
+for invalid in ("[]", "key: [", "---\n{}\n---\n{}",
+                "minimumReleaseAgeExclude: null", "minimumReleaseAgeExclude: value",
+                "minimumReleaseAgeExclude: [true]"):
+    result = subprocess.run(["sh", str(modifier)], input=invalid, text=True, capture_output=True)
+    assert result.returncode != 0 and not result.stdout, invalid
+PY
     fixture_source="$test_root/source"
     mkdir -p "$fixture_source/dot_config" "$fixture_source/dot_local/bin"
     cp "$repo_dir/.chezmoiignore" "$repo_dir/.chezmoiremove" \
         "$repo_dir/dot_bash_profile" "$repo_dir/dot_bashrc" \
         "$repo_dir/dot_zshenv" "$fixture_source/"
     cp -R "$repo_dir/dot_config/bash" "$repo_dir/dot_config/zsh" \
-        "$repo_dir/dot_config/shell" "$fixture_source/dot_config/"
+        "$repo_dir/dot_config/shell" "$repo_dir/dot_config/pnpm" "$fixture_source/dot_config/"
     cp "$repo_dir/dot_local/bin/executable_sudo-askpass" "$fixture_source/dot_local/bin/"
     for shell_choice in bash zsh; do
         for graphical in false true; do
             fixture_name="$shell_choice-$graphical"
             shell_home="$test_root/deploy-$fixture_name"
             mkdir -p "$shell_home/.config/shell" "$shell_home/.local" \
-                "$shell_home/.config/bash/rc.d" "$shell_home/.config/zsh/rc.d"
+                "$shell_home/.config/bash/rc.d" "$shell_home/.config/zsh/rc.d" \
+                "$shell_home/.config/pnpm"
             for old_loader in shell/nvm.sh bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
                 : >"$shell_home/.config/$old_loader"
             done
@@ -306,6 +344,7 @@ EOF
                 "$shell_home/.bash_profile" "$shell_home/.bashrc" \
                 "$shell_home/.zshenv" "$shell_home/.config/bash" \
                 "$shell_home/.config/zsh" "$shell_home/.config/shell" \
+                "$shell_home/.config/pnpm/config.yaml" \
                 "$shell_home/.local/bin"
             for target in .bash_profile .bashrc .zshenv \
                 .config/bash/rc.d/10-options.bash .config/zsh/.zshrc; do
@@ -314,6 +353,8 @@ EOF
             for old_loader in shell/nvm.sh bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
                 [ ! -e "$shell_home/.config/$old_loader" ]
             done
+            grep -qF '@getpaseo/*' "$shell_home/.config/pnpm/config.yaml"
+            [ "$(stat -c %a "$shell_home/.config/pnpm/config.yaml")" = 600 ]
             if [ "$graphical" = true ]; then
                 [ -f "$shell_home/.local/bin/sudo-askpass" ]
                 [ "$(stat -c %a "$shell_home/.local/bin/sudo-askpass")" = 755 ]

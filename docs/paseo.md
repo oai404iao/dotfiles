@@ -20,6 +20,10 @@ and optional standalone service-proxy listener are explicitly disabled.
    without an interactive shell. Installation and updates are manual network
    operations; chezmoi never installs or upgrades Paseo.
 
+   The managed [pnpm configuration](shell.md#user-level-nodejs) exempts
+   `@getpaseo/*` from pnpm's release-age delay, so manual installs can select a
+   newly published Paseo version. Third-party dependencies retain the delay.
+
 2. Run `chezmoi edit-config` on an initialized machine; do not rerun init.
    Set this non-secret value under `[data]`:
 
