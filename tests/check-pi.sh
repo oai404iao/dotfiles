@@ -110,6 +110,7 @@ auth_commands = {
     "openai": "!rbw get 'pi spiredive api key'",
     "xai": "!rbw get 'pi spiredive api key'",
     "anthropic": "!rbw get 'pi krill api key'",
+    "google": "!rbw get 'pi krill api key'",
     "typesafe": "!rbw get 'pi commandcode api key'",
 }
 auth_defaults = {
@@ -187,6 +188,7 @@ expected_defaults = {
         "openai/gpt-6.1-sol",
         "openai/gpt-6.1-terra",
         "deepseek/deepseek-flash",
+        "google/gemini-4-argon",
     ],
     "npmCommand": ["pnpm", "--config.node-linker=hoisted"],
     "theme": "dark",
@@ -268,7 +270,7 @@ for name in ("scout", "reviewer", "worker"):
 
 models = json.loads((source_dir / "private_models.json").read_text())
 providers = models.get("providers", {})
-expected_providers = {"anthropic", "deepseek", "openai", "typesafe", "xai"}
+expected_providers = {"anthropic", "deepseek", "google", "openai", "typesafe", "xai"}
 if set(providers) != expected_providers:
     raise SystemExit("unexpected Pi provider inventory")
 if any("apiKey" in provider for provider in providers.values()):
@@ -279,8 +281,14 @@ if any(
     for key in provider.get("headers", {})
 ):
     raise SystemExit("Pi providers must not override User-Agent")
-if providers["anthropic"] != {"baseUrl": "https://api.krill-code.net"}:
+if providers["anthropic"] != {"baseUrl": "https://api.kbsfdxc.net"}:
     raise SystemExit("Anthropic must override only its endpoint and use Pi's built-in catalog")
+if providers["google"] != {
+    "baseUrl": "https://api.kbsfdxc.net",
+    "api": "anthropic-messages",
+    "models": [{"id": "gemini-4-argon"}],
+}:
+    raise SystemExit("Google must route Gemini through Krill's Anthropic-compatible API")
 if providers["typesafe"] != {"baseUrl": "https://api.commandcode.ai/provider/v1"}:
     raise SystemExit("Jev must use Command Code's System One base URL without a duplicate suffix")
 openai = providers["openai"]

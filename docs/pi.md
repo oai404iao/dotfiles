@@ -58,7 +58,7 @@ Managed files use mode `0600`; `~/.config/pi` remains mode `0700`.
 | --- | --- |
 | `settings.json` | Modifier replaces declared settings; preserves unknown/runtime keys and other codemode options. |
 | `models.json`, `keybindings.json` | Declarative provider/model metadata and key bindings; no API keys in models. |
-| `auth.json` | Modifier merges five providers' command references; all other credentials and extra fields remain local. |
+| `auth.json` | Modifier merges six providers' command references; all other credentials and extra fields remain local. |
 | `subagent.json`, `agents/{scout,reviewer,worker}.md` | User-scoped runtime policy and role definitions. |
 | `extensions/jev.ts` | Command Code classifier registration. |
 | `extensions/pi-codex-minimal-tools/{config,models}.json` | Codex capabilities and model profiles. |
@@ -84,12 +84,14 @@ It is not an import mechanism for arbitrary runtime settings.
 
 The enabled-model list is `anthropic/claude-opus-5-5`,
 `openai/gpt-5.6-sol`, `openai/gpt-6-astra`, `openai/gpt-6-luna`,
-`openai/gpt-6.1-sol`, `openai/gpt-6.1-terra`, and `deepseek/deepseek-flash`.
+`openai/gpt-6.1-sol`, `openai/gpt-6.1-terra`, `deepseek/deepseek-flash`,
+and `google/gemini-4-argon`.
 It is a selection scope, not the full provider catalog.
 
 Provider metadata routes `openai`, `deepseek`, and `xai` through
 `https://api.spiredive.com/v1`, `anthropic` through
-`https://api.krill-code.net`, and `typesafe` through
+`https://api.kbsfdxc.net`, `google/gemini-4-argon` through the same
+endpoint using Anthropic Messages, and `typesafe` through
 `https://api.commandcode.ai/provider/v1`. Anthropic retains Pi's built-in
 catalog. DeepSeek disables the developer role. Providers do not override
 `User-Agent`; the client supplies its default.

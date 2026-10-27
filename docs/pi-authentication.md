@@ -10,7 +10,7 @@ see [Pi configuration](pi.md#defaults-and-model-reference).
 | Item | Owner and behavior |
 | --- | --- |
 | `models.json` | Declarative metadata; deliberately omits `apiKey`. |
-| `auth.json` | Private machine-local credentials, with five managed command references merged in. |
+| `auth.json` | Private machine-local credentials, with six managed command references merged in. |
 | Provider keys | Bitwarden entries accessed by `rbw` on first use. |
 | Telegram `config.json` | Headless-only template; resolved credentials are written to a private file. |
 | Shell startup | Exports paths, never provider credentials. |
@@ -24,6 +24,7 @@ merges entries with `"type": "api_key"` and these exact `key` references:
 | `openai` | `!rbw get 'pi spiredive api key'` |
 | `xai` | `!rbw get 'pi spiredive api key'` |
 | `anthropic` | `!rbw get 'pi krill api key'` |
+| `google` | `!rbw get 'pi krill api key'` |
 | `typesafe` | `!rbw get 'pi commandcode api key'` |
 
 For example, the managed part of one entry is:
@@ -43,7 +44,7 @@ and every unrelated provider/value, including OAuth credentials. The target
 is mode `0600`. Only the modifier belongs in Git: never `chezmoi add auth.json`,
 commit rendered authentication data, or substitute retrieved key values.
 
-Anthropic uses its separate Krill credential; Command Code's Jev classifier
+Anthropic and Google use the Krill credential; Command Code's Jev classifier
 needs a Command Code key, not a direct TypeSafe key. Neither uses Spiredive's key.
 
 ## Apply authentication references safely
@@ -152,7 +153,7 @@ for the accompanying settings change and delivery limits.
 
 ## What the checks establish
 
-`tests/check-pi.sh` tests five-provider merging, private permissions, idempotence,
+`tests/check-pi.sh` tests six-provider merging, private permissions, idempotence,
 invalid-input rejection, conflict preservation, and isolated apply without
 vault access. It renders Telegram with `tests/fixtures/pi/bin/rbw`, never the
 real vault. It does not verify real keys, send notifications, or make paid
