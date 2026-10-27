@@ -26,6 +26,9 @@ Bluetooth forwarding was tested with
 Tether **0.2.36**, Arch BlueZ **5.87**, DMS **1.6.2**, and an iPhone 14 on
 iOS **27**: BR/EDR, LE, ANCS, and MAP connected, and a real DMS notification
 was confirmed. These are tested versions, not a promise about later releases.
+The Dux Shell 2.0 source update uses `~/.config/dms/settings.json`; notification
+delivery has not been revalidated live on 2.0. Before a later deployment,
+review [duplicate configuration paths](desktop-shells.md#review-existing-dux-configuration).
 [Upstream Tether](https://github.com/zackb/tether) describes notification
 mirroring as beta and does not support it on iOS 18 or earlier.
 
@@ -122,13 +125,13 @@ Apply only the reviewed targets, with the daemon stopped while its settings
 are merged:
 
 ```sh
-mkdir -p ~/.config/DankMaterialShell ~/.config/systemd/user/tetherd.service.d
+mkdir -p ~/.config/dms ~/.config/systemd/user/tetherd.service.d
 systemctl --user stop tetherd.service
 chezmoi apply --exclude=scripts,encrypted \
   ~/.config/tether \
   ~/.config/systemd/user/tetherd.service.d/10-notification-network.conf \
   ~/.config/systemd/user/tetherd.service.d/20-no-clipboard.conf \
-  ~/.config/DankMaterialShell/settings.json
+  ~/.config/dms/settings.json
 systemctl --user daemon-reload
 systemctl --user enable --now tetherd.service
 systemctl --user is-active --quiet tetherd.service

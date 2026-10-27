@@ -81,27 +81,19 @@ secrets/
 .local/share/fcitx5/rime/
 .config/btop/btop.log*
 
-# Plugin sources and launcher are deployed by the separate dms-plugins repository.
+# Dux owns runtime data and plugins; only settings.json is declarative here.
+.cache/dms/
+.local/state/dms/
+.local/share/dms/
+.config/dms/*
+!.config/dms/settings.json
+.config/DankMaterialShell/
 .cache/DankMaterialShell/
 .local/state/DankMaterialShell/
 .local/share/DankMaterialShell/
 .local/share/dms-media-lyrics/
-.config/DankMaterialShell/.firstlaunch
-.config/DankMaterialShell/clsettings.json
-.config/DankMaterialShell/plugin_settings.json
-.config/DankMaterialShell/plugins.json
-.config/DankMaterialShell/plugins.lock.json
-.config/DankMaterialShell/plugins/*
 .local/bin/dms-with-lyrics
 .config/dank-todo/
-.config/DankMaterialShell/.repos/
-.config/DankMaterialShell/themes/
-.config/DankMaterialShell/backups/
-.config/DankMaterialShell/session.json
-.config/DankMaterialShell/cache.json
-.config/DankMaterialShell/appusage.json
-.config/DankMaterialShell/launcher_cache.json
-.config/DankMaterialShell/notification_history.json
 .config/quickshell/
 .config/matugen/dms/*
 .config/qt6ct/colors/
@@ -228,7 +220,7 @@ secrets/
 .config/gtk-4.0/colors.css
 .local/share/fcitx5/themes/Matugen/
 {{- else }}
-.config/DankMaterialShell/
+.config/dms/
 .local/bin/dms-with-lyrics
 .config/niri/dms/
 .config/kitty/dank-theme.conf

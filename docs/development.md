@@ -64,7 +64,6 @@ iterating; they do not replace the required complete source check.
 | GTK, fonts, Nautilus, and application settings | `./tests/check-desktop-apps.sh` |
 | Shared Niri outputs and bindings | `./tests/check-niri.sh` |
 | Custom/DMS profile matrix and generated themes | `./tests/check-desktop-profiles.sh` |
-| Reminder-only DMS apply hook | `./tests/check-dms-apply-hints.sh` |
 | Tether policy and service drop-ins | `./tests/check-tether.sh` |
 | Secret Service activation | `./tests/check-keyring.sh` |
 

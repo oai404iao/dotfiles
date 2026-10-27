@@ -1,5 +1,5 @@
 {{ if eq (get . "desktopShell" | default "custom") "dms" -}}
-spawn-at-startup "dms-with-lyrics" "run"
+spawn-at-startup "env" "-u" "DMS_SHELL_DIR" "dms" "run"
 
 environment {
     QT_QPA_PLATFORMTHEME "qt6ct"

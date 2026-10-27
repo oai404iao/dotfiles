@@ -34,8 +34,8 @@ bash-completion        # Optional Bash completion, sourced if present.
 
 # Pi / agent tooling (independent of graphical and server roles).
 uv                     # Agent Python tooling and custom Waybar longshot.
-# pnpm 12 is supplied by AUR pnpm-bin in aur.txt; Node 24 and npm/npx 12.1.0
-# are user-managed through pnpm, not tracked here as Arch packages.
+pnpm                   # Official extra package; user Node/npm/npx use PNPM_HOME.
+# Node 24 and npm/npx 12.1.0 are user-managed through pnpm, not Arch packages.
 # Pi npm extensions are managed separately.
 
 # Graphical/Niri: common to desktopShell=dms and desktopShell=custom.
@@ -74,19 +74,22 @@ pipewire-pulse         # PulseAudio-compatible desktop audio.
 wireplumber            # wpctl and PipeWire session manager.
 power-profiles-daemon  # Waybar power-profile widget / desktop service.
 
-# Niri + DMS: dms-shell pulls Quickshell and accountsservice.
-dms-shell              # Unified DMS package; compositor integration is managed here.
-dgop                   # DMS process/resource monitoring.
+# Niri + DMS: dux-shell pulls Quickshell and accountsservice.
+dux-shell              # Replaces dms-shell; retains the dms command.
+dux-gop                # Replaces dgop; DMS process/resource monitoring.
 wtype                  # DMS native clipboard paste.
 qt6ct                  # DMS-generated Qt palette.
 cava                   # Optional DMS visualization and custom Matugen colors.
 qt6-multimedia         # Optional DMS sound feedback.
 
+# Optional Niri/DMS Tether integration; see docs/tether.md before enabling.
+bluez-obex             # Tether Bluetooth prerequisites; tether-bin is in aur.txt.
+
 # Niri + custom: Waybar/Fuzzel/Mako, screenshot, recording, and helpers.
 fuzzel                 # Application launcher and script menus.
 waybar                 # Bar and its active widgets.
 mako                   # Notifications.
-swayidle               # Idle/lock scheduling with swaylock-effects below.
+swayidle               # Idle/lock scheduling with swaylock-effects in aur.txt.
 copyq                  # Clipboard history.
 awww                   # Wallpaper daemon for Waypaper.
 playerctl              # Niri media-key actions.
@@ -129,4 +132,3 @@ base-devel             # makepkg toolchain if building AUR packages locally.
 # Review and enable that repository separately before installing these names.
 pi                     # Pi coding agent; its package pulls system nodejs>=22.
 yay                    # AUR helper and optional Waybar updates action.
-swaylock-effects       # Custom profile's blurred lock screen; provides swaylock.

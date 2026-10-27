@@ -55,9 +55,9 @@ on the standard XDG layout. The service explicitly uses
 
 ## User-level Node.js
 
-Install pnpm 12 separately using the selected system package provider, for
-example AUR `pnpm-bin`. After deploying the shared toolchain file, install
-the user runtime and npm without `sudo`:
+Install pnpm 12 separately from Arch's official `extra/pnpm` package. After
+deploying the shared toolchain file, install the user runtime and npm without
+`sudo`:
 
 ```sh
 . "${XDG_CONFIG_HOME:-$HOME/.config}/shell/toolchains.sh"

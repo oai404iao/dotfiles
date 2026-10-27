@@ -1,8 +1,9 @@
 # Desktop configuration
 
 Use this repository to configure a Niri desktop with either independent
-components (`custom`) or DankMaterialShell (`dms`). Packages and system services
-must already be prepared: chezmoi deploys configuration, not a desktop installer.
+components (`custom`) or Dux Shell (`dms`, formerly DankMaterialShell).
+Packages and system services must already be prepared: chezmoi deploys
+configuration, not a desktop installer.
 
 Choose the guide for your task:
 
@@ -11,7 +12,7 @@ Choose the guide for your task:
 | Select DMS, switch stacks, or return to custom | [Desktop shell profiles](desktop-shells.md) |
 | Set up fonts, GTK, Nautilus, input methods, or application themes | [Desktop applications](desktop-applications.md) |
 | Configure locale, English folders, sudo dialogs, or the keyring | [Desktop session setup](desktop-session.md) |
-| Install the DMS launcher, lyrics, or todo plugin | [DMS plugins and native lyrics](dms-plugins.md) |
+| Understand native lyrics or optional plugins | [DMS plugins and native lyrics](dms-plugins.md) |
 | Forward iPhone notifications or opt into clipboard sharing | [Tether](tether.md) |
 
 The palette, Waybar, and temperature procedures below are for **custom**.
@@ -27,8 +28,8 @@ locale, portals, Kitty, Fcitx5, and the keyring remain shared.
    machine, follow [the switching procedure](desktop-shells.md#switch-an-existing-machine)
    instead of rerunning init or applying mid-session.
 3. Prepare [session prerequisites](desktop-session.md) and
-   [application dependencies](desktop-applications.md). For DMS, install the
-   [launcher](dms-plugins.md) before the first session.
+   [application dependencies](desktop-applications.md). Dux starts natively;
+   no external lyrics launcher or plugin is required.
 4. Back up existing targets privately, run the offline source checks, and
    review only explicit desktop paths before applying them. Do not use a
    whole-home apply as a validation step.

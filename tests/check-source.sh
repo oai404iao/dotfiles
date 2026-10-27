@@ -70,7 +70,6 @@ run_check check-desktop.sh
 run_check check-desktop-apps.sh
 run_check check-desktop-profiles.sh
 run_check check-tether.sh
-run_check check-dms-apply-hints.sh
 run_check check-keyring.sh
 
 printf '%s\n' "source checks passed"

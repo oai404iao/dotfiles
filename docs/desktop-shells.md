@@ -2,7 +2,8 @@
 
 Choose who owns the desktop UI before applying Niri configuration. The
 `custom` stack coordinates separate tools; `dms` delegates those responsibilities
-to DankMaterialShell. Both use the same compositor and shared desktop services.
+to Dux Shell (formerly DankMaterialShell). The profile name remains `dms`.
+Both use the same compositor and shared desktop services.
 
 For a new machine, [prepare the selected packages](#selection-and-packages)
 and choose a profile during initialization. For an existing machine, follow
@@ -20,7 +21,7 @@ safe live switch.
 | Idle / lock / sleep integration | swayidle / swaylock-effects | DMS |
 | Color temperature | waybar-gammarelay.service | DMS night mode |
 | Screenshot shortcuts | Niri / Satty helper | DMS screenshot |
-| Power / resource UI | Waybar actions / wlogout | DMS power menu / dgop |
+| Power / resource UI | Waybar actions / wlogout | DMS power menu / dux-gop |
 
 DMS still depends on Quickshell, Matugen for generated palettes, and system
 services such as PipeWire, NetworkManager, and BlueZ. It replaces the desktop
@@ -47,23 +48,27 @@ desktopShell = "dms" # or "custom"
 
 ### Prepare DMS packages
 
-The DMS integration targets Arch's DMS 1.6.2/1.6.3 and Niri 26.04.
+The configuration targets Dux Shell 2.0 and native lyrics. This source update
+does not establish live desktop or bilingual-lyrics parity with the old overlay.
+Arch packages the shell as `dux-shell` and its process monitor as `dux-gop`.
 Install separately; inspect any system upgrade transaction before accepting:
 
 ```sh
-sudo pacman -Syu --needed dms-shell dgop matugen wtype qt6ct \
+sudo pacman -Syu --needed dux-shell dux-gop matugen wtype qt6ct \
   adw-gtk-theme adwaita-icon-theme
 ```
 
-Arch's unified [`extra/dms-shell` package](https://archlinux.org/packages/extra/x86_64/dms-shell/)
-replaces `dms-shell-niri` and `dms-shell-hyprland` (also `dms-shell-bin`).
-During a reviewed full upgrade, answer **Y** to either legacy-package
-replacement prompt, or both if both appear. Do not reinstall the old split
-packages or remove them manually first. Chezmoi still supplies Niri integration;
-this package replacement does not require switching desktop profiles.
-The native lyrics overlay supports DMS 1.6.2 and 1.6.3. After upgrading,
-prepare it again from the matching pristine shell tree; an old 1.6.2 tree
-still falls back to stock on 1.6.3. Do not bypass its version/hash checks.
+[`extra/dux-shell`](https://archlinux.org/packages/extra/x86_64/dux-shell/)
+replaces `dms-shell`; `extra/dux-gop` replaces `dgop`. The shell command and
+user unit remain `dms` and `dms.service`. The upstream
+[2.0 release notes](https://github.com/duxlabs-dev/dux-shell/releases/tag/v2.0.0)
+describe the rebranding and configuration-path changes. Chezmoi now targets
+`~/.config/dms/settings.json`. Keep `desktopShell = "dms"`; review
+[existing configuration paths](#review-existing-dux-configuration) before deployment.
+
+The optional legacy lyrics overlay supports only DMS 1.6.2 and 1.6.3, not 2.0.
+It is no longer required or started by this profile. Do not prepare it against
+2.0 or bypass its version/hash checks.
 
 Quickshell and accountsservice are pulled in as dependencies. Existing shared
 desktop dependencies still apply. Cava and qt6-multimedia enable visualization
@@ -72,27 +77,27 @@ for the other profile. Keeping both package sets installed is supported.
 
 Do not run DankInstall or `dms setup --force` over this configuration. Chezmoi
 already supplies the compositor integration. DMS starts **only** through
-`spawn-at-startup "dms-with-lyrics" "run"`; do not also enable `dms.service`.
-The launcher uses the prepared, version-matched media-page overlay when
-available and otherwise runs the stock DMS shell. Install the launcher from
-the [plugin repository](https://github.com/oai404iao/dms-plugins) before the
-first DMS session; follow [the reviewed installation procedure](dms-plugins.md).
-Chezmoi neither deploys nor automatically fetches it.
+`spawn-at-startup "env" "-u" "DMS_SHELL_DIR" "dms" "run"`; do not also enable
+`dms.service`. Clearing the inherited overlay selector ensures native startup
+even if an older session exported it. No external launcher is required.
+Chezmoi does not install or enable plugins or lyrics providers.
 
-### Understand apply reminders
+### Review existing Dux configuration
 
-The `run_after_check-dms-lyrics.sh.tmpl` apply hook runs only when `graphical`,
-`niri`, and `desktopShell="dms"` are selected. It checks for `dms`, `qs`, and
-`dms-with-lyrics`, then checks the launcher's `current/shell.qml` and
-`.dms-version` contract under
-`${XDG_DATA_HOME:-$HOME/.local/share}/dms-media-lyrics/`. Missing
-dependencies, missing/incomplete preparation, version mismatches, or a failed
-`dms version` produce actionable stderr reminders without failing apply.
-Python is checked only when preparation is needed. Healthy setups stay silent;
-unresolved reminders repeat on later applies. The hook directs preparation to
-the separate plugin repository; it does not install, download, prepare,
-restart, or inspect/change local plugin enablement.
-Applies using `--exclude=scripts` skip these reminders as well.
+This adoption is **source-only**: no apply, restart, installation, or live
+directory cleanup is part of it. The deployment commands below are for a later,
+explicitly authorized transition.
+
+Both `~/.config/DankMaterialShell/settings.json` and
+`~/.config/dms/settings.json` have been observed locally; Dux reports a
+migration conflict when both configuration directories exist. Before deployment,
+privately back up both directories and review their settings and personal state.
+The reviewed new `dms` configuration is canonical. The old directory is ignored
+by chezmoi, not automatically merged, renamed, or deleted. Decide separately
+which old-only preferences or plugin data to retain and when to retire the
+duplicate path. Do not blindly merge directories or replace them with a symlink;
+apply only the reviewed new settings target. No compatibility migration or
+overlay-preparation hook runs during apply.
 
 ## Configuration ownership
 
@@ -102,16 +107,16 @@ those directories is overwrite-managed:
 
 | Target | Apply behavior | Owner afterward |
 |---|---|---|
-| `DankMaterialShell/settings.json` | Merge the six fields below; seed defaults only for a missing file | Chezmoi for declared fields; DMS for other preferences |
+| `dms/settings.json` | Merge declared fields below; seed defaults only for a missing file | Chezmoi for declared fields; DMS for other preferences |
+| `DankMaterialShell/` | Ignored, no migration or cleanup | Retained local configuration |
 | `niri/dms/*.kdl` | Create-only, including empty fragments | DMS Settings |
 | Kitty / GTK generated palette files | Create-only fallback | DMS |
 | Qt6ct configuration | Merge declared appearance/font fields | Chezmoi for declared keys; local for the rest |
 | Installed plugins, launcher, preferences, data | Ignored, never auto-fetched | Reviewed plugin checkout / local runtime |
 | Custom-only configuration | Ignored in DMS, not deleted | Retained on disk for rollback |
 
-Configuration paths in the table are under `~/.config/`. The installed
-launcher is `~/.local/bin/dms-with-lyrics`; other runtime paths are described
-below and in [plugin setup](dms-plugins.md).
+Configuration paths in the table are under `~/.config/`. Optional plugin and
+legacy launcher ownership is described in [plugin setup](dms-plugins.md).
 
 ### Settings restored on every apply
 
@@ -121,15 +126,21 @@ The settings modifier owns:
 |---|---|
 | `barConfigs` | Complete DankBar layout with DankDash |
 | `barElevationEnabled` | `false` |
-| `cornerRadius` | `16` |
+| `radiusMode` / `radiusStrength` | `scale` / `50`, preserving the old 16px base-radius intent |
 | `widgetColorMode` | `default` |
-| `runningAppsCurrentWorkspace` | `true` |
 | `matugenTemplateNeovim` | `true` |
 
-A missing file also receives wallpaper-based colors, native clipboard paste,
-Adwaita Sans, and [the idle defaults](#idle-and-lock-defaults). This pre-seeding
+A missing file receives schema version 42, wallpaper-based colors, native
+clipboard paste, Adwaita Sans, and [the idle defaults](#idle-and-lock-defaults). This pre-seeding
 bypasses DMS's first-launch wizard. Existing files retain other preferences,
 including machine-specific outputs, wallpaper, network, and battery settings.
+Existing schema versions are preserved for Dux's own migrations. The modifier
+stops emitting legacy `cornerRadius` and global `runningAppsCurrentWorkspace`,
+but does not delete existing keys or implement a migration shim. The bar keeps
+supported widget string IDs. Widget-specific options such as
+`runningAppsCurrentWorkspace` now belong to widget objects; no running-apps
+widget is present here, so that option is no longer managed. Unrelated user
+preferences remain intact.
 
 **Before adopting an existing DMS installation**, back up and review settings,
 especially `runUserMatugenTemplates`, idle/lock settings, and custom power
@@ -144,13 +155,14 @@ Live notifications remain visible; previous history is not purged. Follow
 ### Bar, plugins, and runtime state
 
 DankBar uses `centerWidgets` for music, date/time, and weather in that order.
-In the customized shell, music contains visualization, playback controls,
-and the current lyric (or song title and artist) within one pill.
+Music uses Dux's native widget and media page, without a prepared shell overlay.
+Lyrics availability depends on the local settings and providers; bilingual
+display and live provider behavior have not been verified for this adoption.
 Click or hover opens the tabbed DankDash panel; hover popouts use a 450 ms
 delay. The left/right sections retain the launcher, workspaces, focused
 window, and system status without duplicate music or weather widgets.
-The right section includes `dankTodo` after the clipboard; its installed
-plugin must be scanned and enabled separately as described below.
+The right section retains the optional `dankTodo` slot after the clipboard;
+using it needs a separately reviewed compatible plugin and local enablement.
 The bar background is transparent and its shadow is disabled; individual
 widget backgrounds remain opaque.
 
@@ -162,9 +174,8 @@ ignored by chezmoi. Plugin enablement/preferences in `plugin_settings.json`,
 plugin lockfiles, and `~/.config/dank-todo/` storage stay machine-local.
 Custom todo storage paths must also remain outside either source repository.
 
-The native media widget/page customization is prepared from that reviewed
-plugin checkout. Its complete generated DMS tree under
-`$XDG_DATA_HOME/dms-media-lyrics/` is machine-local, not a managed package.
+Old generated trees under `$XDG_DATA_HOME/dms-media-lyrics/` remain unmanaged
+and unused by native startup. Neither they nor installed plugins are deleted.
 
 Custom-only files are ignored, not deleted. CopyQ history remains untouched
 and is not imported into DMS. DMS clipboard data, notifications, night-mode and
@@ -181,6 +192,9 @@ Their `create_empty_` attributes preserve empty fragments as well as edits:
 DMS writes an empty cursor fragment for defaults, and Niri still requires
 every included file to exist. Plain `create_` can delete these empty files.
 Input configuration remains in the common `conf.d/10-input.kdl`.
+The window-rules fragment starts empty. Dux generates its own floating-window
+rule for `dev.duxlabs.shell`; the main config does not duplicate it. Existing
+fragments remain intact until Dux updates its generated rules at runtime.
 
 ### Application palettes
 
@@ -203,7 +217,7 @@ even when the shell switches to light mode. Kitty includes the declarative
 foreground, background, selection, tabs, and links still follow DMS. This
 does not enable the legacy user Matugen templates. Existing DMS installations
 can select **Neutral** and **Terminals - Always use Dark Theme** in Settings;
-the seed does not reset existing preferences outside the six owned fields.
+the seed does not reset existing preferences outside the declared fields.
 
 Chezmoi merges Qt6ct's `Appearance` palette path
 (`colors/matugen.conf` under this machine's home), custom palette, Adwaita
@@ -279,21 +293,22 @@ before removing their generated outputs, or DMS can recreate them. These
 switches remain local preferences; the repository still supports the custom
 desktop and does not uninstall packages during apply.
 
-## Bilingual lyrics
+## Native lyrics and optional plugins
 
-Install the maintained lyrics and todo plugins and the required startup launcher
-from a reviewed checkout. See [DMS plugins and native lyrics](dms-plugins.md).
-Chezmoi does not install, update, or enable them.
+Native Dux lyrics are the selected default; the old bilingual overlay is not a
+2.0 dependency. See [DMS plugins and native lyrics](dms-plugins.md) for optional
+plugin ownership and legacy limitations. Chezmoi does not install, update, or
+enable plugins or providers, and no bilingual-parity claim is made.
 
 ### Install on a fresh machine or migrate an existing installation
 
-Follow the [ownership handoff and installation procedure](dms-plugins.md#install-on-a-fresh-machine-or-migrate-an-existing-installation)
-before starting the DMS session. No full apply is needed for the handoff.
+Follow the [configuration review](#review-existing-dux-configuration) before a
+later deployment. Optional plugins are not prerequisites for the first session.
 
 ### Native media-page overlay
 
-See [prepare and switch the native media overlay](dms-plugins.md#native-media-page-overlay)
-for version guards, immediate switching, package upgrades, and stock-shell rollback.
+The [legacy overlay](dms-plugins.md#native-media-page-overlay) is limited to
+1.6.2/1.6.3. Keep its implementation in the separate plugin repository.
 
 ## Idle and lock defaults
 
@@ -334,6 +349,8 @@ keys. In particular, `Mod+V`, `Mod+M`, and `Mod+Comma` are not repurposed.
 
 ## Switch an existing machine
 
+This is a future manual deployment procedure, not part of a source-only update.
+
 1. Save work and **log out of Niri**, then use a TTY for the transition.
    Niri reloads configuration immediately, but `spawn-at-startup` is not rerun
    on reload. Applying mid-session would mix new bindings with old processes.
@@ -351,29 +368,28 @@ keys. In particular, `Mod+V`, `Mod+M`, and `Mod+Comma` are not repurposed.
    Include custom component configs when switching back; do not copy clipboard
    histories or other personal state into the repository.
 4. Set `desktopShell` deliberately via `chezmoi edit-config`.
-   Before entering DMS, follow the [plugin setup](#bilingual-lyrics) to install
-   both plugins and the launcher from a reviewed checkout. Prepare a matching
-   overlay when using integrated lyrics. Chezmoi apply cannot install the
-   missing launcher or repair its symlink.
+   Before entering DMS, complete the [duplicate-path review](#review-existing-dux-configuration).
+   Native startup needs `dms`, not the old plugin launcher or prepared tree.
 5. Preview and apply **only** the selected desktop targets. For DMS:
 
    ```sh
    chezmoi diff --recursive --skip-secrets --exclude=encrypted \
      ~/.config/niri ~/.config/kitty ~/.config/gtk-3.0 ~/.config/gtk-4.0 \
      ~/.config/fcitx5/conf/classicui.conf \
-     ~/.config/DankMaterialShell/settings.json ~/.config/qt6ct/qt6ct.conf
+     ~/.config/dms/settings.json ~/.config/qt6ct/qt6ct.conf
 
    chezmoi apply --exclude=scripts,encrypted \
      ~/.config/niri ~/.config/kitty ~/.config/gtk-3.0 ~/.config/gtk-4.0 \
      ~/.config/fcitx5/conf/classicui.conf \
-     ~/.config/DankMaterialShell/settings.json ~/.config/qt6ct/qt6ct.conf
+     ~/.config/dms/settings.json ~/.config/qt6ct/qt6ct.conf
    ```
 
    Existing DMS settings can contain personal paths; inspect that target locally,
    not in shared logs. The Bar layout and Qt6ct fields above will be replaced;
    back up both targets first. Create missing target parent directories if
-   chezmoi reports an absent parent for an explicit file target. Restart DMS
-   after applying to refresh its generated Niri corners and Qt icon state.
+   chezmoi reports an absent parent for an explicit file target. Use the fresh
+   Niri login below to start Dux with the reviewed environment and regenerate
+   its Niri rules and palettes; applying alone does not replace a supervisor.
 6. Run `niri validate --config ~/.config/niri/config.kdl`, then start a fresh
    `niri-session`. Do not start DMS manually as well.
 7. Open Settings and select a wallpaper. Test notifications, clipboard paste,
@@ -410,10 +426,6 @@ generated-file preservation, and
 excludes runtime state. It does not start DMS, lock the screen, change services,
 or access the real credential backend.
 
-`tests/check-dms-apply-hints.sh` renders the reminder hook across profiles
-and checks healthy silence, missing dependencies/launcher/prepared trees, version
-mismatches, and command failures. It never starts a real shell.
-
 Plugin logic, QML, todo persistence, overlay preparation, and launcher tests
 belong to [dms-plugins](https://github.com/oai404iao/dms-plugins). Run
 `sh tests/check-source.sh` from its reviewed checkout before installing or
@@ -426,14 +438,14 @@ Run `./tests/check-source.sh` and `git diff --check` before applying.
 
 | Symptom | Safe next step |
 |---|---|
-| DMS does not start | Check the installed `dms-with-lyrics` launcher and symlink target; apply cannot install it |
+| DMS does not start | Check the installed `dms` command and native Niri startup; no plugin launcher is required |
 | Two bars, lockers, or gamma controllers | Inspect independent units/autostart; follow the logout-based switch procedure |
-| Lyrics disappear after upgrading | Re-enter through the launcher and [prepare a matching overlay](dms-plugins.md#update-after-a-dms-package-upgrade); do not relabel the old tree |
+| Lyrics are unavailable | Review native lyrics settings and providers locally; the legacy overlay is not compatible with 2.0 |
+| Migration reports both configuration paths | Back up and privately review both; `dms/settings.json` is canonical, but source updates do not clean up the old path |
 | Old custom palettes still exist | Expected: ignored is not deleted; only reviewed retired targets should be moved |
-| A DMS setting changes back on apply | Check the six managed fields and complete bar-layout ownership |
+| A DMS setting changes back on apply | Check the declared fields and complete bar-layout ownership |
 | Existing DMS retains old idle behavior | Defaults are seeded only for a missing settings file; review the live preferences yourself |
 | Fcitx5 icon is a purple/black placeholder | Check Qt6ct's Adwaita icon theme, then restart DMS while unlocked |
-| Applying succeeds with preparation warnings | The hook is reminder-only; follow [plugin setup](dms-plugins.md), not another full apply |
 
 Next: [application setup](desktop-applications.md),
 [session setup](desktop-session.md), or [Tether](tether.md).
@@ -442,4 +454,4 @@ References:
 [installation](https://danklinux.com/docs/dankmaterialshell/installation),
 [Niri integration](https://danklinux.com/docs/dankmaterialshell/compositors),
 [application themes](https://danklinux.com/docs/dankmaterialshell/application-themes),
-and [DMS v1.6.2 → v1.6.3 changes](https://github.com/AvengeMedia/DankMaterialShell/compare/v1.6.2...v1.6.3).
+and [Dux Shell 2.0](https://github.com/duxlabs-dev/dux-shell/releases/tag/v2.0.0).

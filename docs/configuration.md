@@ -42,7 +42,7 @@ capability flags over hostname-specific behavior when extending the repository.
 | Headless environment | `graphical = false`, `niri = false` |
 | Graphical apps without a managed Niri session | `graphical = true`, `niri = false` |
 | Niri with separate bar/launcher/notification components | `graphical = true`, `niri = true`, `desktopShell = "custom"` |
-| Niri with DankMaterialShell | Same graphical/Niri flags, `desktopShell = "dms"` |
+| Niri with Dux Shell | Same graphical/Niri flags, `desktopShell = "dms"` |
 | iPhone notifications | DMS profile plus `tether = true`; leave `tetherMode = "notifications"` unless wider access is intended |
 | Unknown display hardware | `niriOutputProfile = "auto"` |
 | SSH client only | `sshAgent = true`, `sshInboundIdentity = "none"` |

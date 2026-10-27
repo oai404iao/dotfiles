@@ -4,7 +4,7 @@ import sys
 
 raw = sys.stdin.read()
 settings = json.loads(raw) if raw.strip() else {
-    "configVersion": 18,
+    "configVersion": 42,
     "currentThemeName": "dynamic",
     "matugenScheme": "scheme-neutral",
     "terminalsAlwaysDark": True,
@@ -48,13 +48,14 @@ settings.update({
         "barLengthPadding": 0,
         "bottomGap": 0,
         "attachToScreenEdge": False,
+        "followInterfaceStyle": False,
         "transparency": 0,
+        "widgetFollowInterfaceStyle": False,
         "widgetTransparency": 1,
         "squareCorners": False,
         "noBackground": False,
         "maximizeWidgetIcons": False,
         "maximizeWidgetText": False,
-        "removeWidgetPadding": False,
         "widgetPadding": 8,
         "batteryColorMode": "theme",
         "gothCornersEnabled": False,
@@ -81,7 +82,7 @@ settings.update({
         "maximizeDetection": True,
         "useOverlayLayer": False,
         "scrollEnabled": True,
-        "scrollXBehavior": "column",
+        "scrollXBehavior": "focusWindow",
         "scrollYBehavior": "workspace",
         "shadowIntensity": 0,
         "shadowOpacity": 60,
@@ -93,9 +94,9 @@ settings.update({
         "island": False,
     }],
     "barElevationEnabled": False,
-    "cornerRadius": 16,
+    "radiusMode": "scale",
+    "radiusStrength": 50,
     "widgetColorMode": "default",
-    "runningAppsCurrentWorkspace": True,
 })
 
 tether_enabled = {{ if and .graphical .niri (eq (get . "desktopShell" | default "custom") "dms") (get . "tether" | default false) }}True{{ else }}False{{ end }}

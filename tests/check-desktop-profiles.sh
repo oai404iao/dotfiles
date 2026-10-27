@@ -13,6 +13,7 @@ import configparser
 import os
 import pathlib
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -29,6 +30,12 @@ shutil.copytree(
     repo, source,
     ignore=shutil.ignore_patterns(".git", ".worktrees", ".chezmoiexternal.toml"),
 )
+assert not (source / "run_after_check-dms-lyrics.sh.tmpl").exists()
+for path in ("dot_config/dms/plugin_settings.json", "dot_config/dms/plugins/local/plugin.json",
+             "dot_config/dms/future-state.json", "dot_config/DankMaterialShell/settings.json"):
+    unmanaged = source / path
+    unmanaged.parent.mkdir(parents=True, exist_ok=True)
+    unmanaged.write_text('{}\n')
 
 def run(command, env):
     try:
@@ -82,7 +89,7 @@ custom_only = {
 dms_kdl_names = ("alttab", "binds", "colors", "cursor", "layout", "outputs", "windowrules")
 dms_kdl_targets = {f".config/niri/dms/{name}.kdl" for name in dms_kdl_names}
 dms_only = {
-    ".config/DankMaterialShell/settings.json",
+    ".config/dms/settings.json",
     ".config/kitty/dank-theme.conf", ".config/gtk-3.0/dank-colors.css",
     ".config/kitty/dms-ansi.conf",
     ".config/gtk-4.0/dank-colors.css", ".config/qt6ct/qt6ct.conf",
@@ -110,7 +117,7 @@ def assert_gtk_imports(css, version, shell):
 
 def apply(home, env, command, shell):
     paths = targets + ([
-        ".config/DankMaterialShell/settings.json", ".config/qt6ct/qt6ct.conf",
+        ".config/dms/settings.json", ".config/qt6ct/qt6ct.conf",
         ".config/matugen/dms/configs/chezmoi-btop.toml",
         ".config/matugen/dms/configs/chezmoi-fastfetch.toml",
         ".config/matugen/templates/btop.theme",
@@ -126,7 +133,21 @@ niri_dir = home / ".config/niri"
 run(command + ["apply", "--exclude=scripts,encrypted,externals", str(niri_dir)], env)
 generated = [home / path for path in sorted(dms_kdl_targets)]
 seeded = {path: path.read_bytes() for path in generated}
-assert all(seeded.values())
+assert seeded[niri_dir / "dms/windowrules.kdl"] == b""
+assert all(value for path, value in seeded.items() if path.name != "windowrules.kdl")
+
+# Run the rendered startup with a fake DMS, never the real shell or migration code.
+bin_dir = home / "bin"
+bin_dir.mkdir()
+fake_dms = bin_dir / "dms"
+fake_dms.write_text('#!/bin/sh\nprintf "%s\\n" "$*" "${DMS_SHELL_DIR-unset}"\n')
+fake_dms.chmod(0o700)
+startup = next(line for line in (niri_dir / "conf.d/40-session.kdl").read_text().splitlines()
+               if line.startswith("spawn-at-startup "))
+assert run(shlex.split(startup)[1:], {
+    **env, "PATH": str(bin_dir) + os.pathsep + env["PATH"],
+    "DMS_SHELL_DIR": str(home / "obsolete-overlay"),
+}) == "run\nunset\n"
 
 def apply_fragments(paths):
     output = run(
@@ -164,7 +185,11 @@ for shell in ("custom", "dms"):
         home, env, command = fixture(f"{shell}-{output}", shell, output=output)
         inventory = managed(command, env)
         assert browser_flags <= inventory
-        assert not any(path.startswith(".config/DankMaterialShell/plugins/") for path in inventory)
+        assert not any(path.startswith(".config/DankMaterialShell/") for path in inventory)
+        assert not any(path.startswith(".config/dms/plugins/") for path in inventory)
+        assert {path for path in inventory if path.startswith(".config/dms/")} == (
+            {".config/dms/settings.json"} if shell == "dms" else set()
+        )
         assert ".local/bin/dms-with-lyrics" not in inventory
         assert ".config/gtk-4.0/nautilus.css" in inventory
         assert (dms_only if shell == "dms" else custom_only) <= inventory
@@ -206,7 +231,8 @@ for shell in ("custom", "dms"):
         kitty = (home / ".config/kitty/kitty.conf").read_text()
         classicui = (home / ".config/fcitx5/conf/classicui.conf").read_text()
         if shell == "dms":
-            assert session.count('spawn-at-startup "dms-with-lyrics" "run"') == 1
+            assert session.count('spawn-at-startup "env" "-u" "DMS_SHELL_DIR" "dms" "run"') == 1
+            assert "dms-with-lyrics" not in session
             assert not re.search(r'waybar|mako|awww|copyq|swayidle|swaylock|gammarelay', session + binds)
             assert '"audio" "micmute"' in binds
             assert '"lock" "lockAndOutputsOff"' in binds
@@ -217,7 +243,7 @@ for shell in ("custom", "dms"):
             for index, line in enumerate(ansi):
                 assert re.fullmatch(rf"color{index}\s+#[0-9a-f]{{6}}", line)
             assert 'Theme=dms\n' in classicui
-            settings_file = home / ".config/DankMaterialShell/settings.json"
+            settings_file = home / ".config/dms/settings.json"
             settings = json.loads(settings_file.read_text())
             assert settings["runUserMatugenTemplates"] is False
             assert settings["runDmsMatugenTemplates"] is True
@@ -243,14 +269,21 @@ for shell in ("custom", "dms"):
             btop_template = btop_config["templates"]["chezmoi-btop"]
             assert btop_template["input_path"] == str(home / ".config/matugen/templates/btop.theme")
             assert btop_template["output_path"] == str(home / ".config/btop/themes/matugen.theme")
-            assert settings["cornerRadius"] == 16
+            assert settings["radiusMode"] == "scale"
+            assert settings["radiusStrength"] == 50
             assert settings["widgetColorMode"] == "default"
-            assert settings["runningAppsCurrentWorkspace"] is True
+            assert "runningAppsCurrentWorkspace" not in settings
+            assert "cornerRadius" not in settings
+            assert settings["configVersion"] == 42
             assert settings["barElevationEnabled"] is False
             bar = settings["barConfigs"]
             assert len(bar) == 1
             assert bar[0]["island"] is False
+            assert bar[0]["followInterfaceStyle"] is False
             assert bar[0]["transparency"] == 0
+            assert bar[0]["widgetFollowInterfaceStyle"] is False
+            assert bar[0]["scrollXBehavior"] == "focusWindow"
+            assert "removeWidgetPadding" not in bar[0]
             assert bar[0]["widgetTransparency"] == 1
             assert bar[0]["screenPreferences"] == ["all"]
             assert bar[0]["leftWidgets"] == ["launcherButton", "workspaceSwitcher", "focusedWindow"]
@@ -287,9 +320,9 @@ for shell in ("custom", "dms"):
             settings["futurePreference"] = True
             settings["networkPreference"] = "ethernet"
             settings["barConfigs"] = [{"id": "local"}]
-            settings["cornerRadius"] = 8
+            settings["radiusStrength"] = 25
+            settings["radiusMode"] = "fixed"
             settings["widgetColorMode"] = "colorful"
-            settings["runningAppsCurrentWorkspace"] = False
             settings["barElevationEnabled"] = True
             settings["matugenTemplateNeovim"] = False
             settings["matugenTemplateGhostty"] = False
@@ -305,9 +338,11 @@ for shell in ("custom", "dms"):
             apply(home, env, command, shell)
             updated = json.loads(settings_file.read_text())
             assert updated["barConfigs"] == bar
-            assert updated["cornerRadius"] == 16
+            assert updated["radiusMode"] == "scale"
+            assert updated["radiusStrength"] == 50
             assert updated["widgetColorMode"] == "default"
-            assert updated["runningAppsCurrentWorkspace"] is True
+            assert "runningAppsCurrentWorkspace" not in updated
+            assert "cornerRadius" not in updated
             assert updated["barElevationEnabled"] is False
             assert updated["matugenTemplateNeovim"] is True
             assert updated["matugenTemplateGhostty"] is False
@@ -345,26 +380,44 @@ for shell in ("custom", "dms"):
             assert_gtk_imports(css, version, shell)
 
 home, env, command = fixture("dms-existing", "dms")
-settings_file = home / ".config/DankMaterialShell/settings.json"
+settings_file = home / ".config/dms/settings.json"
 qt_file = home / ".config/qt6ct/qt6ct.conf"
 settings_file.parent.mkdir(parents=True)
 qt_file.parent.mkdir(parents=True)
-settings_file.write_text('{"networkPreference": "ethernet", "futurePreference": true}\n')
+settings_file.write_text('{"configVersion": 42, "networkPreference": "ethernet", "futurePreference": true, "dashOptions": {"media": {"lyricsEnabled": false}}}\n')
+legacy_file = home / ".config/DankMaterialShell/settings.json"
+legacy_file.parent.mkdir()
+legacy_file.write_text('{"oldPreference": "do not merge or overwrite"}\n')
+legacy_before = legacy_file.read_bytes()
 qt_file.write_text("[Appearance]\nicon_theme=breeze\n[Interface]\nretain=1\n")
 apply(home, env, command, "dms")
 settings = json.loads(settings_file.read_text())
 assert settings["networkPreference"] == "ethernet"
 assert settings["futurePreference"] is True
+assert settings["configVersion"] == 42
+assert settings["dashOptions"] == {"media": {"lyricsEnabled": False}}
+assert legacy_file.read_bytes() == legacy_before
 assert "acLockTimeout" not in settings
 assert settings["barConfigs"][0]["island"] is False
 assert settings["barElevationEnabled"] is False
-assert settings["cornerRadius"] == 16
+assert settings["radiusMode"] == "scale"
+assert settings["radiusStrength"] == 50
 assert settings["widgetColorMode"] == "default"
-assert settings["runningAppsCurrentWorkspace"] is True
+assert "runningAppsCurrentWorkspace" not in settings
 qt6ct = configparser.ConfigParser(interpolation=None)
 qt6ct.read(qt_file)
 assert qt6ct["Appearance"]["icon_theme"] == "Adwaita"
 assert qt6ct["Interface"]["retain"] == "1"
+
+# A Dux-created compatibility symlink must stay untouched too.
+legacy_file.unlink()
+legacy_file.parent.rmdir()
+legacy_file.parent.symlink_to("dms", target_is_directory=True)
+before = settings_file.read_bytes()
+apply(home, env, command, "dms")
+assert legacy_file.parent.is_symlink()
+assert os.readlink(legacy_file.parent) == "dms"
+assert settings_file.read_bytes() == before
 
 home, env, command = fixture("legacy")
 assert custom_only <= managed(command, env)
@@ -448,12 +501,11 @@ for shell in ("dms", "custom", "dms"):
 
 ignored = run(command + ["execute-template", "--file", str(repo / ".chezmoiignore")], env)
 for path in (
+    ".local/state/dms/", ".cache/dms/", ".local/share/dms/",
     ".local/state/DankMaterialShell/", ".cache/DankMaterialShell/",
     ".local/share/dms-media-lyrics/",
-    ".config/DankMaterialShell/clsettings.json", ".config/DankMaterialShell/plugin_settings.json",
-    ".config/DankMaterialShell/notification_history.json", ".config/quickshell/",
-    ".config/DankMaterialShell/plugins.json", ".config/DankMaterialShell/plugins.lock.json",
-    ".config/DankMaterialShell/plugins/*", ".config/dank-todo/",
+    ".config/DankMaterialShell/", ".config/quickshell/",
+    ".config/dms/*", "!.config/dms/settings.json", ".config/dank-todo/",
     ".local/bin/dms-with-lyrics",
     ".config/nvim/colors/dms.lua", ".config/nvim/lua/lualine/themes/dms.lua",
     ".config/fastfetch/config.jsonc",

@@ -100,14 +100,17 @@ never derive cleanup operands from rebound HOME/XDG variables.
   profiles require both the initialization choice and shared output template.
 - Missing `desktopShell` retains `custom`. In DMS mode preserve `create_empty_`
   Niri fragments, including intentionally empty files. DMS owns later edits.
-- Niri starts `dms-with-lyrics`; do not also enable `dms.service`. Custom-only
-  files are ignored, not deleted. Read the switching guide for retained
-  services, settings, and palettes.
+- Niri starts native Dux Shell with `env -u DMS_SHELL_DIR dms run`; do not also
+  enable `dms.service`. The profile selector remains `dms`. Manage only
+  `~/.config/dms/settings.json`; the legacy `DankMaterialShell` directory is
+  ignored, not migrated or deleted. Review duplicate paths privately before
+  deployment. Custom-only files are ignored, not deleted.
 - DMS plugin implementations belong to `oai404iao/dms-plugins`, normally
-  `~/Dev/local/dms-plugins`: `plugins/{lyrics,dankTodo}`, native overlay/preparer,
+  `~/Dev/local/dms-plugins`: `plugins/{lyrics,dankTodo}`, legacy overlay/preparer,
   launcher, explicit installer, and their tests. Edit/test those there, not
-  here or in installed packages/read-only shell extractions. Chezmoi owns
-  integration and a reminder-only apply hook, never auto-fetch/install,
+  here or in installed packages/read-only shell extractions. Native Dux lyrics
+  are the default; the old 1.6.2/1.6.3 overlay is not a 2.0 dependency.
+  Chezmoi owns integration, never plugin/provider enablement, auto-fetch/install,
   dependency preparation, or restarts. Plugin data and generated trees stay ignored.
 - Tether is opt-in for graphical Niri/DMS. Preserve both mode drop-ins and
   local device/runtime fields. `notifications` is the default;

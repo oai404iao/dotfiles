@@ -30,7 +30,7 @@ assert {p.relative_to(tether_source).as_posix() for p in tether_source.rglob("*"
     "modify_private_bluetooth.json",
 }
 assert {p.name for p in dropin_source.iterdir()} == {f"{name}.tmpl" for name in dropins}
-assert not (repo / "dot_config/DankMaterialShell/modify_settings.json").exists()
+assert not (repo / "dot_config/dms/modify_settings.json").exists()
 
 def check_dropins(contents, mode):
     network = ["[Service]", "ExecStartPre=", "ExecStart="]
@@ -142,7 +142,7 @@ source.mkdir()
 for relative in (
     ".chezmoiignore", ".chezmoi.toml.tmpl",
     "dot_config/private_tether/modify_private_bluetooth.json",
-    "dot_config/DankMaterialShell/modify_settings.json.tmpl",
+    "dot_config/dms/modify_settings.json.tmpl",
     *(f"dot_config/systemd/user/tetherd.service.d/{name}.tmpl" for name in sorted(dropins)),
     "scripts/tether/bluetooth-experimental.conf",
 ):
@@ -208,7 +208,7 @@ def fixture(name, shell="dms", graphical=True, niri=True, tether=True, mode=None
 tether_target = ".config/tether/bluetooth.json"
 unit_targets = {f".config/systemd/user/tetherd.service.d/{name}" for name in dropins}
 tether_targets = {tether_target} | unit_targets
-dms_target = ".config/DankMaterialShell/settings.json"
+dms_target = ".config/dms/settings.json"
 rule = {
     "enabled": True, "field": "desktopEntry", "pattern": "tether-gtk",
     "matchType": "exact", "action": "no_history", "urgency": "default",
@@ -244,7 +244,7 @@ for shell, graphical, niri, tether, mode in itertools.product(
     )
     assert inventory == expected, (shell, graphical, niri, tether, inventory, expected)
     rendered = run(command + [
-        "execute-template", "--file", str(source / "dot_config/DankMaterialShell/modify_settings.json.tmpl"),
+        "execute-template", "--file", str(source / "dot_config/dms/modify_settings.json.tmpl"),
     ], env)
     rendered_modifier = home / "dms-modifier.py"
     rendered_modifier.write_text(rendered)

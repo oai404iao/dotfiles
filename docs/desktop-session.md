@@ -228,9 +228,11 @@ D-Bus activation environments still retain their old values. Terminate the
 full user session and sign in again; reboot if lingering keeps the user
 manager alive.
 
-For DMS, stop its old supervisor and relaunch through Niri as
-described in [the immediate overlay switch](dms-plugins.md#native-media-page-overlay);
-`dms restart` alone retains the supervisor's environment.
+For Dux Shell, use a fresh Niri login after a reviewed configuration deployment.
+Its managed startup is `env -u DMS_SHELL_DIR dms run`, clearing an inherited
+legacy overlay while retaining Niri's desktop locale. `dms restart` alone
+retains the existing supervisor's environment. Source-only updates do not
+restart the desktop; see [deployment review](desktop-shells.md#review-existing-dux-configuration).
 
 ## XDG user directories
 

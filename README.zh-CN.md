@@ -6,7 +6,7 @@
 笔记本和无图形设备。
 
 Bash 与 Zsh 共享登录环境；模块化 Niri 桌面可选择 custom 组件组合或
-DankMaterialShell，并包含 LazyVim、Git、SSH 和 Pi 配置。机器能力决定部署
+Dux Shell（DMS），并包含 LazyVim、Git、SSH 和 Pi 配置。机器能力决定部署
 哪些目标；凭据、下载的软件包与应用运行状态不进入 Git。
 
 ## 开始使用

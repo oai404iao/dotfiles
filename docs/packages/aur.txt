@@ -1,17 +1,19 @@
 # AUR packages used or referenced by this repository; select matching sections.
-# Entries except the marked optional module are installed as foreign packages
-# on the audited machine, NOT official pacman packages.
+# These names are not official pacman packages; some are built locally.
 # Inspect PKGBUILDs before building; alternatives below are mutually exclusive
 # with providers named in pacman.txt.
 
-# Common: user-level Node setup and an optional font-provider substitution.
-pnpm-bin               # pnpm 12; conflicts with official pnpm; Node/npm/npx use PNPM_HOME.
-noto-fonts-lite        # Installed here instead of official noto-fonts; choose one.
+# Common: optional font-provider substitution.
+noto-fonts-lite        # Optional alternative to official noto-fonts; choose one.
 
 # Graphical: optional browser launcher.
-shardx-launcher-bin    # ShardBrowser Launcher with its packaged desktop entry.
+shardx-launcher-bin    # Local aur monorepo build of ShardBrowser Launcher.
+
+# Optional Niri + DMS: enable only after reviewing docs/tether.md.
+tether-bin            # iPhone integration; requires the documented manual setup.
 
 # Niri + custom: runtime and active Waybar actions.
+swaylock-effects      # Custom profile's blurred lock screen; provides swaylock.
 waypaper-git           # Installed Waypaper provider; conflicts with waypaper.
 blueberry              # Waybar Bluetooth settings button.
 wlogout                # Waybar power-menu action and Matugen style.

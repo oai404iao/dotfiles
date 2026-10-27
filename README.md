@@ -6,7 +6,7 @@ Personal Arch Linux configuration managed by
 [chezmoi](https://www.chezmoi.io/), for desktop, laptop, and headless machines.
 
 Use Bash or Zsh with a shared login environment, a modular Niri desktop with
-custom components or DankMaterialShell, LazyVim, Git, SSH, and Pi. Machine
+custom components or Dux Shell (DMS), LazyVim, Git, SSH, and Pi. Machine
 capabilities select what is deployed; credentials, downloaded packages, and
 application state remain outside Git.
 
