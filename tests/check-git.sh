@@ -68,8 +68,6 @@ cat >"$fixture_plain/person" <<'EOF'
 [user]
 	name = Fixture Person
 	email = person@example.invalid
-[url "git@github-fixture-person:"]
-	insteadOf = git@github.com:
 EOF
 cat >"$fixture_plain/github" <<'EOF'
 [user]
@@ -120,6 +118,21 @@ for profile in identity work person github; do
     cmp -s "$target" "$fixture_plain/$profile"
     [ "$(stat -c %a "$target")" = "600" ]
 done
+
+(
+    export HOME="$fixture_home" GIT_CONFIG_NOSYSTEM=1
+    export GIT_CONFIG_GLOBAL="$fixture_home/.gitconfig"
+    for directory in local github; do
+        repository="$fixture_home/Dev/$directory/routing-check"
+        git -c init.templateDir= init -q "$repository"
+        git -C "$repository" remote add origin git@github.com:fixture/repository.git
+        case "$directory" in
+            local) expected_url=git@github.com:fixture/repository.git ;;
+            github) expected_url=git@github-fixture-primary:fixture/repository.git ;;
+        esac
+        [ "$(git -C "$repository" remote get-url origin)" = "$expected_url" ]
+    done
+)
 
 excluded_home="$tmp_dir/excluded-home"
 excluded_config="$tmp_dir/excluded.toml"
@@ -174,7 +187,6 @@ import re
 import sys
 
 root = pathlib.Path(sys.argv[1])
-routes = {}
 users = {}
 for profile in ("identity", "work", "person", "github"):
     parser = configparser.ConfigParser(interpolation=None)
@@ -202,7 +214,7 @@ for profile in ("identity", "work", "person", "github"):
         section for section in parser.sections()
         if section.startswith('url "git@') and section.endswith(':"')
     ]
-    if profile in {"identity", "work"}:
+    if profile in {"identity", "work", "person"}:
         if url_sections or set(parser.sections()) != {"user"}:
             raise SystemExit("unexpected encrypted Git profile section")
         continue
@@ -213,10 +225,7 @@ for profile in ("identity", "work", "person", "github"):
         raise SystemExit("unexpected encrypted Git routing sections")
     if dict(parser[url_sections[0]]) != {"insteadof": "git@github.com:"}:
         raise SystemExit("unexpected encrypted Git URL rewrite")
-    routes[profile] = url_sections[0]
 
-if routes["person"] == routes["github"]:
-    raise SystemExit("GitHub profiles must use distinct SSH aliases")
 if users["identity"] != users["person"]:
     raise SystemExit("default and personal Git identities must match")
 if users["person"]["email"].casefold() == users["github"]["email"].casefold():

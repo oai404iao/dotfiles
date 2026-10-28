@@ -19,8 +19,9 @@ metadata, the other determines which account can access a remote.
 Encrypted sources are under `dot_config/git/encrypted_private_dot_gitconfig-*.age`.
 The default and personal identities match. Public-facing identities use
 ID-based GitHub `noreply` addresses; the organization profile can keep its
-required address inside ciphertext. Personal and GitHub profiles route
-`git@github.com:` through distinct SSH aliases.
+required address inside ciphertext. The personal profile leaves `github.com`
+unchanged. Only the `~/Dev/github/` profile rewrites `git@github.com:` through
+its account-specific SSH alias.
 
 The public config selects `main` for new repositories and the `libsecret`
 credential helper. It does not install the helper or migrate keyring data.
