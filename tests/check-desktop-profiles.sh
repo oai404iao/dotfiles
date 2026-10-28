@@ -86,7 +86,7 @@ custom_only = {
     ".config/niri/conf.d/20-outputs.kdl", ".config/niri/colors.kdl",
     ".config/niri/conf.d/60-binds.kdl",
 }
-dms_kdl_names = ("alttab", "binds", "colors", "cursor", "layout", "outputs", "windowrules")
+dms_kdl_names = ("alttab", "binds", "colors", "cursor", "input", "layout", "outputs", "windowrules", "wpblur")
 dms_kdl_targets = {f".config/niri/dms/{name}.kdl" for name in dms_kdl_names}
 dms_only = {
     ".config/dms/settings.json",
@@ -233,6 +233,8 @@ for shell in ("custom", "dms"):
         if shell == "dms":
             assert session.count('spawn-at-startup "env" "-u" "DMS_SHELL_DIR" "dms" "run"') == 1
             assert "dms-with-lyrics" not in session
+            assert '"dash" "toggle" "wallpaper"' in binds
+            assert '"dankdash" "wallpaper"' not in binds
             assert not re.search(r'waybar|mako|awww|copyq|swayidle|swaylock|gammarelay', session + binds)
             assert '"audio" "micmute"' in binds
             assert '"lock" "lockAndOutputsOff"' in binds
@@ -277,21 +279,25 @@ for shell in ("custom", "dms"):
             assert settings["configVersion"] == 42
             assert settings["barElevationEnabled"] is False
             bar = settings["barConfigs"]
-            assert len(bar) == 1
+            assert len(bar) == 2
+            assert bar[1]["dot"] is True and bar[1]["enabled"] is False
             assert bar[0]["island"] is False
             assert bar[0]["followInterfaceStyle"] is False
             assert bar[0]["transparency"] == 0
-            assert bar[0]["widgetFollowInterfaceStyle"] is False
+            assert bar[0]["widgetFollowInterfaceStyle"] is True
             assert bar[0]["scrollXBehavior"] == "focusWindow"
             assert "removeWidgetPadding" not in bar[0]
             assert bar[0]["widgetTransparency"] == 1
             assert bar[0]["screenPreferences"] == ["all"]
-            assert bar[0]["leftWidgets"] == ["launcherButton", "workspaceSwitcher", "focusedWindow"]
-            assert bar[0]["centerWidgets"] == ["music", "clock", "weather"]
+            assert bar[0]["leftWidgets"] == [{"id": "systemTray", "enabled": True}, "workspaceSwitcher", "focusedWindow"]
+            assert bar[0]["centerWidgets"] == [{"id": "colorPicker", "enabled": True}, "music", "clock", {"id": "notificationButton", "enabled": True}]
             assert bar[0]["rightWidgets"] == [
-                "systemTray", "clipboard", "dankTodo", "cpuUsage", "memUsage",
-                "notificationButton", "battery", "controlCenterButton",
+                {"id": "network_speed_monitor", "enabled": True}, "cpuUsage", "memUsage", "controlCenterButton",
             ]
+            dock = settings["dockConfigs"]
+            assert len(dock) == 1 and dock[0]["autoHide"] is True
+            assert dock[0]["trashFileManager"] == "nautilus"
+            assert settings["builtInPluginSettings"]["dms_clipboard_search"]["trigger"] == "cb"
             assert bar[0]["hoverPopouts"] is True
             assert bar[0]["hoverPopoutDelay"] == 450
             assert not any(key.startswith("island") and key != "island" for key in bar[0])
@@ -325,7 +331,8 @@ for shell in ("custom", "dms"):
             settings["widgetColorMode"] = "colorful"
             settings["barElevationEnabled"] = True
             settings["matugenTemplateNeovim"] = False
-            settings["matugenTemplateGhostty"] = False
+            settings["matugenTemplateGhostty"] = True
+            settings["dockConfigs"] = []
             settings_file.write_text(json.dumps(settings))
             qt_file.write_text(
                 "; local comment\n[Appearance]\nicon_theme=breeze\ncustom_palette=false\n"
@@ -346,7 +353,8 @@ for shell in ("custom", "dms"):
             assert updated["barElevationEnabled"] is False
             assert updated["matugenTemplateNeovim"] is True
             assert updated["matugenTemplateGhostty"] is False
-            assert updated["acLockTimeout"] == 600
+            assert updated["acLockTimeout"] == 300
+            assert updated["dockConfigs"] == dock
             assert updated["futurePreference"] is True
             assert updated["networkPreference"] == "ethernet"
             qt6ct = configparser.ConfigParser(interpolation=None)
@@ -397,7 +405,7 @@ assert settings["futurePreference"] is True
 assert settings["configVersion"] == 42
 assert settings["dashOptions"] == {"media": {"lyricsEnabled": False}}
 assert legacy_file.read_bytes() == legacy_before
-assert "acLockTimeout" not in settings
+assert settings["acLockTimeout"] == 300
 assert settings["barConfigs"][0]["island"] is False
 assert settings["barElevationEnabled"] is False
 assert settings["radiusMode"] == "scale"
@@ -511,7 +519,7 @@ for path in (
     ".config/fastfetch/config.jsonc",
 ):
     assert path in ignored.splitlines()
-assert "!.config/DankMaterialShell/plugins/lyrics" not in ignored.splitlines()
+assert "!.config/dms/plugins/lyrics" not in ignored.splitlines()
 
 if shutil.which("dms") and shutil.which("matugen"):
     home, env, command = fixture("dms-btop-generation", "dms")

@@ -84,13 +84,13 @@ Chezmoi does not install or enable plugins or lyrics providers.
 
 ### Review existing Dux configuration
 
-This adoption is **source-only**: no apply, restart, installation, or live
-directory cleanup is part of it. The deployment commands below are for a later,
-explicitly authorized transition.
+Updating the source does not apply settings, restart the shell, install packages,
+or clean up live directories. Deployment requires an explicitly authorized,
+reviewed transition.
 
-Both `~/.config/DankMaterialShell/settings.json` and
-`~/.config/dms/settings.json` have been observed locally; Dux reports a
-migration conflict when both configuration directories exist. Before deployment,
+Check `~/.config/DankMaterialShell/settings.json` and
+`~/.config/dms/settings.json`; Dux reports a migration conflict when both are
+separate configuration directories. Before deployment,
 privately back up both directories and review their settings and personal state.
 The reviewed new `dms` configuration is canonical. The old directory is ignored
 by chezmoi, not automatically merged, renamed, or deleted. Decide separately
@@ -98,6 +98,7 @@ which old-only preferences or plugin data to retain and when to retire the
 duplicate path. Do not blindly merge directories or replace them with a symlink;
 apply only the reviewed new settings target. No compatibility migration or
 overlay-preparation hook runs during apply.
+Existing compatibility symlinks remain unmanaged and need not be replaced.
 
 ## Configuration ownership
 
@@ -107,16 +108,18 @@ those directories is overwrite-managed:
 
 | Target | Apply behavior | Owner afterward |
 |---|---|---|
-| `dms/settings.json` | Merge declared fields below; seed defaults only for a missing file | Chezmoi for declared fields; DMS for other preferences |
+| `dms/settings.json` | Merge the declared preferences below; seed schema version 42 for a missing file | Chezmoi for declared fields; Dux for other preferences |
 | `DankMaterialShell/` | Ignored, no migration or cleanup | Retained local configuration |
 | `niri/dms/*.kdl` | Create-only, including empty fragments | DMS Settings |
 | Kitty / GTK generated palette files | Create-only fallback | DMS |
 | Qt6ct configuration | Merge declared appearance/font fields | Chezmoi for declared keys; local for the rest |
-| Installed plugins, launcher, preferences, data | Ignored, never auto-fetched | Reviewed plugin checkout / local runtime |
+| Retired plugins, launcher, preferences, data | Ignored, never auto-fetched | Local runtime / retained backups |
 | Custom-only configuration | Ignored in DMS, not deleted | Retained on disk for rollback |
 
-Configuration paths in the table are under `~/.config/`. Optional plugin and
-legacy launcher ownership is described in [plugin setup](dms-plugins.md).
+Configuration paths in the table are under `~/.config/`. Sources now target
+`dms` directly. Old `DankMaterialShell` compatibility symlinks are unmanaged;
+the configuration no longer depends on them. Runtime state under the XDG
+`dms` data, state, and cache directories is also unmanaged.
 
 ### Settings restored on every apply
 
@@ -124,28 +127,24 @@ The settings modifier owns:
 
 | Field | Managed value |
 |---|---|
-| `barConfigs` | Complete DankBar layout with DankDash |
-| `barElevationEnabled` | `false` |
-| `radiusMode` / `radiusStrength` | `scale` / `50`, preserving the old 16px base-radius intent |
-| `widgetColorMode` | `default` |
-| `matugenTemplateNeovim` | `true` |
+| `barConfigs`, `dockConfigs` | Current portable bar and auto-hiding dock layouts |
+| Theme and fonts | Dynamic neutral palette, dark terminals, Adwaita Sans, JetBrainsMono Nerd Font Mono |
+| Shape and widget colors | `radiusMode=scale`, `radiusStrength=50`, default widget colors, no bar elevation |
+| Clipboard and launcher | Click/Enter paste, list-style app search, built-in search triggers, systemd scope launch prefix |
+| Idle and lock | The [idle defaults](#idle-and-lock-defaults), restored on apply |
+| Matugen | Built-in/custom DMS templates and Neovim enabled; legacy user templates, Hyprland, Qt5ct, Pywalfox, Ghostty and KDE output disabled |
 
-A missing file receives schema version 42, wallpaper-based colors, native
-clipboard paste, Adwaita Sans, and [the idle defaults](#idle-and-lock-defaults). This pre-seeding
-bypasses DMS's first-launch wizard. Existing files retain other preferences,
-including machine-specific outputs, wallpaper, network, and battery settings.
-Existing schema versions are preserved for Dux's own migrations. The modifier
-stops emitting legacy `cornerRadius` and global `runningAppsCurrentWorkspace`,
-but does not delete existing keys or implement a migration shim. The bar keeps
-supported widget string IDs. Widget-specific options such as
-`runningAppsCurrentWorkspace` now belong to widget objects; no running-apps
-widget is present here, so that option is no longer managed. Unrelated user
-preferences remain intact.
+A missing file starts at Dux 2.0's schema version 42. Existing schema markers
+are preserved for Dux's own migrations. Other preferences remain local,
+including wallpaper, network, battery charge limits, and machine-specific
+screen selections outside the managed bar/dock layouts.
+Legacy `cornerRadius` and global `runningAppsCurrentWorkspace` are no longer
+emitted; existing keys are left for Dux's own migration.
 
 **Before adopting an existing DMS installation**, back up and review settings,
-especially `runUserMatugenTemplates`, idle/lock settings, and custom power
-commands. These are seeded only on a new file; apply does not repair existing
-unsafe or incompatible choices automatically.
+especially the declared theme, bar/dock, launcher and idle/lock fields: apply
+now restores these preferences, not just the former six managed fields.
+Unknown keys and unrelated custom power commands are preserved.
 
 With optional `tether=true`, the modifier also prepends an owned `no_history`
 rule for the exact `tether-gtk` desktop entry while preserving unrelated rules.
@@ -154,28 +153,21 @@ Live notifications remain visible; previous history is not purged. Follow
 
 ### Bar, plugins, and runtime state
 
-DankBar uses `centerWidgets` for music, date/time, and weather in that order.
-Music uses Dux's native widget and media page, without a prepared shell overlay.
-Lyrics availability depends on the local settings and providers; bilingual
-display and live provider behavior have not been verified for this adoption.
+The bar places the tray, workspaces and focused window on the left; color
+picker, music, clock and notifications in the center; and network speed,
+CPU, memory and control center on the right.
 Click or hover opens the tabbed DankDash panel; hover popouts use a 450 ms
-delay. The left/right sections retain the launcher, workspaces, focused
-window, and system status without duplicate music or weather widgets.
-The right section retains the optional `dankTodo` slot after the clipboard;
-using it needs a separately reviewed compatible plugin and local enablement.
+delay. The dock supplies the launcher, running apps and Nautilus trash.
 The bar background is transparent and its shadow is disabled; individual
 widget backgrounds remain opaque.
 
-The separate [plugin repository](https://github.com/oai404iao/dms-plugins)
-owns `plugins/{lyrics,dankTodo}`, `scripts/prepare-dms-media-lyrics.py`,
-`scripts/dms-media-lyrics/`, `bin/dms-with-lyrics`, and their offline tests.
-All installed plugin directories, including `lyrics`, and the launcher are
-ignored by chezmoi. Plugin enablement/preferences in `plugin_settings.json`,
-plugin lockfiles, and `~/.config/dank-todo/` storage stay machine-local.
-Custom todo storage paths must also remain outside either source repository.
-
-Old generated trees under `$XDG_DATA_HOME/dms-media-lyrics/` remain unmanaged
-and unused by native startup. Neither they nor installed plugins are deleted.
+The bar uses stock widgets only. Installed plugin directories, old launchers,
+plugin preferences/lockfiles, todo data, and generated overlay trees remain
+machine-local. Follow [plugin retirement](dms-plugins.md) to remove obsolete
+runtime components without resetting shell preferences.
+Music uses Dux's native widget and media page. Lyrics availability depends on
+local settings and providers; this source does not establish bilingual parity
+with the old overlay or verify live provider behavior.
 
 Custom-only files are ignored, not deleted. CopyQ history remains untouched
 and is not imported into DMS. DMS clipboard data, notifications, night-mode and
@@ -184,17 +176,22 @@ recursively add these directories to chezmoi.
 
 ### Niri fragments
 
-`~/.config/niri/dms/{binds,outputs,layout,cursor,colors,alttab,windowrules}.kdl`
+`~/.config/niri/dms/{binds,outputs,input,layout,cursor,colors,alttab,windowrules,wpblur}.kdl`
 are create-only. DMS owns subsequent edits. Output selection and familiar
 window bindings are seeded from the same templates as custom mode. DMS
 Settings can reassign/remove bindings without leaving a second copy active.
 Their `create_empty_` attributes preserve empty fragments as well as edits:
 DMS writes an empty cursor fragment for defaults, and Niri still requires
 every included file to exist. Plain `create_` can delete these empty files.
-Input configuration remains in the common `conf.d/10-input.kdl`.
+Common input configuration remains in `conf.d/10-input.kdl`; Dux's included
+`dms/input.kdl` contains its mouse/touchpad preferences. Fresh layout seeds
+use 4px gaps, 2px borders/focus rings and 16px window corners. Existing
+fragments remain untouched on apply. The wallpaper shortcut uses Dux's
+`dash toggle wallpaper` IPC; update an existing create-only binds file
+explicitly after backing it up.
 The window-rules fragment starts empty. Dux generates its own floating-window
-rule for `dev.duxlabs.shell`; the main config does not duplicate it. Existing
-fragments remain intact until Dux updates its generated rules at runtime.
+rules; the main config does not duplicate them. Existing rules remain intact
+until Dux updates them at runtime.
 
 ### Application palettes
 
@@ -217,7 +214,7 @@ even when the shell switches to light mode. Kitty includes the declarative
 foreground, background, selection, tabs, and links still follow DMS. This
 does not enable the legacy user Matugen templates. Existing DMS installations
 can select **Neutral** and **Terminals - Always use Dark Theme** in Settings;
-the seed does not reset existing preferences outside the declared fields.
+these preferences are now restored by the settings modifier.
 
 Chezmoi merges Qt6ct's `Appearance` palette path
 (`colors/matugen.conf` under this machine's home), custom palette, Adwaita
@@ -289,26 +286,9 @@ reactivate obsolete desktop hooks.
 
 For a machine-local cleanup, back up and move only reviewed retired targets.
 Disable the DMS Ghostty, Qt5ct, KDE color-scheme, Hyprland, and Pywalfox template switches
-before removing their generated outputs, or DMS can recreate them. These
-switches remain local preferences; the repository still supports the custom
-desktop and does not uninstall packages during apply.
-
-## Native lyrics and optional plugins
-
-Native Dux lyrics are the selected default; the old bilingual overlay is not a
-2.0 dependency. See [DMS plugins and native lyrics](dms-plugins.md) for optional
-plugin ownership and legacy limitations. Chezmoi does not install, update, or
-enable plugins or providers, and no bilingual-parity claim is made.
-
-### Install on a fresh machine or migrate an existing installation
-
-Follow the [configuration review](#review-existing-dux-configuration) before a
-later deployment. Optional plugins are not prerequisites for the first session.
-
-### Native media-page overlay
-
-The [legacy overlay](dms-plugins.md#native-media-page-overlay) is limited to
-1.6.2/1.6.3. Keep its implementation in the separate plugin repository.
+before removing their generated outputs, or DMS can recreate them. The settings
+modifier now keeps these switches disabled. The repository still supports the
+custom desktop and does not uninstall packages during apply.
 
 ## Idle and lock defaults
 
@@ -385,7 +365,8 @@ This is a future manual deployment procedure, not part of a source-only update.
    ```
 
    Existing DMS settings can contain personal paths; inspect that target locally,
-   not in shared logs. The Bar layout and Qt6ct fields above will be replaced;
+   not in shared logs. Declared desktop preferences, complete bar/dock layouts,
+   and Qt6ct fields above will be replaced;
    back up both targets first. Create missing target parent directories if
    chezmoi reports an absent parent for an explicit file target. Use the fresh
    Niri login below to start Dux with the reviewed environment and regenerate
@@ -426,12 +407,6 @@ generated-file preservation, and
 excludes runtime state. It does not start DMS, lock the screen, change services,
 or access the real credential backend.
 
-Plugin logic, QML, todo persistence, overlay preparation, and launcher tests
-belong to [dms-plugins](https://github.com/oai404iao/dms-plugins). Run
-`sh tests/check-source.sh` from its reviewed checkout before installing or
-updating it. Those tests use offline fixtures; they do not prove native
-Wayland popup focus, real provider availability, or live desktop behavior.
-
 Run `./tests/check-source.sh` and `git diff --check` before applying.
 
 ## Troubleshooting
@@ -443,8 +418,8 @@ Run `./tests/check-source.sh` and `git diff --check` before applying.
 | Lyrics are unavailable | Review native lyrics settings and providers locally; the legacy overlay is not compatible with 2.0 |
 | Migration reports both configuration paths | Back up and privately review both; `dms/settings.json` is canonical, but source updates do not clean up the old path |
 | Old custom palettes still exist | Expected: ignored is not deleted; only reviewed retired targets should be moved |
-| A DMS setting changes back on apply | Check the declared fields and complete bar-layout ownership |
-| Existing DMS retains old idle behavior | Defaults are seeded only for a missing settings file; review the live preferences yourself |
+| A DMS setting changes back on apply | Check the declared preferences and complete bar/dock-layout ownership |
+| Idle behavior differs after apply | The modifier restores the declared idle/lock settings; verify lock/unlock and suspend interactively |
 | Fcitx5 icon is a purple/black placeholder | Check Qt6ct's Adwaita icon theme, then restart DMS while unlocked |
 
 Next: [application setup](desktop-applications.md),

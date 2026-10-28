@@ -112,6 +112,8 @@ never derive cleanup operands from rebound HOME/XDG variables.
   are the default; the old 1.6.2/1.6.3 overlay is not a 2.0 dependency.
   Chezmoi owns integration, never plugin/provider enablement, auto-fetch/install,
   dependency preparation, or restarts. Plugin data and generated trees stay ignored.
+  The managed bar uses stock widgets only; follow `docs/dms-plugins.md` for
+  retiring the old launcher, overlay, and plugins without losing preferences.
 - Tether is opt-in for graphical Niri/DMS. Preserve both mode drop-ins and
   local device/runtime fields. `notifications` is the default;
   `wifi-clipboard` deliberately adds network/clipboard access. Verify the

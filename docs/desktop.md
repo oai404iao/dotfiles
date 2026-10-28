@@ -12,7 +12,7 @@ Choose the guide for your task:
 | Select DMS, switch stacks, or return to custom | [Desktop shell profiles](desktop-shells.md) |
 | Set up fonts, GTK, Nautilus, input methods, or application themes | [Desktop applications](desktop-applications.md) |
 | Configure locale, English folders, sudo dialogs, or the keyring | [Desktop session setup](desktop-session.md) |
-| Understand native lyrics or optional plugins | [DMS plugins and native lyrics](dms-plugins.md) |
+| Understand native lyrics or retire old plugins | [DMS plugins and lyrics](dms-plugins.md) |
 | Forward iPhone notifications or opt into clipboard sharing | [Tether](tether.md) |
 
 The palette, Waybar, and temperature procedures below are for **custom**.

@@ -82,7 +82,7 @@ SSH clients need the native Bitwarden SSH key items described in
 | Shell | Back up existing entrypoints; prepare [user Node.js](shell.md#user-level-nodejs) if needed |
 | Zsh framework | Back up existing trees and review [pinned dependency takeover](zsh.md) |
 | Desktop | Install [graphical dependencies](desktop.md) and follow [profile setup](desktop-shells.md) |
-| Optional DMS plugins | Review compatibility and the separate [plugin repository](dms-plugins.md); native Dux needs no external launcher |
+| Old DMS plugins | Follow [retirement and compatibility guidance](dms-plugins.md); native Dux needs no external launcher |
 | Pi | Install Pi ≥ 1.2.0 and Node.js ≥ 22.19; prepare the [notification profile](pi.md#notifications-by-machine-profile) |
 | Tether | Follow [manual preparation](tether.md#install-and-prepare-manually); capability selection alone does not install or enable it |
 

@@ -11,11 +11,13 @@ include "conf.d/40-session.kdl"
 include "conf.d/50-rules.kdl"
 {{ if eq (get . "desktopShell" | default "custom") "dms" -}}
 include "dms/colors.kdl"
+include "dms/input.kdl"
 include "dms/layout.kdl"
 include "dms/cursor.kdl"
 include "dms/alttab.kdl"
 include "dms/binds.kdl"
 include "dms/windowrules.kdl"
+include "dms/wpblur.kdl"
 
 layout {
     background-color "transparent"
@@ -26,10 +28,6 @@ layer-rule {
     place-within-backdrop true
 }
 
-layer-rule {
-    match namespace="^dms:blurwallpaper$"
-    place-within-backdrop true
-}
 {{ else -}}
 include "conf.d/60-binds.kdl"
 include "colors.kdl"
