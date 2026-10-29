@@ -46,6 +46,13 @@ secrets/
 # Unmanaged CLI credentials and session state.
 .tavily/
 
+# Herdr owns sessions, sockets, plugins, and worktrees; only config is declarative.
+.config/herdr/*
+!.config/herdr/config.toml
+.local/state/herdr/
+.local/share/herdr/
+.herdr/
+
 # Paseo owns configuration, credentials, worktrees, and runtime state.
 .paseo/
 .local/share/paseo/

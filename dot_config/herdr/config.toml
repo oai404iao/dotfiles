@@ -1,0 +1,9 @@
+[theme]
+name = "catppuccin"
+
+[keys]
+prefix = "ctrl+a"
+split_vertical = "prefix+|"
+split_horizontal = "prefix+minus"
+reload_config = "prefix+r"
+resize_mode = "prefix+shift+r"

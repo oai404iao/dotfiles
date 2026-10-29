@@ -273,6 +273,31 @@ done
 grep -qxF '.local/share/dsh/' "$repo_dir/.chezmoiignore"
 grep -qxF '.dsh/' "$repo_dir/.chezmoiignore"
 
+python3 - "$repo_dir" <<'PY'
+from pathlib import Path
+import sys
+import tomllib
+
+root = Path(sys.argv[1])
+config = tomllib.loads((root / "dot_config/herdr/config.toml").read_text())
+assert config["theme"]["name"] == "catppuccin"
+keys = config["keys"]
+assert keys["prefix"] == "ctrl+a"
+assert keys["split_vertical"] == "prefix+|"
+assert keys["split_horizontal"] == "prefix+minus"
+assert keys["reload_config"] == "prefix+r"
+assert keys["resize_mode"] == "prefix+shift+r"
+ignore = set((root / ".chezmoiignore").read_text().splitlines())
+assert {".config/herdr/*", "!.config/herdr/config.toml",
+        ".local/state/herdr/", ".local/share/herdr/", ".herdr/"} <= ignore
+PY
+if command -v herdr >/dev/null 2>&1; then
+    HOME="$fake_home" XDG_CONFIG_HOME="$fake_config" XDG_STATE_HOME="$fake_state" \
+        HERDR_CONFIG_PATH="$repo_dir/dot_config/herdr/config.toml" herdr config check
+else
+    printf '%s\n' 'SKIP: Herdr config validation (herdr unavailable)'
+fi
+
 if command -v chezmoi >/dev/null 2>&1; then
     python3 - "$repo_dir" <<'PY'
 import json
@@ -317,7 +342,11 @@ PY
         "$repo_dir/dot_bash_profile" "$repo_dir/dot_bashrc" \
         "$repo_dir/dot_zshenv" "$fixture_source/"
     cp -R "$repo_dir/dot_config/bash" "$repo_dir/dot_config/zsh" \
-        "$repo_dir/dot_config/shell" "$repo_dir/dot_config/pnpm" "$fixture_source/dot_config/"
+        "$repo_dir/dot_config/shell" "$repo_dir/dot_config/pnpm" \
+        "$repo_dir/dot_config/herdr" "$fixture_source/dot_config/"
+    mkdir -p "$fixture_source/dot_config/herdr/sessions/test"
+    printf '%s\n' 'unmanaged fixture' >"$fixture_source/dot_config/herdr/session.json"
+    printf '%s\n' 'unmanaged fixture' >"$fixture_source/dot_config/herdr/sessions/test/session.json"
     cp "$repo_dir/dot_local/bin/executable_sudo-askpass" "$fixture_source/dot_local/bin/"
     for shell_choice in bash zsh; do
         for graphical in false true; do
@@ -325,7 +354,9 @@ PY
             shell_home="$test_root/deploy-$fixture_name"
             mkdir -p "$shell_home/.config/shell" "$shell_home/.local" \
                 "$shell_home/.config/bash/rc.d" "$shell_home/.config/zsh/rc.d" \
-                "$shell_home/.config/pnpm"
+                "$shell_home/.config/pnpm" "$shell_home/.config/herdr/sessions/test"
+            printf '%s\n' 'retained session' >"$shell_home/.config/herdr/session.json"
+            printf '%s\n' 'retained session' >"$shell_home/.config/herdr/sessions/test/session.json"
             for old_loader in shell/nvm.sh bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
                 : >"$shell_home/.config/$old_loader"
             done
@@ -345,6 +376,7 @@ EOF
                 "$shell_home/.zshenv" "$shell_home/.config/bash" \
                 "$shell_home/.config/zsh" "$shell_home/.config/shell" \
                 "$shell_home/.config/pnpm/config.yaml" \
+                "$shell_home/.config/herdr" \
                 "$shell_home/.local/bin"
             for target in .bash_profile .bashrc .zshenv \
                 .config/bash/rc.d/10-options.bash .config/zsh/.zshrc; do
@@ -355,6 +387,15 @@ EOF
             done
             grep -qF '@getpaseo/*' "$shell_home/.config/pnpm/config.yaml"
             [ "$(stat -c %a "$shell_home/.config/pnpm/config.yaml")" = 600 ]
+            cmp "$repo_dir/dot_config/herdr/config.toml" "$shell_home/.config/herdr/config.toml"
+            grep -qxF 'retained session' "$shell_home/.config/herdr/session.json"
+            grep -qxF 'retained session' "$shell_home/.config/herdr/sessions/test/session.json"
+            herdr_managed=$(chezmoi --config "$test_root/$fixture_name.toml" \
+                --source "$fixture_source" --destination "$shell_home" \
+                --cache "$test_root/chezmoi-cache" \
+                --persistent-state "$test_root/$fixture_name-state.boltdb" \
+                managed --include=files "$shell_home/.config/herdr")
+            [ "$herdr_managed" = '.config/herdr/config.toml' ]
             if [ "$graphical" = true ]; then
                 [ -f "$shell_home/.local/bin/sudo-askpass" ]
                 [ "$(stat -c %a "$shell_home/.local/bin/sudo-askpass")" = 755 ]

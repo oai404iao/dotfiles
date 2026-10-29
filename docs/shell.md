@@ -109,6 +109,35 @@ to work around a missing replacement tool.
 For Oh My Zsh and nested plugins, use the separate
 [Zsh migration guide](zsh.md); do not recursively import downloaded trees.
 
+## Herdr terminal configuration
+
+Install and update Herdr separately through the AUR `herdr-bin` package; do not
+use `herdr update` for this package-managed installation. Chezmoi owns only
+`~/.config/herdr/config.toml`, not sessions, sockets, logs, plugins, saved
+machines, or worktrees. Settings changed in Herdr's UI must be reflected in
+the source before the next apply.
+
+The configuration uses Catppuccin Mocha (`theme.name = "catppuccin"`) and a
+`Ctrl+a` prefix: `|`/`-` split, `h/j/k/l` focus panes, `r` reloads configuration,
+and `Shift+r` enters resize mode. Directory-following splits and mouse
+copy-on-select use Herdr's built-in defaults. Other preferences stay at their
+defaults, and existing tmux configuration remains independent.
+
+Before taking over an existing config, review and back it up. Validate and
+apply only this target:
+
+```sh
+HERDR_CONFIG_PATH="$PWD/dot_config/herdr/config.toml" herdr config check
+mkdir -p -- ~/.config/herdr
+chezmoi diff --skip-secrets --exclude=encrypted ~/.config/herdr/config.toml
+chezmoi apply --exclude=scripts,encrypted ~/.config/herdr/config.toml
+herdr config check
+```
+
+New clients read the file on launch. In an existing client, choose **reload
+config** from Herdr's global menu when ready; this also refreshes local
+keybindings. Applying the file does not restart or reload a running session.
+
 ## Verify changes
 
 ```sh
