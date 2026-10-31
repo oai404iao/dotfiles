@@ -29,14 +29,29 @@ The managed role files live in
 
 | Role | Use for | Model / thinking / ordinary tools |
 | --- | --- | --- |
-| `scout` | Bounded discovery when relevant paths/dependencies are unknown; not a known-path fix. | `openai/gpt-6-luna`, high; `read`, `grep`, `find`, `ls`, `bash`, `codemode`. |
-| `reviewer` | One independent read-only review when requested or materially risk-justified; not a routine completion gate. | Inherit model, high thinking; same read-only tool ceiling as scout. |
-| `worker` | Independent scoped implementation with relevant checks. | Inherit caller model/thinking; no extra role-specific tool ceiling. |
+| `scout` | Bounded discovery when relevant paths/dependencies are unknown; not a known-path fix. | `openai/gpt-6-luna`, high; `read`, `grep`, `find`, `ls`, `bash`, `codemode`, `web_search`. |
+| `reviewer` | One independent read-only review when requested or materially risk-justified; not a routine completion gate. | Inherit model, high thinking; the same ceiling as scout without `web_search`. |
+| `worker` | Independent scoped implementation with relevant checks. | Inherit caller model/thinking and tools, including `apply_patch` and `web_search`; no role-specific ceiling. |
 
 Worker omits `tools`, `model`, and `thinking`. With extension inheritance
 enabled, it uses the configured child tool policy subject to inherited
 ceilings and runtime limits—not an exact copy of root-only capabilities.
-Scout and reviewer must not use bash or codemode to bypass their read-only role.
+
+Read-only roles are scoped by what an action changes, not by which tool it
+uses. `bash`, `codemode`, and `web_search` stay allowed for batched search,
+`git` inspection, and non-mutating checks. Their instructions name the writing
+operations to refuse—redirections, in-place edits, worktree or index changes,
+`chezmoi apply`, package installs, artifact-emitting builds—and require
+reporting such a check as not run. The ceiling is still the hard limit:
+`tools:` accepts exact names only, so a tool absent from it cannot be reached
+by prompt wording, and `web_search` requires the Codex tools extension to be
+enabled and registered in the child. Commands with command-level permissions
+remain the place for real enforcement.
+
+Worker declares no ceiling, so it inherits the caller's, including the mutation
+path. With Codex tools active, `apply_patch` is that path and `edit`/`write` are
+undeclared; its instructions name `apply_patch` instead of leaving shell
+redirection as an improvised substitute.
 
 ### Delegate a bounded task
 
@@ -63,8 +78,10 @@ not expand into implementation, an exhaustive audit, or a full test run.
 Reviewer reports coverage, severity-ranked concrete findings, actual checks,
 and gaps. It does not delegate or start another review. Another reviewer needs
 a concrete residual high-risk issue or an explicit user/repository requirement,
-not reassurance. Worker reports completed deliverables/files, actual checks,
-and remaining gaps. Small reports may combine fields. A finished run with
+not reassurance. Worker reports completed deliverables/files, exact commands run,
+and remaining gaps; it leaves changes uncommitted unless the task authorizes
+a commit, and records out-of-scope defects instead of fixing them. Small
+reports may combine fields. A finished run with
 unreviewed or unfinished requirements is partial work, not overall success.
 
 ## Runtime and lifecycle reference
@@ -206,7 +223,8 @@ can resolve successfully as a promise while reporting a nonzero `exit_code`.
   within ordinary-tool ceilings and need no role allowlist entries.
 - Scout/reviewer allowlists explicitly include codemode without adding editing
   tools. Child scripts stay within their fixed ceilings and have no `models`
-  API. Bash remains subject to read-only instructions, not filesystem isolation.
+  API. Bash remains subject to read-only instructions, not filesystem isolation
+  or command-level permissions.
 - Ask-user-question 2.13.9 has default `direct` exposure and is script-callable,
   but direct questions are preferred. Parallel dialogs and script cancellation
   around them have not been validated; this setup uses `on`, not `only`.

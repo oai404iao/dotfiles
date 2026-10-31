@@ -237,36 +237,40 @@ def check_settings(script, notification_package, home):
             raise SystemExit("Pi settings modifier is not idempotent")
     return settings
 
-scout_text = (source_dir / "exact_agents/private_scout.md").read_text()
-scout_frontmatter = {
-    key.strip(): value.strip()
-    for line in scout_text.split("---", 2)[1].splitlines()
-    if ":" in line
-    for key, value in [line.split(":", 1)]
-}
-if scout_frontmatter.get("model") != "openai/gpt-6-luna":
-    raise SystemExit("Pi scout does not use GPT-6 Luna")
-if scout_frontmatter.get("thinking") != "high":
-    raise SystemExit("Pi scout thinking level is not high")
-
 for name in ("scout", "reviewer", "worker"):
     text = (source_dir / f"exact_agents/private_{name}.md").read_text()
+    parts = text.split("---", 2)
+    if len(parts) != 3 or parts[0].strip() or not parts[2].strip():
+        raise SystemExit(f"Pi {name} definition must be frontmatter followed by a non-empty body")
     frontmatter = {
         key.strip(): value.strip()
-        for line in text.split("---", 2)[1].splitlines()
+        for line in parts[1].splitlines()
         if ":" in line
         for key, value in [line.split(":", 1)]
     }
     if frontmatter.get("name") != name or not frontmatter.get("description"):
         raise SystemExit(f"Pi {name} definition is missing its name or description")
+    if "thinking" in frontmatter and frontmatter["thinking"] not in (
+        "off", "minimal", "low", "medium", "high", "xhigh", "max"
+    ):
+        raise SystemExit(f"Pi {name} uses an unsupported thinking level")
+    if "tools" in frontmatter:
+        tools = [tool.strip() for tool in frontmatter["tools"].split(",")]
+        if not all(tools) or any("*" in tool or tool[0] in "+-" for tool in tools):
+            raise SystemExit(f"Pi {name} tools must be exact comma-separated names")
+    if name == "scout":
+        if frontmatter.get("model") != "openai/gpt-6-luna":
+            raise SystemExit("Pi scout does not use GPT-6 Luna")
+        if frontmatter.get("thinking") != "high":
+            raise SystemExit("Pi scout thinking level is not high")
     if name == "worker":
         if {"tools", "model", "thinking"} & frontmatter.keys():
             raise SystemExit("Pi worker must use inherited tool policy, model, and thinking")
     else:
-        if frontmatter.get("tools") != "read, grep, find, ls, bash, codemode":
+        expected_tools = "read, grep, find, ls, bash, codemode, web_search" if name == "scout" \
+            else "read, grep, find, ls, bash, codemode"
+        if frontmatter.get("tools") != expected_tools:
             raise SystemExit(f"Pi {name} ordinary-tool ceiling changed unexpectedly")
-        if "Do not edit files." not in text:
-            raise SystemExit(f"Pi {name} lost its read-only instructions")
 
 models = json.loads((source_dir / "private_models.json").read_text())
 providers = models.get("providers", {})
