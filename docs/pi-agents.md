@@ -13,7 +13,7 @@ For package installation, see [Pi packages](pi-packages.md); for keys, see
 | Persistent rules across projects | [Global `AGENTS.md`](#global-agent-instructions) plus repository context files |
 | Task-specific reusable instructions | [Shared skills](skills.md) |
 | Batch tools or filter their output | [Native codemode](#codemode) |
-| Advisory workflow/review triage | [Jev](#jev-task-triage), once per new root task |
+| Advisory workflow/review triage | [Jev](#jev-task-triage), optional and at most once per task |
 | Useful independent work | [A bounded child agent](#choose-a-role) |
 
 These instructions do not create an operating-system sandbox. Tool ceilings
@@ -150,8 +150,10 @@ recorded, but a zero session cost does **not** imply a free service.
 
 ### What the global instructions request
 
-At the start of **each new user task**, the root calls `models.classify`
-through codemode once, before task work, when available and permitted:
+Jev is optional, not a step in every task. When it is genuinely unclear whether
+a task needs independent delegation or an independent review, the root may call
+`models.classify` through codemode at most once, before starting work that
+depends on that choice:
 
 - Select `{ provider: "typesafe", id: "typesafe/jev" }`.
 - Send only a short sanitized task, scope/independent-work boundaries, and
@@ -163,9 +165,10 @@ through codemode once, before task work, when available and permitted:
   Missing API, failed calls, invalid or uncertain answers fall back to
   proportionate root judgment—without classification retries or reviewer loops.
 
-Continuations, status replies, tool results, and child messages in the same
-task do not trigger another call. Children have `models: false` and must not
-proxy classification through other agents, tools, or providers.
+Straightforward work and known-path fixes skip the call entirely. Continuations,
+status replies, tool results, and child messages in the same task do not trigger
+another call. Children have `models: false` and must not proxy classification
+through other agents, tools, or providers; they decide proportionately instead.
 
 The result is advisory, not authorization or a correctness guarantee. User
 restrictions and required checks still apply. Keep straightforward work direct;

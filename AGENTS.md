@@ -4,6 +4,9 @@ This is the chezmoi source for a personal Arch Linux environment, not an
 application or a backup of `$HOME`. Work from the source root, normally
 `~/.local/share/chezmoi`. Treat the repository as public.
 
+These rules load alongside the global Pi instructions and take precedence over
+them where both apply. Nothing here is an operating-system sandbox.
+
 ## Find the owning source
 
 | Change | Read before working |
@@ -23,15 +26,19 @@ application or a backup of `$HOME`. Work from the source root, normally
 
 Read only the task-relevant guides. The [documentation index](docs/index.md)
 is the human navigation entry; detailed procedures belong in their owning
-guide rather than being duplicated here.
+guide rather than being duplicated here. The table is incomplete: for a change
+it does not list, pick the guide from that index instead of assuming no rule
+applies.
 
 ## Preserve ownership
 
 - Edit declarative sources, not installed targets, caches, histories,
   sessions, databases, generated runtime state, or downloaded packages.
 - Before adding a target, classify it as declarative configuration, generated
-  state, mutable state, or secret material. Add targets one at a time; never
-  recursively `chezmoi add` `$HOME`, `.config`, or an XDG root.
+  state, mutable state, or secret material, following
+  [who owns a file](docs/how-it-works.md#decide-who-owns-a-file). Add targets
+  one at a time; never recursively `chezmoi add` `$HOME`, `.config`, or an XDG
+  root.
 - Git owns reproducible settings, templates, pins, recipients, and secret
   references. Bitwarden owns credentials and SSH private keys. age owns
   versioned static encrypted metadata. Applications own mutable state.
@@ -40,8 +47,8 @@ guide rather than being duplicated here.
 - Preserve lockfiles unless explicitly updating dependencies. Do not
   incidentally regenerate `dot_config/nvim/lazy-lock.json`.
 - Use a focused development branch and Conventional Commits. Preserve an
-  existing dirty worktree; do not mix unrelated work or use destructive Git
-  cleanup (`git clean -fdx`, `reset --hard`, forced checkout).
+  existing dirty worktree; no destructive Git cleanup (`git clean -fdx`,
+  `reset --hard`, forced checkout) to obtain a clean tree.
 - Keep both READMEs semantically synchronized. Documentation and source
   comments are written in concise English.
 
@@ -74,11 +81,10 @@ Read [Security](docs/security.md) before secret-related previews or takeover.
 - Ignored files are not disposable. Capability changes usually relinquish
   ownership, not delete targets or stop enabled services.
 
-Agent scratch work belongs in fresh task directories below
-`~/.local/state/agents/tmp/`, not `/tmp` or `/var/tmp`. Follow the
-[scratch-path procedure](docs/security.md#use-task-local-scratch-paths), capture
-absolute paths before rebinding HOME/XDG, and retain the directories. Never
-store credentials in retained scratch. Existing tests retain their documented
+Agent scratch work uses retained task directories under
+`~/.local/state/agents/tmp/`; follow the
+[scratch-path procedure](docs/security.md#use-task-local-scratch-paths).
+Never store credentials there. Existing tests retain their documented
 isolation contracts. Repository scripts may use `/usr/bin/rm -rf` only for a
 disposable `mktemp` path whose marker is verified immediately before cleanup;
 never derive cleanup operands from rebound HOME/XDG variables.
@@ -105,15 +111,14 @@ never derive cleanup operands from rebound HOME/XDG variables.
   `~/.config/dms/settings.json`; the legacy `DankMaterialShell` directory is
   ignored, not migrated or deleted. Review duplicate paths privately before
   deployment. Custom-only files are ignored, not deleted.
-- DMS plugin implementations belong to `oai404iao/dms-plugins`, normally
-  `~/Dev/local/dms-plugins`: `plugins/{lyrics,dankTodo}`, legacy overlay/preparer,
-  launcher, explicit installer, and their tests. Edit/test those there, not
-  here or in installed packages/read-only shell extractions. Native Dux lyrics
-  are the default; the old 1.6.2/1.6.3 overlay is not a 2.0 dependency.
-  Chezmoi owns integration, never plugin/provider enablement, auto-fetch/install,
-  dependency preparation, or restarts. Plugin data and generated trees stay ignored.
-  The managed bar uses stock widgets only; follow `docs/dms-plugins.md` for
-  retiring the old launcher, overlay, and plugins without losing preferences.
+- DMS plugin implementations belong to `oai404iao/dms-plugins`. Edit and test
+  them in that checkout, not here or in installed packages/read-only shell
+  extractions. Native Dux lyrics are the default; keep the legacy overlay out
+  of the 2.0 dependency graph. Chezmoi owns integration, never
+  plugin/provider enablement, auto-fetch/install, dependency preparation, or
+  restarts. Plugin data and generated trees stay ignored. The managed bar uses
+  stock widgets only; follow `docs/dms-plugins.md` for retiring the old
+  launcher, overlay, and plugins without losing preferences.
 - Tether is opt-in for graphical Niri/DMS. Preserve both mode drop-ins and
   local device/runtime fields. `notifications` is the default;
   `wifi-clipboard` deliberately adds network/clipboard access. Verify the
@@ -185,21 +190,13 @@ never derive cleanup operands from rebound HOME/XDG variables.
 
 ## Verify the change
 
-Run from the source root:
-
-```sh
-./tests/check-source.sh
-git diff --check
-```
-
-See [the check matrix](docs/development.md#checks-by-area) for targeted
-iteration commands. Pi tests must use `tests/fixtures/pi/bin/rbw`, never the
-real vault. Neovim checks require nvim; Niri rendering/validation requires
-chezmoi and Niri. Report optional skips, not just wrapper success.
-
-Use `CHECK_PRIVATE_CONFIG=1 ./tests/check-git.sh` and/or
-`CHECK_PRIVATE_CONFIG=1 ./tests/check-ssh.sh` for changed real ciphertext.
-Publication requires `CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh` and the
+Run `./tests/check-source.sh` and `git diff --check` from the source root, then
+follow [Develop and verify](docs/development.md#run-the-complete-checks) for the
+targeted checks, optional coverage, and skip reporting. Pi tests must use
+`tests/fixtures/pi/bin/rbw`, never the real vault. Use
+`CHECK_PRIVATE_CONFIG=1 ./tests/check-git.sh` and/or
+`CHECK_PRIVATE_CONFIG=1 ./tests/check-ssh.sh` for changed real ciphertext;
+publication requires `CHECK_PRIVATE_CONFIG=1 ./tests/check-source.sh` and the
 full [publication procedure](docs/publication.md).
 
 When adding capabilities, update the non-secret initialization data, narrow
@@ -207,10 +204,9 @@ template/ignore condition, supported-value render coverage, and initialized-
 machine migration notes. Do not silently regenerate machine config.
 When changing an inventory or invariant, update its domain test intentionally.
 
-Before an authorized commit, stage task-related paths only, inspect the staged
-diff, and run `git diff --cached --check`. Newly created AGENTS files can be
-hidden by the global ignore. Report completed work, checks actually run, skips,
-and blockers; do not claim live behavior from static rendering.
+Before an authorized commit, follow [Review and commit](docs/development.md#review-and-commit).
+Report completed work, checks actually run, skips, and blockers; do not claim
+live behavior from static rendering.
 
 ## Code and comment style
 
