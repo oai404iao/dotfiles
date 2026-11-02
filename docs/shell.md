@@ -167,6 +167,7 @@ keymap, not an overlay on application defaults. Run `./tests/check-shell.sh`,
 then review and apply only the target when the app is installed:
 
 ```sh
+mkdir -p -- ~/.config/herdr-app
 chezmoi diff --skip-secrets --exclude=encrypted ~/.config/herdr-app/keys.json
 chezmoi apply --exclude=scripts,encrypted ~/.config/herdr-app/keys.json
 ```
