@@ -274,6 +274,7 @@ grep -qxF '.local/share/dsh/' "$repo_dir/.chezmoiignore"
 grep -qxF '.dsh/' "$repo_dir/.chezmoiignore"
 
 python3 - "$repo_dir" <<'PY'
+import json
 from pathlib import Path
 import sys
 import tomllib
@@ -290,6 +291,29 @@ assert keys["resize_mode"] == "prefix+shift+r"
 ignore = set((root / ".chezmoiignore").read_text().splitlines())
 assert {".config/herdr/*", "!.config/herdr/config.toml",
         ".local/state/herdr/", ".local/share/herdr/", ".herdr/"} <= ignore
+
+def unique_keys(pairs):
+    result = {}
+    for key, value in pairs:
+        assert key not in result, f"duplicate key: {key}"
+        result[key] = value
+    return result
+
+app_keys = json.loads((root / "dot_config/herdr-app/keys.json").read_text(),
+                      object_pairs_hook=unique_keys)
+assert set(app_keys) == {"global", "terminal"}
+assert all(isinstance(key, str) and isinstance(action, str)
+           for bindings in app_keys.values() for key, action in bindings.items())
+for key, action in {"|": "pane.split:right", "-": "pane.split:down",
+                    "h": "pane.go:left", "j": "pane.go:down",
+                    "k": "pane.go:up", "l": "pane.go:right"}.items():
+    assert app_keys["global"][f"ctrl-a {key}"] == action
+assert app_keys["terminal"]["ctrl-a ctrl-a"] == "send:\x01"
+assert app_keys["terminal"]["ctrl-shift-c"] == "terminal.copy"
+assert app_keys["terminal"]["ctrl-shift-v"] == "terminal.paste"
+assert app_keys["global"]["ctrl-shift-p"] == "app.palette"
+assert {".config/herdr-app/*", "!.config/herdr-app/keys.json",
+        ".local/state/herdr-app/", ".local/share/herdr-app/"} <= ignore
 PY
 if command -v herdr >/dev/null 2>&1; then
     HOME="$fake_home" XDG_CONFIG_HOME="$fake_config" XDG_STATE_HOME="$fake_state" \
@@ -343,7 +367,11 @@ PY
         "$repo_dir/dot_zshenv" "$fixture_source/"
     cp -R "$repo_dir/dot_config/bash" "$repo_dir/dot_config/zsh" \
         "$repo_dir/dot_config/shell" "$repo_dir/dot_config/pnpm" \
-        "$repo_dir/dot_config/herdr" "$fixture_source/dot_config/"
+        "$repo_dir/dot_config/herdr" "$repo_dir/dot_config/herdr-app" \
+        "$fixture_source/dot_config/"
+    mkdir -p "$fixture_source/dot_config/herdr-app/mods/test"
+    printf '%s\n' 'unmanaged fixture' >"$fixture_source/dot_config/herdr-app/settings.json"
+    printf '%s\n' 'unmanaged fixture' >"$fixture_source/dot_config/herdr-app/mods/test/main.js"
     mkdir -p "$fixture_source/dot_config/herdr/sessions/test"
     printf '%s\n' 'unmanaged fixture' >"$fixture_source/dot_config/herdr/session.json"
     printf '%s\n' 'unmanaged fixture' >"$fixture_source/dot_config/herdr/sessions/test/session.json"
@@ -354,7 +382,10 @@ PY
             shell_home="$test_root/deploy-$fixture_name"
             mkdir -p "$shell_home/.config/shell" "$shell_home/.local" \
                 "$shell_home/.config/bash/rc.d" "$shell_home/.config/zsh/rc.d" \
-                "$shell_home/.config/pnpm" "$shell_home/.config/herdr/sessions/test"
+                "$shell_home/.config/pnpm" "$shell_home/.config/herdr/sessions/test" \
+                "$shell_home/.config/herdr-app/mods/test"
+            printf '%s\n' 'retained settings' >"$shell_home/.config/herdr-app/settings.json"
+            printf '%s\n' 'retained mod' >"$shell_home/.config/herdr-app/mods/test/main.js"
             printf '%s\n' 'retained session' >"$shell_home/.config/herdr/session.json"
             printf '%s\n' 'retained session' >"$shell_home/.config/herdr/sessions/test/session.json"
             for old_loader in shell/nvm.sh bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh; do
@@ -377,6 +408,7 @@ EOF
                 "$shell_home/.config/zsh" "$shell_home/.config/shell" \
                 "$shell_home/.config/pnpm/config.yaml" \
                 "$shell_home/.config/herdr" \
+                "$shell_home/.config/herdr-app" \
                 "$shell_home/.local/bin"
             for target in .bash_profile .bashrc .zshenv \
                 .config/bash/rc.d/10-options.bash .config/zsh/.zshrc; do
@@ -396,6 +428,15 @@ EOF
                 --persistent-state "$test_root/$fixture_name-state.boltdb" \
                 managed --include=files "$shell_home/.config/herdr")
             [ "$herdr_managed" = '.config/herdr/config.toml' ]
+            cmp "$repo_dir/dot_config/herdr-app/keys.json" "$shell_home/.config/herdr-app/keys.json"
+            grep -qxF 'retained settings' "$shell_home/.config/herdr-app/settings.json"
+            grep -qxF 'retained mod' "$shell_home/.config/herdr-app/mods/test/main.js"
+            app_managed=$(chezmoi --config "$test_root/$fixture_name.toml" \
+                --source "$fixture_source" --destination "$shell_home" \
+                --cache "$test_root/chezmoi-cache" \
+                --persistent-state "$test_root/$fixture_name-state.boltdb" \
+                managed --include=files "$shell_home/.config/herdr-app")
+            [ "$app_managed" = '.config/herdr-app/keys.json' ]
             if [ "$graphical" = true ]; then
                 [ -f "$shell_home/.local/bin/sudo-askpass" ]
                 [ "$(stat -c %a "$shell_home/.local/bin/sudo-askpass")" = 755 ]

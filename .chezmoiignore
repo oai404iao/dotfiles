@@ -53,6 +53,12 @@ secrets/
 .local/share/herdr/
 .herdr/
 
+# Herdr app owns settings, layouts, mods, and runtime state; only keys are declarative.
+.config/herdr-app/*
+!.config/herdr-app/keys.json
+.local/state/herdr-app/
+.local/share/herdr-app/
+
 # Paseo owns configuration, credentials, worktrees, and runtime state.
 .paseo/
 .local/share/paseo/

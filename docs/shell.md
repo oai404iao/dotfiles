@@ -138,6 +138,43 @@ New clients read the file on launch. In an existing client, choose **reload
 config** from Herdr's global menu when ready; this also refreshes local
 keybindings. Applying the file does not restart or reload a running session.
 
+## Herdr app keyboard configuration
+
+`hc` is the separate, headless herdr-core CLI; the graphical client is
+`herdr-app`, not `hc-app`. Install it separately. Chezmoi owns only
+`~/.config/herdr-app/keys.json`; settings, layouts, mods, generated guides,
+and runtime data remain application-owned. The old Herdr config is independent.
+
+The managed keymap retains the Linux defaults and adds these sequences:
+
+| Sequence | Action |
+|---|---|
+| `Ctrl+a`, then `\|` | Split right (vertical divider) |
+| `Ctrl+a`, then `-` | Split down (horizontal divider) |
+| `Ctrl+a`, then `h/j/k/l` | Focus left/down/up/right |
+| `Ctrl+a`, then `Ctrl+a` | Send a literal `Ctrl+a` to the terminal |
+
+`Ctrl+a` now starts a sequence instead of immediately moving the shell cursor
+to the start of the line. The old `r` reload and `Shift+r` resize-mode bindings
+have no equivalent app commands and are not bound. The app watches keymap
+changes automatically. These bindings use the
+[upstream key format and commands](https://github.com/herdrdev/herdr-app/blob/f896da489de594fdb18a92a31dd953da3cf58da2/defaults/AGENTS.md#keys-keysjson).
+`hc attach` has no pane layout or matching prefix actions, so this configuration
+does not change `~/.config/herdr-core/config.toml` or its detach key.
+
+Before applying, back up and review an existing keymap: this is a complete
+keymap, not an overlay on application defaults. Run `./tests/check-shell.sh`,
+then review and apply only the target when the app is installed:
+
+```sh
+chezmoi diff --skip-secrets --exclude=encrypted ~/.config/herdr-app/keys.json
+chezmoi apply --exclude=scripts,encrypted ~/.config/herdr-app/keys.json
+```
+
+Check the shortcuts in the app and inspect `~/.config/herdr-app/keys.error`
+if loading fails. Offline source checks cover JSON and isolated deployment,
+not GUI input handling.
+
 ## Verify changes
 
 ```sh
