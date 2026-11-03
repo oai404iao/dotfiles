@@ -10,7 +10,7 @@ downloads, manifests, lockfiles, and package checkouts remain machine-local.
 | Purpose | Declaration |
 | --- | --- |
 | Structured questions | `npm:@juicesharp/rpiv-ask-user-question@2.15.0` |
-| Codex tools and provider integration | `npm:@oai404iao/pi-codex-minimal-tools@5.1.2` |
+| Codex tools and provider integration | `npm:@oai404iao/pi-codex-minimal-tools@5.1.3` |
 | Asynchronous child agents | `npm:@oai404iao/pi-subagent@1.3.1` |
 | Local or Telegram notifications | `npm:@oai404iao/pi-notify@0.1.0` |
 
@@ -65,8 +65,8 @@ does not rebuild an existing installation; use the
 
 ## Codex tools reference
 
-Bundle `5.1.2` composes core `3.0.1` and tools `0.1.1`, sharing runtime `3.0.1`.
-The managed config/model schemas use `pi-codex-runtime@3.0.1`. Do not add
+Bundle `5.1.3` composes core `3.0.2` and tools `0.1.2`, sharing runtime `3.0.2`.
+The managed config/model schemas use `pi-codex-runtime@3.0.2`. Do not add
 separate core/tools or compatibility declarations: the bundle supplies the
 engine, patch, search, and image implementations.
 
