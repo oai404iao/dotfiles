@@ -1,8 +1,0 @@
-{{- $botToken := (rbw "pi telegram bot token").data.password -}}
-{{- $chatID := (rbw "pi telegram chat id").data.password -}}
-{
-  "$schema": "https://unpkg.com/@oai404iao/pi-telegram-notify@1.0.0/config.schema.json",
-  "enabled": true,
-  "botToken": {{ $botToken | toJson }},
-  "chatId": {{ $chatID | toJson }}
-}

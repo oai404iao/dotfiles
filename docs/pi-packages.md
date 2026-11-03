@@ -12,12 +12,12 @@ downloads, manifests, lockfiles, and package checkouts remain machine-local.
 | Structured questions | `npm:@juicesharp/rpiv-ask-user-question@2.15.0` |
 | Codex tools and provider integration | `npm:@oai404iao/pi-codex-minimal-tools@5.1.2` |
 | Asynchronous child agents | `npm:@oai404iao/pi-subagent@1.3.1` |
-| Graphical notifications | `~/.local/share/pi/extensions/pi-local-notify` |
-| Headless notifications | `npm:@oai404iao/pi-telegram-notify@1.0.0` |
+| Local or Telegram notifications | `npm:@oai404iao/pi-notify@0.1.0` |
 
-Chezmoi selects exactly one notification declaration from `graphical` machine
-data. All npm declarations are pinned; this does not pin every transitive
-dependency. The tree-continue package is retired: applying settings stops
+Chezmoi selects the notification channel from `graphical` machine data, with
+one notification package in both profiles. All npm declarations are pinned;
+this does not pin every transitive dependency. The tree-continue package is
+retired: applying settings stops
 loading it without deleting its local checkout. Disabled packages and their
 configuration are not managed.
 
@@ -108,56 +108,48 @@ These are adopted configuration contracts, not proof of live endpoint support.
 
 ## Notifications by machine profile
 
-`graphical = true` selects the local plugin; `false` selects Telegram. This
-happens at apply time, independent of `niri`, `DISPLAY`, or whether the current
-session is SSH. Change the machine role deliberately with `chezmoi edit-config`;
-`graphical` also controls other desktop targets.
-
-### Set up the graphical source link
-
-Each machine owns links under `~/.local/share/pi/extensions/` to trusted source
-checkouts. Settings name individual packages through those stable paths; Pi
-does not automatically scan this directory. Neither links nor plugin source
-belong to chezmoi.
-
-Create the link once, replacing the placeholder with the absolute path inside
-your `omp` checkout:
-
-```sh
-mkdir -p -- "$HOME/.local/share/pi/extensions"
-ln -sT -- /absolute/path/to/omp/pi-extensions/pi-local-notify \
-  "$HOME/.local/share/pi/extensions/pi-local-notify"
-```
-
-Inspect an existing entry before replacing it. If a checkout moves, update
-only its machine-local link. This plugin is private/local-only: do not install
-it from npm or copy it into this repository. A missing or dangling link does
-not fall back to Telegram.
+Both profiles load only `@oai404iao/pi-notify@0.1.0`. Its sole configuration
+path is `~/.config/pi/agent/extensions/pi-notify/config.json`, managed as mode
+`0600`. `graphical = true` renders `{"channel":"local"}` without accessing
+the vault; `false` renders `channel = "telegram"` with nested Telegram settings.
+This happens at apply time, independent of `niri`, `DISPLAY`, or SSH. Change
+the machine role deliberately with `chezmoi edit-config`; `graphical` also
+controls other desktop targets. The managed profiles do not select `both`.
 
 Local notifications use Kitty OSC 99 in an interactive TUI. Other terminals
 and non-interactive modes do not notify. Managed tmux enables
 `allow-passthrough on`, which passes notifications only from visible panes.
-The plugin reports settled runs, not blocking questionnaires or approvals as
-Telegram can. Manually run `/local-notify-test` in Kitty to test delivery and
+The local channel reports settled runs, not blocking questionnaires or approvals
+as Telegram can. Manually run `/notify-test` in Kitty to test delivery and
 click-to-focus; this sends a real notification, unlike the offline checks.
 
-Telegram 1.0.0 sends automatic notifications only for user runs, not
-extension-triggered `custom` runs or aborted runs. Notifications include the
-absolute working directory and an answer, error, prompt, or dialog-title
-summary; truncation does not redact sensitive content.
+The Telegram channel sends automatic notifications only for user runs, not
+extension-triggered `custom` runs, aborted runs, or subagents. Notifications
+include the absolute working directory and an answer, error, prompt, or
+dialog-title summary; truncation does not redact sensitive content.
 
 ### Switch an existing machine
 
-Privately back up, review, and apply only `settings.json` using the commands
-above. For headless mode, also follow
+Privately back up existing settings and both old/new notification configuration
+files outside Git and retained agent scratch. Review and apply only
+`settings.json` using the commands above, then install the pinned notification
+package with `pi install npm:@oai404iao/pi-notify@0.1.0 --no-approve`.
+Apply the new notification target explicitly, without a credential-bearing
+diff. For headless mode, follow
 [Telegram credential rendering](pi-authentication.md#render-headless-telegram-credentials)
-for its explicit target after unlocking `rbw`; never display that file's diff.
-Restart Pi or `/reload` once existing child work no longer needs preserving.
+after unlocking `rbw`; graphical mode uses the same explicit target but needs
+no vault access. Restart Pi or `/reload` once existing child work no longer
+needs preserving. `/notify` reports the selected channel and credential
+presence without printing values; `/notify test telegram` sends a real message
+and requires separate authorization.
 
-Graphical profiles ignore Telegram's configuration directory, so the apply
-does not retrieve its secrets. Existing config and packages remain, not
-deleted. Removing the declaration stops loading Telegram after reload/restart,
-but separately configured project or CLI extensions can still load it.
+The old `pi-local-notify` source-link declaration and standalone
+`pi-telegram-notify` declaration are retired. Their local links, packages and
+credential files remain unmanaged and are not deleted. Pi Notify never reads
+the old Telegram configuration; migrate existing values deliberately or render
+from the same Bitwarden references. Do not simultaneously load the old plugins
+through project settings, CLI options or extension links: they send independently
+and can duplicate notifications. No compatibility handshake is provided.
 
 ## pnpm build approvals
 

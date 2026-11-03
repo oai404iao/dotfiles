@@ -62,7 +62,7 @@ Managed files use mode `0600`; `~/.config/pi` remains mode `0700`.
 | `subagent.json`, `agents/{scout,reviewer,worker}.md` | User-scoped runtime policy and role definitions. |
 | `extensions/jev.ts` | Command Code classifier registration. |
 | `extensions/pi-codex-minimal-tools/{config,models}.json` | Codex capabilities and model profiles. |
-| `extensions/pi-telegram-notify/config.json` | Headless-only credential template; contains plaintext after rendering. |
+| `extensions/pi-notify/config.json` | Notification channel template; headless mode contains plaintext Telegram credentials. |
 | `npm/pnpm-workspace.yaml` | Modifier merges exact reviewed build approvals, not installation state. |
 | `AGENTS.md` | Single external file from `my_skills/main`, with a 24-hour fetch cache. |
 
@@ -138,9 +138,8 @@ notifications, rebuild dependencies, or validate live provider compatibility.
 
 ## Notifications by machine profile
 
-`graphical` selects local Kitty notifications or Telegram at apply time.
-Follow [notification setup and switching](pi-packages.md#notifications-by-machine-profile);
-a missing local source link does not fall back to Telegram.
+`graphical` selects Pi Notify's local Kitty or Telegram channel at apply time.
+Follow [notification setup and switching](pi-packages.md#notifications-by-machine-profile).
 
 ## pnpm build approvals
 

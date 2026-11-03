@@ -86,9 +86,9 @@ SSH clients need the native Bitwarden SSH key items described in
 | Pi | Install Pi ≥ 1.2.0 and Node.js ≥ 22.19; prepare the [notification profile](pi.md#notifications-by-machine-profile) |
 | Tether | Follow [manual preparation](tether.md#install-and-prepare-manually); capability selection alone does not install or enable it |
 
-Graphical Pi profiles require a trusted local extension source symlink at
-`~/.local/share/pi/extensions/pi-local-notify`. Headless profiles use Telegram
-and do not need that checkout. Fully restart Pi after a host upgrade.
+Both Pi profiles use the pinned Pi Notify package: graphical profiles select
+its local Kitty channel, and headless profiles select Telegram. No local
+notification checkout is required. Fully restart Pi after a host upgrade.
 
 ## 5. Validate the source
 

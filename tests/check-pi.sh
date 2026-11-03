@@ -31,7 +31,7 @@ expected = {
     "exact_agents/private_worker.md",
     "extensions/pi-codex-minimal-tools/private_config.json.tmpl",
     "extensions/pi-codex-minimal-tools/private_models.json.tmpl",
-    "extensions/pi-telegram-notify/private_config.json.tmpl",
+    "extensions/pi-notify/private_config.json.tmpl",
     "extensions/private_jev.ts",
 }
 actual = {
@@ -54,6 +54,7 @@ expected_ignored = {
     ".config/pi/agent/git/",
     ".config/pi/agent/bin/",
     ".local/share/pi/extensions/",
+    ".config/pi/agent/extensions/pi-telegram-notify/",
     ".config/pi/agent/pi-codex-minimal-tools/",
     ".config/pi/agent/.pi-subagent/",
     ".config/pi/agent/sessions/",
@@ -167,7 +168,7 @@ for invalid in invalid_auth:
 print("Pi auth command-reference merge and rejection checks passed")
 
 settings_modifier = source_dir / "modify_private_settings.json.tmpl"
-telegram_package = "npm:@oai404iao/pi-telegram-notify@1.0.0"
+notification_package = "npm:@oai404iao/pi-notify@0.1.0"
 common_packages = {
     "npm:@juicesharp/rpiv-ask-user-question@2.15.0",
     "npm:@oai404iao/pi-codex-minimal-tools@5.1.2",
@@ -510,7 +511,7 @@ strictDepBuilds: true
     telegram_target.parent.mkdir(parents=True)
     telegram_target.write_text('{"preserveDesktopConfig": true}\n')
     telegram_target.chmod(0o600)
-    local_package = str(home / ".local/share/pi/extensions/pi-local-notify")
+    notify_target = agent_dir / "extensions/pi-notify/config.json"
     profile_settings = {}
     for graphical, niri in ((False, False), (True, True), (True, False)):
         profile = (graphical, niri)
@@ -523,15 +524,17 @@ strictDepBuilds: true
             text=True, capture_output=True, check=True, env=fixture_env,
         ).stdout
         profile_settings[profile] = check_settings(
-            rendered, local_package if graphical else telegram_package, home
+            rendered, notification_package, home
         )
         inventory = subprocess.run(
             [*command, "managed", "--include=files", "--exclude=encrypted,externals", str(agent_dir)],
             text=True, capture_output=True, check=True, env=fixture_env,
         ).stdout.splitlines()
-        telegram_managed = ".config/pi/agent/extensions/pi-telegram-notify/config.json" in inventory
-        if telegram_managed == graphical or ".config/pi/agent/settings.json" not in inventory:
-            raise SystemExit("Pi profile managed settings/Telegram inventory is incorrect")
+        if ".config/pi/agent/extensions/pi-telegram-notify/config.json" in inventory:
+            raise SystemExit("Retired Telegram configuration must remain unmanaged")
+        if not {".config/pi/agent/extensions/pi-notify/config.json",
+                ".config/pi/agent/settings.json"} <= set(inventory):
+            raise SystemExit("Pi profile managed settings/notification inventory is incorrect")
         if ".config/pi/agent/auth.json" not in inventory:
             raise SystemExit("Pi auth command references must be managed in every profile")
         if ".config/pi/agent/extensions/jev.ts" not in inventory:
@@ -595,19 +598,23 @@ strictDepBuilds: true
             raise SystemExit("Pi applied settings do not match the selected profile")
         if settings_target.stat().st_mode & 0o777 != 0o600:
             raise SystemExit("Pi settings target must remain mode 0600")
+        if telegram_target.read_bytes() != old_telegram:
+            raise SystemExit("Pi apply changed the retired Telegram configuration")
+        notification = load_json(notify_target.read_text())
         if graphical:
-            if rbw_log.read_text() or telegram_target.read_bytes() != old_telegram:
-                raise SystemExit("Desktop Pi apply accessed rbw or changed the ignored Telegram target")
+            if rbw_log.read_text() or notification != {"channel": "local"}:
+                raise SystemExit("Desktop Pi apply accessed rbw or enabled a network notification channel")
         else:
             if not rbw_log.read_text():
                 raise SystemExit("Headless Pi apply did not render Telegram credentials")
-            telegram = load_json(telegram_target.read_text())
-            if telegram.get("$schema") != "https://unpkg.com/@oai404iao/pi-telegram-notify@1.0.0/config.schema.json":
-                raise SystemExit("Telegram schema version does not match the pinned package")
-            if telegram["botToken"] != "123456:test-token" or telegram["chatId"] != "-123456789":
-                raise SystemExit("Telegram template did not use the fake rbw values")
-        if telegram_target.stat().st_mode & 0o777 != 0o600:
-            raise SystemExit("Pi Telegram target must remain mode 0600")
+            if notification != {
+                "channel": "telegram",
+                "telegram": {"enabled": True, "botToken": "123456:test-token",
+                             "chatId": "-123456789", "requestTimeoutMs": 10000},
+            }:
+                raise SystemExit("Notification template did not preserve the headless Telegram contract")
+        if notify_target.stat().st_mode & 0o777 != 0o600:
+            raise SystemExit("Pi notification target must remain mode 0600")
     print("Pi notification profiles and isolated apply checks passed")
 
     policy_dir = home / ".config/pi/agent/npm"

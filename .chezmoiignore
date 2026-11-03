@@ -181,9 +181,7 @@ secrets/
 .config/pi/agent/extensions/pi-permission-system/logs/
 .config/pi/agent/workflows/model-tiers.json
 .config/pi/agent/workflows/projects/
-{{- if .graphical }}
 .config/pi/agent/extensions/pi-telegram-notify/
-{{- end }}
 
 {{- if not .graphical }}
 .local/bin/sudo-askpass

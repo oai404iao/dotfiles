@@ -1,0 +1,17 @@
+{{- if .graphical }}
+{
+  "channel": "local"
+}
+{{- else }}
+{{- $botToken := (rbw "pi telegram bot token").data.password -}}
+{{- $chatID := (rbw "pi telegram chat id").data.password -}}
+{
+  "channel": "telegram",
+  "telegram": {
+    "enabled": true,
+    "botToken": {{ $botToken | toJson }},
+    "chatId": {{ $chatID | toJson }},
+    "requestTimeoutMs": 10000
+  }
+}
+{{- end }}

@@ -12,7 +12,7 @@ see [Pi configuration](pi.md#defaults-and-model-reference).
 | `models.json` | Declarative metadata; deliberately omits `apiKey`. |
 | `auth.json` | Private machine-local credentials, with six managed command references merged in. |
 | Provider keys | Bitwarden entries accessed by `rbw` on first use. |
-| Telegram `config.json` | Headless-only template; resolved credentials are written to a private file. |
+| Pi Notify `config.json` | Channel template; headless mode resolves Telegram credentials into a private file. |
 | Shell startup | Exports paths, never provider credentials. |
 
 The executable [`modify_private_auth.json`](../dot_config/private_pi/agent/modify_private_auth.json)
@@ -130,9 +130,9 @@ Do not force ownership before the backup and verified Bitwarden copy exist.
 
 ## Render headless Telegram credentials
 
-Only `graphical = false` selects Telegram. The extension does not support
-command or environment interpolation, so chezmoi retrieves these entries when
-rendering `~/.config/pi/agent/extensions/pi-telegram-notify/config.json`:
+Only `graphical = false` selects Telegram. Pi Notify does not support command
+or environment interpolation, so chezmoi retrieves these entries when rendering
+`~/.config/pi/agent/extensions/pi-notify/config.json`:
 
 - `pi telegram bot token`
 - `pi telegram chat id`
@@ -142,12 +142,16 @@ unlock `rbw`, and apply only the explicit file without displaying a diff:
 
 ```sh
 chezmoi apply --exclude=scripts,encrypted \
-  ~/.config/pi/agent/extensions/pi-telegram-notify/config.json
+  ~/.config/pi/agent/extensions/pi-notify/config.json
 ```
 
-The rendered file contains plaintext credentials and must remain mode `0600`.
-Graphical profiles ignore the directory without deleting an existing file;
-their Pi configuration apply does not retrieve Telegram credentials.
+The rendered file uses `channel = "telegram"` and a nested `telegram` object
+containing `enabled`, `botToken`, `chatId`, and `requestTimeoutMs`. It contains
+plaintext credentials and must remain mode `0600`. Graphical profiles manage
+the same target with only `channel = "local"`, without retrieving credentials.
+The retired `extensions/pi-telegram-notify/config.json` stays unmanaged and is
+not deleted or read by Pi Notify. Back it up privately before deliberately
+migrating existing values; rendering still uses the same Bitwarden entries.
 See [notification switching](pi-packages.md#notifications-by-machine-profile)
 for the accompanying settings change and delivery limits.
 
