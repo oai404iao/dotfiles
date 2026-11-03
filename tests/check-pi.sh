@@ -169,7 +169,7 @@ print("Pi auth command-reference merge and rejection checks passed")
 settings_modifier = source_dir / "modify_private_settings.json.tmpl"
 telegram_package = "npm:@oai404iao/pi-telegram-notify@1.0.0"
 common_packages = {
-    "npm:@juicesharp/rpiv-ask-user-question@2.13.9",
+    "npm:@juicesharp/rpiv-ask-user-question@2.15.0",
     "npm:@oai404iao/pi-codex-minimal-tools@5.1.2",
     "npm:@oai404iao/pi-subagent@1.3.1",
 }

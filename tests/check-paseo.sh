@@ -171,9 +171,15 @@ initialized = tomllib.loads(run(command + [
     "execute-template", "--init", "--file", str(source / ".chezmoi.toml.tmpl"),
 ], env))
 assert initialized["data"]["paseo"] is True
+empty = task / "empty.toml"
+empty.write_text("")
+initialized = tomllib.loads(run([
+    "chezmoi", "--config", str(empty), "--source", str(source), "--no-tty",
+    "execute-template", "--init", "--stdinisatty=false",
+    "--file", str(source / ".chezmoi.toml.tmpl"),
+], env))
+assert initialized["data"]["paseo"] is False
 for enabled in (False, True):
-    empty = task / "empty.toml"
-    empty.write_text("")
     initialized = tomllib.loads(run([
         "chezmoi", "--config", str(empty), "--source", str(source),
         "execute-template", "--init", "--promptChoice",

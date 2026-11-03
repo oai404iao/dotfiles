@@ -9,7 +9,7 @@ downloads, manifests, lockfiles, and package checkouts remain machine-local.
 
 | Purpose | Declaration |
 | --- | --- |
-| Structured questions | `npm:@juicesharp/rpiv-ask-user-question@2.13.9` |
+| Structured questions | `npm:@juicesharp/rpiv-ask-user-question@2.15.0` |
 | Codex tools and provider integration | `npm:@oai404iao/pi-codex-minimal-tools@5.1.2` |
 | Asynchronous child agents | `npm:@oai404iao/pi-subagent@1.3.1` |
 | Graphical notifications | `~/.local/share/pi/extensions/pi-local-notify` |

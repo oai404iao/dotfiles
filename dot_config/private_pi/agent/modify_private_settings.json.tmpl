@@ -25,7 +25,7 @@ settings.update(
         ],
         "npmCommand": ["pnpm", "--config.node-linker=hoisted"],
         "packages": [
-            "npm:@juicesharp/rpiv-ask-user-question@2.13.9",
+            "npm:@juicesharp/rpiv-ask-user-question@2.15.0",
 {{- if .graphical }}
             {{ joinPath .chezmoi.homeDir ".local/share/pi/extensions/pi-local-notify" | toJson }},
 {{- else }}
