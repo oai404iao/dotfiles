@@ -345,15 +345,18 @@ def decode(value):
 
 for settings in ({}, {"globalShims": {"node": "auto"}, "minimumReleaseAge": 2880,
                      "minimumReleaseAgeExclude": ["existing-package"]},
-                 {"minimumReleaseAgeExclude": ["@getpaseo/*"]}):
+                 {"minimumReleaseAgeExclude": ["@getpaseo/*"]},
+                 {"minimumReleaseAgeExclude": ["@getpaseo/*", "@earendil-works/pi-*"]}):
     result = modify(json.dumps(settings))
     expected = dict(settings)
     expected["minimumReleaseAgeExclude"] = list(settings.get("minimumReleaseAgeExclude", []))
-    if "@getpaseo/*" not in expected["minimumReleaseAgeExclude"]:
-        expected["minimumReleaseAgeExclude"].append("@getpaseo/*")
+    for package in ("@getpaseo/*", "@earendil-works/pi-*"):
+        if package not in expected["minimumReleaseAgeExclude"]:
+            expected["minimumReleaseAgeExclude"].append(package)
     assert decode(result) == expected
     assert modify(result) == result
-assert decode(modify("")) == {"minimumReleaseAgeExclude": ["@getpaseo/*"]}
+assert decode(modify("")) == {
+    "minimumReleaseAgeExclude": ["@getpaseo/*", "@earendil-works/pi-*"]}
 for invalid in ("[]", "key: [", "---\n{}\n---\n{}",
                 "minimumReleaseAgeExclude: null", "minimumReleaseAgeExclude: value",
                 "minimumReleaseAgeExclude: [true]"):

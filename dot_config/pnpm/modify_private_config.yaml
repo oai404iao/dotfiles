@@ -24,8 +24,10 @@ exec chezmoi --config /dev/null --config-format toml execute-template --with-std
 {{-     end -}}
 {{-   end -}}
 {{- end -}}
-{{- if not (has "@getpaseo/*" $exclude) -}}
-{{-   $exclude = append $exclude "@getpaseo/*" -}}
+{{- range list "@getpaseo/*" "@earendil-works/pi-*" -}}
+{{-   if not (has . $exclude) -}}
+{{-     $exclude = append $exclude . -}}
+{{-   end -}}
 {{- end -}}
 {{- $_ := set $settings "minimumReleaseAgeExclude" $exclude -}}
 {{ $settings | toYaml -}}

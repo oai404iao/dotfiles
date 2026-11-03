@@ -69,8 +69,9 @@ These are explicit network/package operations, not source checks. pnpm itself
 remains system-package-managed. Node.js and npm/npx live under `PNPM_HOME`;
 downloaded runtimes and global packages are not chezmoi source.
 
-`dot_config/pnpm/modify_private_config.yaml` merges the `@getpaseo/*` release-age
-exception into `~/.config/pnpm/config.yaml`. It preserves existing exceptions,
+`dot_config/pnpm/modify_private_config.yaml` merges the `@getpaseo/*` and
+`@earendil-works/pi-*` release-age exceptions into `~/.config/pnpm/config.yaml`.
+It preserves existing exceptions,
 pnpm-managed `globalShims`, and other settings without changing the release-age
 limit for other packages. For an existing machine, back up that config, review
 its targeted diff, and apply only `~/.config/pnpm/config.yaml`; no package update
