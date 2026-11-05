@@ -1,5 +1,10 @@
 #!/bin/sh
 case "$*" in
+    unlocked) [ "${PI_TEST_RBW_UNLOCKED:-0}" = 1 ]; exit $? ;;
+    "get pi spiredive api key"|"get pi krill api key"|"get pi commandcode api key")
+        printf '%s\n' 'synthetic-api-key'; exit 0 ;;
+esac
+case "$*" in
     *"pi telegram bot token"*) password="123456:test-token" ;;
     *"pi telegram chat id"*) password="-123456789" ;;
     *) exit 1 ;;

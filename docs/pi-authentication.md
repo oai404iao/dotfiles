@@ -20,12 +20,12 @@ merges entries with `"type": "api_key"` and these exact `key` references:
 
 | Provider | Command reference |
 | --- | --- |
-| `deepseek` | `!rbw get 'pi spiredive api key'` |
-| `openai` | `!rbw get 'pi spiredive api key'` |
-| `xai` | `!rbw get 'pi spiredive api key'` |
-| `anthropic` | `!rbw get 'pi krill api key'` |
-| `google` | `!rbw get 'pi krill api key'` |
-| `typesafe` | `!rbw get 'pi commandcode api key'` |
+| `deepseek` | `!rbw unlocked && rbw get 'pi spiredive api key'` |
+| `openai` | `!rbw unlocked && rbw get 'pi spiredive api key'` |
+| `xai` | `!rbw unlocked && rbw get 'pi spiredive api key'` |
+| `anthropic` | `!rbw unlocked && rbw get 'pi krill api key'` |
+| `google` | `!rbw unlocked && rbw get 'pi krill api key'` |
+| `typesafe` | `!rbw unlocked && rbw get 'pi commandcode api key'` |
 
 For example, the managed part of one entry is:
 
@@ -33,7 +33,7 @@ For example, the managed part of one entry is:
 {
   "deepseek": {
     "type": "api_key",
-    "key": "!rbw get 'pi spiredive api key'"
+    "key": "!rbw unlocked && rbw get 'pi spiredive api key'"
   }
 }
 ```
@@ -46,6 +46,11 @@ commit rendered authentication data, or substitute retrieved key values.
 
 Anthropic and Google use the Krill credential; Command Code's Jev classifier
 needs a Command Code key, not a direct TypeSafe key. Neither uses Spiredive's key.
+
+The `rbw unlocked` gate fails without requesting a password when the vault is
+locked, avoiding unattended pinentry prompts during Pi key resolution. Unlock
+explicitly in an interactive terminal before starting Pi. The check and fetch
+are separate operations: a lock between them can still make `rbw get` prompt.
 
 ## Apply authentication references safely
 

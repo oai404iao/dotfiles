@@ -107,12 +107,12 @@ for path in source_dir.rglob("*.json"):
 
 auth_modifier = source_dir / "modify_private_auth.json"
 auth_commands = {
-    "deepseek": "!rbw get 'pi spiredive api key'",
-    "openai": "!rbw get 'pi spiredive api key'",
-    "xai": "!rbw get 'pi spiredive api key'",
-    "anthropic": "!rbw get 'pi krill api key'",
-    "google": "!rbw get 'pi krill api key'",
-    "typesafe": "!rbw get 'pi commandcode api key'",
+    "deepseek": "!rbw unlocked && rbw get 'pi spiredive api key'",
+    "openai": "!rbw unlocked && rbw get 'pi spiredive api key'",
+    "xai": "!rbw unlocked && rbw get 'pi spiredive api key'",
+    "anthropic": "!rbw unlocked && rbw get 'pi krill api key'",
+    "google": "!rbw unlocked && rbw get 'pi krill api key'",
+    "typesafe": "!rbw unlocked && rbw get 'pi commandcode api key'",
 }
 auth_defaults = {
     provider: {"type": "api_key", "key": command}
@@ -423,6 +423,23 @@ strictDepBuilds: true
         "PI_TEST_RBW_LOG": str(rbw_log),
         "PI_TEST_RBW_FIXTURE": str(repo_dir / "tests/fixtures/pi/bin/rbw"),
     }
+    for command in set(auth_commands.values()):
+        for unlocked in (False, True):
+            rbw_log.write_text("")
+            result = subprocess.run(
+                ["sh", "-c", command[1:]], text=True, capture_output=True,
+                env={**fixture_env, "PI_TEST_RBW_UNLOCKED": str(int(unlocked))},
+            )
+            calls = rbw_log.read_text().splitlines()
+            if not unlocked:
+                if result.returncode == 0 or result.stdout or calls != ["unlocked"]:
+                    raise SystemExit("Locked Pi credential lookup must fail without fetching a key")
+            elif result.returncode or result.stdout != "synthetic-api-key\n" or calls != [
+                "unlocked", command.split(" && rbw ", 1)[1].replace("'", ""),
+            ]:
+                raise SystemExit("Unlocked Pi credential lookup must fetch the original entry")
+    rbw_log.unlink()
+    print("Pi credential unlock gate checks passed (mocked locked/unlocked vault)")
     external_fixture = scratch / "external-source"
     external_fixture.mkdir()
     external_payload = scratch / "global-instructions.md"

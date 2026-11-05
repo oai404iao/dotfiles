@@ -36,12 +36,12 @@ except ValueError:
     sys.exit("Invalid auth.json: expected a JSON object without duplicate keys.")
 
 commands = {
-    "deepseek": "!rbw get 'pi spiredive api key'",
-    "openai": "!rbw get 'pi spiredive api key'",
-    "xai": "!rbw get 'pi spiredive api key'",
-    "anthropic": "!rbw get 'pi krill api key'",
-    "google": "!rbw get 'pi krill api key'",
-    "typesafe": "!rbw get 'pi commandcode api key'",
+    "deepseek": "!rbw unlocked && rbw get 'pi spiredive api key'",
+    "openai": "!rbw unlocked && rbw get 'pi spiredive api key'",
+    "xai": "!rbw unlocked && rbw get 'pi spiredive api key'",
+    "anthropic": "!rbw unlocked && rbw get 'pi krill api key'",
+    "google": "!rbw unlocked && rbw get 'pi krill api key'",
+    "typesafe": "!rbw unlocked && rbw get 'pi commandcode api key'",
 }
 for provider in commands:
     if provider in auth and (
