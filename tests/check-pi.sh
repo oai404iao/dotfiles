@@ -286,10 +286,10 @@ if any(
     for key in provider.get("headers", {})
 ):
     raise SystemExit("Pi providers must not override User-Agent")
-if providers["anthropic"] != {"baseUrl": "https://api.zero.cat/v1"}:
+if providers["anthropic"] != {"baseUrl": "https://api.zero.cat"}:
     raise SystemExit("Anthropic must override only its endpoint and use Pi's built-in catalog")
 if providers["google"] != {
-    "baseUrl": "https://api.zero.cat/v1",
+    "baseUrl": "https://api.zero.cat",
     "api": "anthropic-messages",
     "models": [{"id": "gemini-4-argon"}],
 }:
@@ -783,8 +783,10 @@ PY
 if command -v node >/dev/null 2>&1 && command -v pi >/dev/null 2>&1; then
     node --experimental-strip-types --experimental-import-meta-resolve --disable-warning=ExperimentalWarning \
         "$repo_dir/tests/check-pi-jev.mjs" "$(command -v pi)"
+    node --experimental-import-meta-resolve \
+        "$repo_dir/tests/check-pi-provider-urls.mjs" "$(command -v pi)"
 else
-    printf '%s\n' "Pi Jev runtime checks skipped: node or pi unavailable"
+    printf '%s\n' "Pi Jev/provider URL runtime checks skipped: node or pi unavailable"
 fi
 
 printf '%s\n' "Pi configs passed"

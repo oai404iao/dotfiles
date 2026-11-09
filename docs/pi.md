@@ -90,11 +90,16 @@ It is a selection scope, not the full provider catalog.
 
 Provider metadata routes `openai`, `deepseek`, and `xai` through
 `https://api.spiredive.com/v1`, `anthropic` through
-`https://api.zero.cat/v1`, `google/gemini-4-argon` through the same
+`https://api.zero.cat`, `google/gemini-4-argon` through the same
 endpoint using Anthropic Messages, and `typesafe` through
 `https://api.commandcode.ai/provider/v1`. Anthropic retains Pi's built-in
 catalog. DeepSeek disables the developer role. Providers do not override
 `User-Agent`; the client supplies its default.
+
+Both Zerocat routes use `anthropic-messages`. In installed Pi 1.5.0, the
+Anthropic SDK appends `/v1/messages?beta=true` to the base URL; including `/v1`
+in that base would produce `/v1/v1/messages`. The offline provider URL test
+captures the final SDK requests with a synthetic key and mocked fetch.
 
 Model overrides retain built-in metadata while setting a 350,000-token context
 for GPT-5.6 Luna/Sol/Terra, GPT-6 Astra/Luna/Sol, GPT-6.1 Sol, and DeepSeek Flash.
@@ -130,7 +135,7 @@ filter for existing destination credentials. Use the authentication workflow
 for `auth.json`, Telegram, and a legacy `models.json` containing a literal key.
 
 Run `./tests/check-pi.sh` for fake-secret rendering, managed inventory, merge
-behavior, profiles, isolated deployment, and mocked Jev transport checks.
+behavior, profiles, isolated deployment, and mocked Jev/provider URL transport checks.
 Run `./tests/check-skills.sh` for skill installer changes, and
 `./tests/check-source.sh` plus `git diff --check` before publishing source
 changes. These checks do not call paid models, access the real vault, send
