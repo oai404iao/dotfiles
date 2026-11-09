@@ -90,7 +90,7 @@ It is a selection scope, not the full provider catalog.
 
 Provider metadata routes `openai`, `deepseek`, and `xai` through
 `https://api.spiredive.com/v1`, `anthropic` through
-`https://api.kbsfdxc.net`, `google/gemini-4-argon` through the same
+`https://api.zero.cat/v1`, `google/gemini-4-argon` through the same
 endpoint using Anthropic Messages, and `typesafe` through
 `https://api.commandcode.ai/provider/v1`. Anthropic retains Pi's built-in
 catalog. DeepSeek disables the developer role. Providers do not override

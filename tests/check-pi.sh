@@ -110,8 +110,8 @@ auth_commands = {
     "deepseek": "!rbw unlocked && rbw get 'pi spiredive api key'",
     "openai": "!rbw unlocked && rbw get 'pi spiredive api key'",
     "xai": "!rbw unlocked && rbw get 'pi spiredive api key'",
-    "anthropic": "!rbw unlocked && rbw get 'pi krill api key'",
-    "google": "!rbw unlocked && rbw get 'pi krill api key'",
+    "anthropic": "!rbw unlocked && rbw get 'pi zerocat api key'",
+    "google": "!rbw unlocked && rbw get 'pi zerocat api key'",
     "typesafe": "!rbw unlocked && rbw get 'pi commandcode api key'",
 }
 auth_defaults = {
@@ -286,10 +286,10 @@ if any(
     for key in provider.get("headers", {})
 ):
     raise SystemExit("Pi providers must not override User-Agent")
-if providers["anthropic"] != {"baseUrl": "https://api.kbsfdxc.net"}:
+if providers["anthropic"] != {"baseUrl": "https://api.zero.cat/v1"}:
     raise SystemExit("Anthropic must override only its endpoint and use Pi's built-in catalog")
 if providers["google"] != {
-    "baseUrl": "https://api.kbsfdxc.net",
+    "baseUrl": "https://api.zero.cat/v1",
     "api": "anthropic-messages",
     "models": [{"id": "gemini-4-argon"}],
 }:

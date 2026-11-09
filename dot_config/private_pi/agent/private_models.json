@@ -1,7 +1,7 @@
 {
   "providers": {
     "anthropic": {
-      "baseUrl": "https://api.kbsfdxc.net"
+      "baseUrl": "https://api.zero.cat/v1"
     },
     "deepseek": {
       "baseUrl": "https://api.spiredive.com/v1",
@@ -15,7 +15,7 @@
       }
     },
     "google": {
-      "baseUrl": "https://api.kbsfdxc.net",
+      "baseUrl": "https://api.zero.cat/v1",
       "api": "anthropic-messages",
       "models": [
         { "id": "gemini-4-argon" }

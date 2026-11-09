@@ -23,8 +23,8 @@ merges entries with `"type": "api_key"` and these exact `key` references:
 | `deepseek` | `!rbw unlocked && rbw get 'pi spiredive api key'` |
 | `openai` | `!rbw unlocked && rbw get 'pi spiredive api key'` |
 | `xai` | `!rbw unlocked && rbw get 'pi spiredive api key'` |
-| `anthropic` | `!rbw unlocked && rbw get 'pi krill api key'` |
-| `google` | `!rbw unlocked && rbw get 'pi krill api key'` |
+| `anthropic` | `!rbw unlocked && rbw get 'pi zerocat api key'` |
+| `google` | `!rbw unlocked && rbw get 'pi zerocat api key'` |
 | `typesafe` | `!rbw unlocked && rbw get 'pi commandcode api key'` |
 
 For example, the managed part of one entry is:
@@ -44,7 +44,7 @@ and every unrelated provider/value, including OAuth credentials. The target
 is mode `0600`. Only the modifier belongs in Git: never `chezmoi add auth.json`,
 commit rendered authentication data, or substitute retrieved key values.
 
-Anthropic and Google use the Krill credential; Command Code's Jev classifier
+Anthropic and Google use the Zerocat credential; Command Code's Jev classifier
 needs a Command Code key, not a direct TypeSafe key. Neither uses Spiredive's key.
 
 The `rbw unlocked` gate fails without requesting a password when the vault is
@@ -94,7 +94,7 @@ backup; do not discard unrelated credentials to make the modifier succeed.
 Stored `auth.json` credentials take precedence over `models.json`. Pi resolves
 an auth-file `!command` when first needed and caches successful **and failed**
 results for the process lifetime. The identical Spiredive command serves all
-three of its providers after one successful resolution; Krill and Command Code
+three of its providers after one successful resolution; Zerocat and Command Code
 resolve independently.
 
 Keep `rbw` unlocked for that first lookup in each new Pi process, including
