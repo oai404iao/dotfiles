@@ -157,9 +157,9 @@ never derive cleanup operands from rebound HOME/XDG variables.
   in `tests/check-pi.sh` for every added/removed Pi source; add precise ignores
   and assertions for new runtime paths. Disabled packages/config are unmanaged.
 - Global Pi instructions are owned by `my_skills/prompts/pi-global-agents.md`,
-  published to that repository's `main`. `.chezmoiexternal.toml` fetches with a
-  24-hour cache. Do not add a second local source or confuse this root
-  `AGENTS.md` with that deployed file; follow the reviewed refresh procedure.
+  published to that repository's `main`. `scripts/sync-pi-agents.sh` installs
+  it manually; chezmoi does not manage the target. Do not add a second local
+  source or confuse this root `AGENTS.md` with that deployed file.
 - Skill intent belongs to `scripts/skills.json` and `scripts/install-skills.py`.
   Use `python3 scripts/install-skills.py --dry-run` offline. Real installation
   is an explicit network operation that can replace edits; back up first.

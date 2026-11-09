@@ -246,9 +246,10 @@ model requests, and notification delivery are outside the offline checks.
 The sole source of truth for `~/.config/pi/agent/AGENTS.md` is
 [`my_skills/prompts/pi-global-agents.md`](https://github.com/oai404iao/my_skills/blob/main/prompts/pi-global-agents.md).
 Edit it in that repository, not the installed copy or a second local source
-here. The external declaration in `.chezmoiexternal.toml` fetches remote `main`
-as a private file (mode `0600`); no local checkout path is required. Support
-currently targets Pi only.
+here. `scripts/sync-pi-agents.sh` fetches remote `main` into the installed file
+(mode `0600`); no local checkout path is required. Chezmoi does not manage the
+target, so `chezmoi apply` never fetches or changes it. Support currently
+targets Pi only.
 
 Pi loads global instructions from `PI_CODING_AGENT_DIR` alongside project
 context, not instead of repository `AGENTS.md`. A same-directory
@@ -288,27 +289,18 @@ by chezmoi. This is instruction policy, not a sandbox or global `TMPDIR`
 override; existing tests' cleanup and application-managed temp contracts remain
 unchanged.
 
-### Review and deploy the external file
+### Review and sync the published file
 
-Publish reviewed edits to `my_skills/main` first. The 24-hour cache is not a
-background timer: a chezmoi operation fetches when it needs the external and
-the cache is due, or when explicitly refreshed. Fetches require network access.
-Following `main` trades reproducible pins for convenient updates, so review
-the fetched instructions before deployment.
-
-Privately back up any existing target, then review and apply that target only:
+Publish reviewed edits to `my_skills/main` first, then run from the source root:
 
 ```sh
-chezmoi diff --refresh-externals=always --skip-secrets --exclude=scripts,encrypted \
-  ~/.config/pi/agent/AGENTS.md
-chezmoi apply --refresh-externals=never --exclude=scripts,encrypted \
-  ~/.config/pi/agent/AGENTS.md
+sh scripts/sync-pi-agents.sh --dry-run   # fetch and show the diff only
+sh scripts/sync-pi-agents.sh             # fetch again and install
 ```
 
-The apply reuses the reviewed cache, rather than fetching newer `main` between
-review and deployment. Do not refresh the cache concurrently. On a new machine
-or migration, publish the upstream prompt before deploying the external
-declaration. See the [chezmoi external reference](https://www.chezmoi.io/reference/special-files/chezmoiexternal-format/).
+Both runs require network access and fetch current `main`; review the diff
+before installing. The script writes atomically and rejects an empty download.
+Back up the installed file first if it has local edits.
 
 For role changes, also back up/review the explicit
 `~/.config/pi/agent/agents/{scout,reviewer,worker}.md` targets before applying
@@ -316,9 +308,8 @@ only those needed. To add worker alone, apply only `agents/worker.md`.
 Reload/restart when child work no longer needs preserving, then spawn new
 children. Use `/reload` or a new Pi session for updated context files.
 
-`tests/check-pi.sh` verifies the external declaration and isolated deployment
-with synthetic file and loopback HTTP fixtures, including reviewed-cache use.
-It neither downloads nor validates the live upstream instructions.
+`tests/check-pi.sh` runs the sync script in an isolated HOME with a fake
+`curl`. It neither downloads nor validates the live upstream instructions.
 
 ## Subagent 1.0.0 migration
 

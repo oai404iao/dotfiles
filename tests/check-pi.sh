@@ -5,7 +5,6 @@ repo_dir=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
 source_dir="$repo_dir/dot_config/private_pi/agent"
 
 python3 - "$source_dir" <<'PY'
-import http.server
 import json
 import os
 import pathlib
@@ -13,8 +12,6 @@ import shutil
 import subprocess
 import sys
 import tempfile
-import threading
-import tomllib
 
 source_dir = pathlib.Path(sys.argv[1])
 repo_dir = source_dir.parents[2]
@@ -76,17 +73,8 @@ if ".config/pi/agent/npm/" in ignore_lines:
 if ".config/pi/agent/auth.json" in ignore_lines:
     raise SystemExit("Pi auth command-reference modifier is hidden by an ignore")
 
-external_path = ".config/pi/agent/AGENTS.md"
-external_source = (repo_dir / ".chezmoiexternal.toml").read_text()
-external = tomllib.loads(external_source).get(external_path)
-if external != {
-    "type": "file",
-    "url": "https://raw.githubusercontent.com/oai404iao/my_skills/main/prompts/pi-global-agents.md",
-    "private": True,
-    "refreshPeriod": "24h",
-}:
-    raise SystemExit("Pi global instructions external contract changed unexpectedly")
-
+if (repo_dir / ".chezmoiexternal.toml").read_text().count(".config/pi/"):
+    raise SystemExit("Pi global instructions are synced by scripts/sync-pi-agents.sh, not externals")
 
 def unique_object(pairs):
     result = {}
@@ -397,7 +385,6 @@ strictDepBuilds: true
     scratch_root.mkdir(parents=True, exist_ok=True)
     scratch = pathlib.Path(tempfile.mkdtemp(prefix="check-pi.", dir=scratch_root))
     fixture_source = scratch / "source"
-    # External declarations are exercised separately with synthetic local fixtures.
     shutil.copytree(
         repo_dir, fixture_source,
         ignore=shutil.ignore_patterns(".git", ".worktrees", ".chezmoiexternal.toml"),
@@ -440,81 +427,50 @@ strictDepBuilds: true
                 raise SystemExit("Unlocked Pi credential lookup must fetch the original entry")
     rbw_log.unlink()
     print("Pi credential unlock gate checks passed (mocked locked/unlocked vault)")
-    external_fixture = scratch / "external-source"
-    external_fixture.mkdir()
-    external_payload = scratch / "global-instructions.md"
-    external_target = home / external_path
-    external_target.parent.mkdir(parents=True)
+    # Fake curl copies a local payload so the sync script runs offline.
+    sync_bin = scratch / "sync-bin"
+    sync_bin.mkdir()
+    (sync_bin / "curl").write_text(
+        '#!/bin/sh\nset -eu\n'
+        'while [ "$1" != --output ]; do shift; done\n'
+        'cp -- "$PI_TEST_AGENTS_PAYLOAD" "$2"\n'
+    )
+    (sync_bin / "curl").chmod(0o700)
+    sync_payload = scratch / "global-instructions.md"
+    sync_target = home / ".config/pi/agent/AGENTS.md"
+    sync_env = {
+        **fixture_env, "PI_TEST_AGENTS_PAYLOAD": str(sync_payload),
+        "PI_CODING_AGENT_DIR": str(sync_target.parent),
+        "PATH": f"{sync_bin}{os.pathsep}{fixture_env['PATH']}",
+    }
 
-    def write_external_fixture(url):
-        (external_fixture / ".chezmoiexternal.toml").write_text(
-            f"[{json.dumps(external_path)}]\n"
-            f"type = {json.dumps(external['type'])}\n"
-            f"url = {json.dumps(url)}\n"
-            f"private = {str(external['private']).lower()}\n"
-            f"refreshPeriod = {json.dumps(external['refreshPeriod'])}\n"
-        )
+    def run_sync(*args):
+        return subprocess.run(
+            ["sh", str(repo_dir / "scripts/sync-pi-agents.sh"), *args],
+            text=True, capture_output=True, check=True, env=sync_env,
+        ).stdout
 
-    external_command = [
-        "chezmoi", "--config", "/dev/null", "--config-format", "toml",
-        "--source", str(external_fixture), "--destination", str(home),
-        "--persistent-state", str(scratch / "external-state.boltdb"),
-        "--cache", str(scratch / "external-cache"),
-    ]
-
-    def apply_external(refresh, expected_contents):
-        subprocess.run(
-            [*external_command, f"--refresh-externals={refresh}",
-             "apply", "--force", str(external_target)],
-            text=True, capture_output=True, check=True, env=fixture_env,
-        )
-        if external_target.read_text() != expected_contents:
-            raise SystemExit("Pi external instructions deployment, cache, or refresh failed")
-        if external_target.stat().st_mode & 0o777 != 0o600:
-            raise SystemExit("Pi external instructions must remain mode 0600")
-
-    # Loopback HTTP tests reviewed cached deployment.
-    class ExternalHandler(http.server.BaseHTTPRequestHandler):
-        def do_GET(self):
-            payload = external_payload.read_bytes()
-            self.send_response(200)
-            self.send_header("Content-Length", str(len(payload)))
-            self.end_headers()
-            self.wfile.write(payload)
-
-        def log_message(self, format, *args):
-            pass
-
-    with http.server.ThreadingHTTPServer(("127.0.0.1", 0), ExternalHandler) as server:
-        server_thread = threading.Thread(target=server.serve_forever, daemon=True)
-        server_thread.start()
-        try:
-            write_external_fixture(f"http://127.0.0.1:{server.server_port}/instructions.md")
-            reviewed = "Synthetic reviewed instructions.\n"
-            external_payload.write_text(reviewed)
-            reviewed_diff = subprocess.run(
-                [*external_command, "--refresh-externals=always",
-                 "diff", str(external_target)],
-                text=True, capture_output=True, check=True, env=fixture_env,
-            ).stdout
-            if reviewed.strip() not in reviewed_diff:
-                raise SystemExit("Pi external diff did not review the refreshed instructions")
-            changed = "Synthetic instructions changed after review.\n"
-            external_payload.write_text(changed)
-            apply_external("never", reviewed)
-            apply_external("always", changed)
-        finally:
-            server.shutdown()
-            server_thread.join()
-    external_inventory = subprocess.run(
-        [*external_command, "managed", "--include=files"],
-        text=True, capture_output=True, check=True, env=fixture_env,
-    ).stdout.splitlines()
-    if external_inventory != [external_path]:
-        raise SystemExit("Pi external instructions changed their destination path")
+    sync_payload.write_text("Synthetic reviewed instructions.\n")
+    if "+Synthetic reviewed" not in run_sync("--dry-run") or sync_target.exists():
+        raise SystemExit("Pi instructions dry-run must show the diff without writing")
+    run_sync()
+    run_sync()
+    if sync_target.read_text() != sync_payload.read_text():
+        raise SystemExit("Pi instructions sync did not install the fetched file")
+    if sync_target.stat().st_mode & 0o777 != 0o600:
+        raise SystemExit("Pi instructions must remain mode 0600")
+    sync_payload.write_text("")
+    if subprocess.run(
+        ["sh", str(repo_dir / "scripts/sync-pi-agents.sh")],
+        capture_output=True, env=sync_env,
+    ).returncode == 0 or sync_target.read_text() != "Synthetic reviewed instructions.\n":
+        raise SystemExit("Pi instructions sync must reject an empty download")
+    if sorted(p.name for p in sync_target.parent.iterdir()) != ["AGENTS.md"]:
+        raise SystemExit("Pi instructions sync left temporary files")
+    sync_target.unlink()
     if rbw_log.exists():
-        raise SystemExit("Pi external instructions unexpectedly accessed rbw")
-    print("Pi global instructions offline external deployment and refresh checks passed")
+        raise SystemExit("Pi instructions sync unexpectedly accessed rbw")
+    print("Pi global instructions offline sync checks passed")
 
     chezmoi = [
         "chezmoi", "--config", "/dev/null", "--config-format", "toml",

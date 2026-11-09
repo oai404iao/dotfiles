@@ -24,7 +24,7 @@ dependencies = {
         "zsh-users/zsh-syntax-highlighting", "zsh-syntax-highlighting.plugin.zsh",
     ),
 }
-assert set(externals) == {*dependencies, ".config/pi/agent/AGENTS.md"}
+assert set(externals) == set(dependencies)
 for target, (upstream, _) in dependencies.items():
     entry = externals[target]
     assert re.fullmatch(

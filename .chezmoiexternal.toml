@@ -1,9 +1,3 @@
-[".config/pi/agent/AGENTS.md"]
-    type = "file"
-    url = "https://raw.githubusercontent.com/oai404iao/my_skills/main/prompts/pi-global-agents.md"
-    private = true
-    refreshPeriod = "24h"
-
 [".oh-my-zsh"]
     type = "archive"
     url = "https://github.com/ohmyzsh/ohmyzsh/archive/1e3abc123f690c9bdd416e8224f1beb47c96f1c7.tar.gz"

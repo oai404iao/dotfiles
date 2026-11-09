@@ -64,7 +64,7 @@ Managed files use mode `0600`; `~/.config/pi` remains mode `0700`.
 | `extensions/pi-codex-minimal-tools/{config,models}.json` | Codex capabilities and model profiles. |
 | `extensions/pi-notify/config.json` | Notification channel template; headless mode contains plaintext Telegram credentials. |
 | `npm/pnpm-workspace.yaml` | Modifier merges exact reviewed build approvals, not installation state. |
-| `AGENTS.md` | Single external file from `my_skills/main`, with a 24-hour fetch cache. |
+| `AGENTS.md` | Unmanaged; `scripts/sync-pi-agents.sh` fetches it from `my_skills/main`. |
 
 The settings modifier deliberately owns the entire package declaration list.
 A local edit to a declared key can be replaced on the next targeted apply.
