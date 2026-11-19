@@ -10,7 +10,7 @@ see [Pi configuration](pi.md#defaults-and-model-reference).
 | Item | Owner and behavior |
 | --- | --- |
 | `models.json` | Declarative metadata; deliberately omits `apiKey`. |
-| `auth.json` | Private machine-local credentials, with six managed command references merged in. |
+| `auth.json` | Private machine-local credentials, with managed command references merged in. |
 | Provider keys | Bitwarden entries accessed by `rbw` on first use. |
 | Pi Notify `config.json` | Channel template; headless mode resolves Telegram credentials into a private file. |
 | Shell startup | Exports paths, never provider credentials. |
@@ -23,8 +23,6 @@ merges entries with `"type": "api_key"` and these exact `key` references:
 | `deepseek` | `!rbw unlocked && rbw get 'pi spiredive api key'` |
 | `openai` | `!rbw unlocked && rbw get 'pi spiredive api key'` |
 | `xai` | `!rbw unlocked && rbw get 'pi spiredive api key'` |
-| `anthropic` | `!rbw unlocked && rbw get 'pi zerocat api key'` |
-| `google` | `!rbw unlocked && rbw get 'pi zerocat api key'` |
 | `typesafe` | `!rbw unlocked && rbw get 'pi commandcode api key'` |
 
 For example, the managed part of one entry is:
@@ -44,8 +42,11 @@ and every unrelated provider/value, including OAuth credentials. The target
 is mode `0600`. Only the modifier belongs in Git: never `chezmoi add auth.json`,
 commit rendered authentication data, or substitute retrieved key values.
 
-Anthropic and Google use the Zerocat credential; Command Code's Jev classifier
-needs a Command Code key, not a direct TypeSafe key. Neither uses Spiredive's key.
+Anthropic and Google credentials are unmanaged. Existing entries, including
+older Zerocat command references, are preserved on apply. Before explicitly
+using either provider on the new route, remove or replace any old credential
+via Pi so it is not sent to the new endpoint. Command Code's Jev classifier
+needs a Command Code key, not a direct TypeSafe or Spiredive key.
 
 The `rbw unlocked` gate fails without requesting a password when the vault is
 locked, avoiding unattended pinentry prompts during Pi key resolution. Unlock
@@ -94,8 +95,8 @@ backup; do not discard unrelated credentials to make the modifier succeed.
 Stored `auth.json` credentials take precedence over `models.json`. Pi resolves
 an auth-file `!command` when first needed and caches successful **and failed**
 results for the process lifetime. The identical Spiredive command serves all
-three of its providers after one successful resolution; Zerocat and Command Code
-resolve independently.
+three of its providers after one successful resolution; Command Code resolves
+independently.
 
 Keep `rbw` unlocked for that first lookup in each new Pi process, including
 independently launched subagents. A later `rbw lock`, or rbw's default one-hour
@@ -162,7 +163,7 @@ for the accompanying settings change and delivery limits.
 
 ## What the checks establish
 
-`tests/check-pi.sh` tests six-provider merging, private permissions, idempotence,
+`tests/check-pi.sh` tests command-reference merging, private permissions, idempotence,
 invalid-input rejection, conflict preservation, and isolated apply without
 vault access. It renders Telegram with `tests/fixtures/pi/bin/rbw`, never the
 real vault. It does not verify real keys, send notifications, or make paid

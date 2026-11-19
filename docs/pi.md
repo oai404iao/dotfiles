@@ -58,7 +58,7 @@ Managed files use mode `0600`; `~/.config/pi` remains mode `0700`.
 | --- | --- |
 | `settings.json` | Modifier replaces declared settings; preserves unknown/runtime keys and other codemode options. |
 | `models.json`, `keybindings.json` | Declarative provider/model metadata and key bindings; no API keys in models. |
-| `auth.json` | Modifier merges six providers' command references; all other credentials and extra fields remain local. |
+| `auth.json` | Modifier merges [managed command references](pi-authentication.md#credential-ownership); all other credentials and extra fields remain local. |
 | `subagent.json`, `agents/{scout,reviewer,worker}.md` | User-scoped runtime policy and role definitions. |
 | `extensions/jev.ts` | Command Code classifier registration. |
 | `extensions/pi-codex-minimal-tools/{config,models}.json` | Codex capabilities and model profiles. |
@@ -82,27 +82,25 @@ It is not an import mechanism for arbitrary runtime settings.
 | Sessions | `~/.local/state/pi/agent/sessions` |
 | Submit / newline | Enter / Shift+Enter, Alt+Enter, or Ctrl+J |
 
-The enabled-model list is `anthropic/claude-opus-5-5`,
-`openai/gpt-5.6-sol`, `openai/gpt-6-astra`, `openai/gpt-6-luna`,
-`openai/gpt-6.1-sol`, `openai/gpt-6.1-terra`, `deepseek/deepseek-flash`,
-and `google/gemini-4-argon`.
-It is a selection scope, not the full provider catalog.
+The enabled-model list includes `openai/gpt-5.6-sol`, `openai/gpt-6-astra`,
+`openai/gpt-6-luna`, `openai/gpt-6.1-sol`, `openai/gpt-6.1-terra`,
+`openai/gpt-6.2-sol`, `openai/gpt-6.2-astra`, and `deepseek/deepseek-flash`.
+It is a selection scope, not the full provider catalog. Claude and Gemini
+remain configured but are not in this list.
 
 Provider metadata routes `openai`, `deepseek`, and `xai` through
-`https://api.spiredive.com/v1`, `anthropic` through
-`https://api.zero.cat`, `google/gemini-4-argon` through the same
-endpoint using Anthropic Messages, and `typesafe` through
-`https://api.commandcode.ai/provider/v1`. Anthropic retains Pi's built-in
-catalog. DeepSeek disables the developer role. Providers do not override
-`User-Agent`; the client supplies its default.
-
-Both Zerocat routes use `anthropic-messages`. In installed Pi 1.5.0, the
-Anthropic SDK appends `/v1/messages?beta=true` to the base URL; including `/v1`
-in that base would produce `/v1/v1/messages`. The offline provider URL test
-captures the final SDK requests with a synthetic key and mocked fetch.
+`https://api.spiredive.com/v1`, `anthropic` through `https://www.zzshu.cc`,
+`google` through `https://www.zzshu.cc/v1beta`, and `typesafe` through
+`https://api.commandcode.ai/provider/v1`. Anthropic and Google use their native
+Pi adapters and catalogs. DeepSeek disables the developer role. Providers do
+not override `User-Agent`; the client supplies its default. The offline
+provider URL test captures the final SDK requests with a synthetic key and
+mocked fetch.
 
 Model overrides retain built-in metadata while setting a 350,000-token context
-for GPT-5.6 Luna/Sol/Terra, GPT-6 Astra/Luna/Sol, GPT-6.1 Sol, and DeepSeek Flash.
+for GPT-5.6 Luna/Sol/Terra, GPT-6 Astra/Luna/Sol, GPT-6.1 Sol, GPT-6.2 Sol/Astra,
+and DeepSeek Flash, and a 300,000-token context for Claude Opus/Sonnet 5.5.
+The GPT-6.2 overrides do not register models; the provider catalog must supply them.
 The additional `openai/gpt-5.6-sol-cyber` model uses Responses, text/image input,
 reasoning, a 350,000-token context and 128,000-token output limit, tool-search
 support, and explicit thinking-level and tiered price metadata. Exact values

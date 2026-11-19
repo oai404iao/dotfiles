@@ -1,7 +1,15 @@
 {
   "providers": {
     "anthropic": {
-      "baseUrl": "https://api.zero.cat"
+      "baseUrl": "https://www.zzshu.cc",
+      "modelOverrides": {
+        "claude-sonnet-5-5": {
+          "contextWindow": 300000
+        },
+        "claude-opus-5-5": {
+          "contextWindow": 300000
+        }
+      }
     },
     "deepseek": {
       "baseUrl": "https://api.spiredive.com/v1",
@@ -15,11 +23,7 @@
       }
     },
     "google": {
-      "baseUrl": "https://api.zero.cat",
-      "api": "anthropic-messages",
-      "models": [
-        { "id": "gemini-4-argon" }
-      ]
+      "baseUrl": "https://www.zzshu.cc/v1beta"
     },
     "openai": {
       "baseUrl": "https://api.spiredive.com/v1",
@@ -43,6 +47,12 @@
           "contextWindow": 350000
         },
         "gpt-6.1-sol": {
+          "contextWindow": 350000
+        },
+        "gpt-6.2-sol": {
+          "contextWindow": 350000
+        },
+        "gpt-6.2-astra": {
           "contextWindow": 350000
         }
       },

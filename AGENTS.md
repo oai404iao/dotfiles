@@ -135,8 +135,8 @@ never derive cleanup operands from rebound HOME/XDG variables.
   unknown/runtime keys and replace only declared keys. `graphical` selects
   local notifications or Telegram without deleting the other profile's files.
 - Keep model credentials out of `private_models.json`. The auth modifier
-  merges API-key command references for `deepseek`, `openai`, `xai`,
-  `anthropic`, and `typesafe`, preserving other providers and extra fields.
+  merges [managed API-key command references](docs/pi-authentication.md#credential-ownership),
+  preserving other providers and extra fields.
   Reject managed-provider non-API-key conflicts and malformed, duplicate-key,
   or non-object JSON without exposing credentials.
 - Auth apply must not contact rbw. Before targeted apply, exit active Pi

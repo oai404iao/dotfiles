@@ -98,8 +98,6 @@ auth_commands = {
     "deepseek": "!rbw unlocked && rbw get 'pi spiredive api key'",
     "openai": "!rbw unlocked && rbw get 'pi spiredive api key'",
     "xai": "!rbw unlocked && rbw get 'pi spiredive api key'",
-    "anthropic": "!rbw unlocked && rbw get 'pi zerocat api key'",
-    "google": "!rbw unlocked && rbw get 'pi zerocat api key'",
     "typesafe": "!rbw unlocked && rbw get 'pi commandcode api key'",
 }
 auth_defaults = {
@@ -109,6 +107,7 @@ auth_defaults = {
 existing_auth = {
     "openai": {"type": "api_key", "key": "synthetic-old-key", "env": {"EXTRA": "keep"}},
     "anthropic": {"type": "api_key", "key": "!old-command", "futureField": True},
+    "google": {"type": "oauth", "access": "synthetic-google-access"},
     "typesafe": {"type": "api_key", "key": "!old-jev-command", "futureField": "keep"},
     "openai-codex": {
         "type": "oauth", "access": "synthetic-access",
@@ -170,14 +169,14 @@ expected_defaults = {
     "codemode": {"mode": "on"},
     "hideThinkingBlock": True,
     "enabledModels": [
-        "anthropic/claude-opus-5-5",
         "openai/gpt-5.6-sol",
         "openai/gpt-6-astra",
         "openai/gpt-6-luna",
         "openai/gpt-6.1-sol",
         "openai/gpt-6.1-terra",
         "deepseek/deepseek-flash",
-        "google/gemini-4-argon",
+        "openai/gpt-6.2-sol",
+        "openai/gpt-6.2-astra",
     ],
     "npmCommand": ["pnpm", "--config.node-linker=hoisted"],
     "theme": "dark",
@@ -274,14 +273,16 @@ if any(
     for key in provider.get("headers", {})
 ):
     raise SystemExit("Pi providers must not override User-Agent")
-if providers["anthropic"] != {"baseUrl": "https://api.zero.cat"}:
-    raise SystemExit("Anthropic must override only its endpoint and use Pi's built-in catalog")
-if providers["google"] != {
-    "baseUrl": "https://api.zero.cat",
-    "api": "anthropic-messages",
-    "models": [{"id": "gemini-4-argon"}],
+if providers["anthropic"] != {
+    "baseUrl": "https://www.zzshu.cc",
+    "modelOverrides": {
+        "claude-sonnet-5-5": {"contextWindow": 300000},
+        "claude-opus-5-5": {"contextWindow": 300000},
+    },
 }:
-    raise SystemExit("Google must route Gemini through Krill's Anthropic-compatible API")
+    raise SystemExit("unexpected Anthropic route or context overrides")
+if providers["google"] != {"baseUrl": "https://www.zzshu.cc/v1beta"}:
+    raise SystemExit("Google must use its native API and catalog at the configured endpoint")
 if providers["typesafe"] != {"baseUrl": "https://api.commandcode.ai/provider/v1"}:
     raise SystemExit("Jev must use Command Code's System One base URL without a duplicate suffix")
 openai = providers["openai"]
@@ -294,13 +295,15 @@ expected_context_overrides = {
     "gpt-6-luna": 350000,
     "gpt-6-sol": 350000,
     "gpt-6.1-sol": 350000,
+    "gpt-6.2-sol": 350000,
+    "gpt-6.2-astra": 350000,
 }
 actual_context_overrides = {
     model_id: override.get("contextWindow")
     for model_id, override in openai.get("modelOverrides", {}).items()
 }
 if actual_context_overrides != expected_context_overrides:
-    raise SystemExit("unexpected GPT-5.6/GPT-6/GPT-6.1 context overrides")
+    raise SystemExit("unexpected OpenAI context overrides")
 if deepseek.get("modelOverrides") != {"deepseek-flash": {"contextWindow": 350000}}:
     raise SystemExit("DeepSeek Flash context window is not 350K")
 custom_openai_models = {
@@ -696,13 +699,13 @@ strictDepBuilds: true
                 "openai/gpt-6-luna",
                 "openai/gpt-6-sol",
                 "openai/gpt-6.1-terra",
+                "openai/gpt-6.2-sol",
+                "openai/gpt-6.2-astra",
             }:
                 raise SystemExit("unexpected Codex tool profile inventory")
-            if profiles["openai/gpt-6.1-terra"] != {
-                "id": "openai/gpt-6.1-terra",
-                "extends": "openai/gpt-6-astra",
-            }:
-                raise SystemExit("GPT-6.1 Terra must inherit the GPT-6 Astra profile")
+            for model_id in ("openai/gpt-6.1-terra", "openai/gpt-6.2-sol", "openai/gpt-6.2-astra"):
+                if profiles[model_id] != {"id": model_id, "extends": "openai/gpt-6-astra"}:
+                    raise SystemExit(f"{model_id} must inherit the GPT-6 Astra profile")
             parent_responses = profiles.get(
                 "openai/gpt-5.6-sol", {}
             ).get("responses", {})

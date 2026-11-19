@@ -14,37 +14,34 @@ const config = await ModelConfig.load(join(repo, "dot_config/private_pi/agent/pr
 assert.equal(config.getError(), undefined);
 
 const originalFetch = globalThis.fetch;
-globalThis.fetch = async () => { throw new Error("Unexpected transport outside mock fetch"); };
 try {
-	for (const [id, base, modelId] of [
-		["anthropic", anthropicProvider(), "claude-opus-5-5"],
-		["google", googleProvider(), "gemini-4-argon"],
+	for (const [id, base, modelId, api, expectedUrl, keyHeader] of [
+		["anthropic", anthropicProvider(), "claude-opus-5-5", "anthropic-messages",
+			"https://www.zzshu.cc/v1/messages?beta=true", "x-api-key"],
+		["google", googleProvider(), "gemini-4-argon", "google-generative-ai",
+			"https://www.zzshu.cc/v1beta/models/gemini-4-argon:streamGenerateContent?alt=sse", "x-goog-api-key"],
 	]) {
 		const provider = composeModelProvider(id, base, config, undefined);
 		const model = provider.getModels().find((entry) => entry.id === modelId);
 		assert.ok(model, `${id}/${modelId} missing`);
-		assert.equal(model.api, "anthropic-messages");
-		let calls = 0;
+		assert.equal(model.api, api);
+		const requests = [];
+		const apiKey = "synthetic-provider-key";
+		globalThis.fetch = async (input, options) => {
+			requests.push(new Request(input, options));
+			return new Response(JSON.stringify({
+				type: "error", error: { type: "invalid_request_error", message: "synthetic transport capture" },
+			}), { status: 400, headers: { "content-type": "application/json" } });
+		};
 		const result = await provider.streamSimple(model, {
 			messages: [{ role: "user", content: [{ type: "text", text: "Offline URL check" }], timestamp: 0 }],
-		}, {
-			apiKey: "synthetic-zerocat-key",
-			env: {},
-			maxRetries: 0,
-			fetch: async (input, options) => {
-				calls++;
-				const url = String(input instanceof Request ? input.url : input);
-				console.log(`${id}/${modelId} api=${model.api} baseUrl=${model.baseUrl} request=${url}`);
-				assert.equal(url, "https://api.zero.cat/v1/messages?beta=true");
-				assert.equal(options.method, "POST");
-				assert.equal(new Headers(options.headers).get("x-api-key"), "synthetic-zerocat-key");
-				assert.equal(JSON.parse(options.body).model, modelId);
-				return new Response(JSON.stringify({
-					type: "error", error: { type: "invalid_request_error", message: "synthetic transport capture" },
-				}), { status: 400, headers: { "content-type": "application/json" } });
-			},
-		}).result();
-		assert.equal(calls, 1);
+		}, { apiKey, env: {}, maxRetries: 0 }).result();
+		assert.equal(requests.length, 1, result.errorMessage);
+		const [request] = requests;
+		assert.equal(request.url, expectedUrl);
+		assert.equal(request.method, "POST");
+		assert.equal(request.headers.get(keyHeader), apiKey);
+		if (id === "anthropic") assert.equal((await request.json()).model, modelId);
 		assert.equal(result.stopReason, "error");
 		assert.match(result.errorMessage, /synthetic transport capture/);
 	}
