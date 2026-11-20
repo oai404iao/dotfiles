@@ -27,6 +27,7 @@ of everything under `$HOME`.
 | Configure fonts, GTK, Nautilus, or portals | [Desktop applications](desktop-applications.md) |
 | Set up locale, sudo dialogs, XDG folders, or keyring | [Desktop session](desktop-session.md) |
 | Choose or switch Niri desktop shells | [Desktop shell profiles](desktop-shells.md) |
+| Stream an unattended virtual desktop to Moonlight | [Biri and Sunshine](biri-headless.md) |
 | Use native Dux lyrics or retire old plugins | [DMS plugins](dms-plugins.md) |
 | Integrate an iPhone with DMS | [Tether](tether.md) |
 | Configure Pi models, packages, notifications, or agents | [Pi](pi.md) |

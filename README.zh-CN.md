@@ -29,6 +29,7 @@ Dux Shell（DMS），并包含 LazyVim、Git、SSH 和 Pi 配置。机器能力�
 | 固定版本的 Oh My Zsh 与 Powerlevel10k | [Zsh 依赖](docs/zsh.md) |
 | 字体、应用、locale 与密钥环 | [桌面](docs/desktop.md) |
 | Niri custom/DMS 选择与迁移 | [桌面方案](docs/desktop-shells.md) |
+| 通过 Moonlight 使用无人值守的远程桌面 | [Biri 和 Sunshine](docs/biri-headless.md) |
 | 可选的 iPhone 通知与剪贴板 | [Tether](docs/tether.md) |
 | 模型、通知、扩展与代理 | [Pi](docs/pi.md) |
 | 可选的本地代理服务，不启动 Web UI | [Paseo](docs/paseo.md) |

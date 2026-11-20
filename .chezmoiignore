@@ -68,6 +68,14 @@ secrets/
 .config/systemd/user/paseo.service
 {{- end }}
 
+# Sunshine owns its settings, pairing and credential state.
+.config/sunshine/
+.config/systemd/user/default.target.wants/biri-headless.service
+{{- if not (get . "biriHeadless" | default false) }}
+.config/biri/headless.kdl
+.config/systemd/user/biri-headless.service
+{{- end }}
+
 # Retained agent scratch work is machine-local mutable state.
 .local/state/agents/tmp/
 

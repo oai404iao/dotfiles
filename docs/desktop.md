@@ -14,6 +14,7 @@ Choose the guide for your task:
 | Configure locale, English folders, sudo dialogs, or the keyring | [Desktop session setup](desktop-session.md) |
 | Understand native lyrics or retire old plugins | [DMS plugins and lyrics](dms-plugins.md) |
 | Forward iPhone notifications or opt into clipboard sharing | [Tether](tether.md) |
+| Stream an unattended virtual desktop to Moonlight | [Biri and Sunshine](biri-headless.md) |
 
 The palette, Waybar, and temperature procedures below are for **custom**.
 DMS uses its own wallpaper, palette, locking, and night-mode controls. Fonts,

@@ -1,0 +1,15 @@
+[Unit]
+Description=Biri headless desktop for Sunshine
+
+[Service]
+Type=exec
+Environment=NIRI_BACKEND=headless
+UnsetEnvironment=DISPLAY WAYLAND_DISPLAY WAYLAND_SOCKET NIRI_SOCKET
+# Avoid --session: it would export this instance's sockets to the shared user manager.
+ExecStartPre=/usr/bin/niri validate --config %E/biri/headless.kdl
+ExecStart=/usr/bin/niri --config %E/biri/headless.kdl
+Restart=on-failure
+RestartSec=5s
+
+[Install]
+WantedBy=default.target
