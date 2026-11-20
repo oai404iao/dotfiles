@@ -1,0 +1,128 @@
+#!/bin/sh
+set -eu
+
+die() {
+    printf 'biri: %s\n' "$*" >&2
+    exit 1
+}
+
+case "$#:${1-}" in
+    0:|1:--apply) ;;
+    *) die 'usage: scripts/biri [--apply]' ;;
+esac
+
+headless=biri-headless.service
+stream=biri-desktop-sunshine.scope
+mode=$(chezmoi execute-template --skip-secrets '{{ get . "biri" }}')
+case $mode in
+    headless) plan="Stop any stale $stream and enable and start $headless." ;;
+    desktop) plan="Disable and archive $headless and its KDL. Start the regular desktop through its login manager." ;;
+    none) plan="Stop $stream and disable and archive $headless and its KDL." ;;
+    *) die 'set [data].biri to none, headless, or desktop before running this script' ;;
+esac
+printf 'biri = "%s"\n%s\n' "$mode" "$plan"
+if [ "${1-}" != --apply ]; then
+    printf '%s\n' 'Preview only. Run with --apply to act.'
+    exit 0
+fi
+
+uid=$(id -u)
+[ "$uid" -ne 0 ] || die 'run as the desktop user, not root'
+destination=$(chezmoi execute-template --skip-secrets '{{ .chezmoi.destDir }}')
+[ "$destination" = "$HOME" ] || die 'chezmoi destination must be the current user home'
+config_home=$HOME/.config
+[ "${XDG_CONFIG_HOME:-$config_home}" = "$config_home" ] ||
+    die 'this helper requires XDG_CONFIG_HOME to be unset or $HOME/.config'
+state_home=${XDG_STATE_HOME:-$HOME/.local/state}
+case $state_home in /*) ;; *) die 'XDG_STATE_HOME must be absolute' ;; esac
+unit="$config_home/systemd/user/$headless"
+kdl="$config_home/biri/headless.kdl"
+enablement="$config_home/systemd/user/default.target.wants/$headless"
+
+property() {
+    systemctl --user show -p "$2" --value "$1"
+}
+
+check_loaded_unit() {
+    fragment=$(property "$headless" FragmentPath)
+    [ -z "$fragment" ] || [ "$fragment" = "$unit" ] ||
+        die "refusing to manage $headless from $fragment"
+    drop_ins=$(property "$headless" DropInPaths)
+    [ -z "$drop_ins" ] || die "refusing to manage $headless with drop-ins"
+}
+
+stop_stream() {
+    loaded=$(property "$stream" LoadState)
+    if [ "$loaded" != not-found ]; then
+        systemctl --user stop "$stream"
+    fi
+}
+
+for path in "$config_home" "$config_home/biri" "$config_home/systemd" \
+    "$config_home/systemd/user" "$config_home/systemd/user/default.target.wants"; do
+    [ ! -L "$path" ] || die "refusing to follow a symlink directory: $path"
+done
+for path in "$unit" "$kdl"; do
+    if [ -L "$path" ] || { [ -e "$path" ] && [ ! -f "$path" ]; }; then
+        die "expected a regular file: $path"
+    fi
+done
+if [ -f "$unit" ]; then
+    repo=$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)
+    cmp -s -- "$unit" "$repo/dot_config/systemd/user/$headless" ||
+        die "refusing to manage a locally modified $headless"
+elif [ -L "$enablement" ]; then
+    die "refusing to manage a dangling enablement link for $headless"
+fi
+check_loaded_unit
+[ -z "$fragment" ] || [ -f "$unit" ] || die "installed file for $headless is missing"
+
+if [ "$mode" = headless ]; then
+    [ -f "$unit" ] && [ -f "$kdl" ] || die 'apply the headless chezmoi targets first'
+    niri validate --config "$kdl"
+    desktop_state=$(property niri.service ActiveState)
+    case $desktop_state in
+        inactive|failed) ;;
+        *) die 'end the regular Niri session before starting headless mode' ;;
+    esac
+    stop_stream
+    headless_state=$(property "$headless" ActiveState)
+    if [ "$headless_state" != active ]; then
+        if pgrep -u "$uid" -x 'niri|dms|sunshine' >/dev/null; then
+            die 'another Niri, DMS, or Sunshine process is still running'
+        elif [ "$?" -ne 1 ]; then
+            die 'could not check for competing desktop processes'
+        fi
+    fi
+    systemctl --user daemon-reload
+    check_loaded_unit
+    [ "$fragment" = "$unit" ] || die "$headless was not loaded from $unit"
+    systemctl --user enable --now "$headless"
+    exit 0
+fi
+
+if [ -f "$unit" ]; then
+    systemctl --user disable --now "$headless"
+    headless_state=$(property "$headless" ActiveState)
+    case $headless_state in
+        inactive|failed) ;;
+        *) die "$headless did not stop; leaving its files in place" ;;
+    esac
+fi
+if [ "$mode" = none ]; then
+    stop_stream
+fi
+if [ -f "$unit" ] || [ -f "$kdl" ]; then
+    umask 077
+    backups="$state_home/deployment-backups/biri"
+    mkdir -p -- "$backups"
+    backup=$(mktemp -d "$backups/retired-headless.XXXXXXXX")
+    printf 'Archiving retired headless files in %s\n' "$backup"
+    if [ -f "$kdl" ]; then
+        mv -- "$kdl" "$backup/"
+    fi
+    if [ -f "$unit" ]; then
+        mv -- "$unit" "$backup/"
+        systemctl --user daemon-reload
+    fi
+fi

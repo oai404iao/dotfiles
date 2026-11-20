@@ -70,6 +70,7 @@ run_check check-desktop.sh
 run_check check-desktop-apps.sh
 run_check check-desktop-profiles.sh
 run_check check-biri-headless.sh
+run_check check-biri-services.sh
 run_check check-tether.sh
 run_check check-keyring.sh
 
