@@ -174,8 +174,8 @@ common_packages = {
 expected_defaults = {
     "$schema": "https://pi.dev/schemas/settings.schema.json",
     "defaultProvider": "openai",
-    "defaultModel": "gpt-6.1-sol",
-    "defaultThinkingLevel": "high",
+    "defaultModel": "gpt-6.2-sol",
+    "defaultThinkingLevel": "xhigh",
     "defaultTools": ["+codemode"],
     "codemode": {"mode": "on"},
     "hideThinkingBlock": True,

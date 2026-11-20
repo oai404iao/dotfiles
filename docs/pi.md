@@ -81,8 +81,8 @@ remains `dark`.
 
 | Setting | Managed value |
 | --- | --- |
-| Startup provider/model | `openai/gpt-6.1-sol` |
-| Thinking | `high`, with transcript thinking blocks hidden |
+| Startup provider/model | `openai/gpt-6.2-sol` |
+| Thinking | `xhigh`, with transcript thinking blocks hidden |
 | Theme | `dark` |
 | Tools | Add `codemode` to inherited defaults; codemode mode `on` |
 | npm command | `pnpm --config.node-linker=hoisted` |
