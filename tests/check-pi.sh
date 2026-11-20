@@ -23,6 +23,7 @@ expected = {
     "private_models.json",
     "private_keybindings.json",
     "private_subagent.json.tmpl",
+    "themes/private_chezmoi-dark.json",
     "exact_agents/private_scout.md",
     "exact_agents/private_reviewer.md",
     "exact_agents/private_worker.md",
@@ -93,6 +94,15 @@ for path in source_dir.rglob("*.json"):
     if not path.name.startswith("modify_"):
         load_json(path.read_text())
 
+theme_source = source_dir / "themes/private_chezmoi-dark.json"
+for path, name in (
+    (source_dir / "private_models.json", "models"),
+    (source_dir / "private_keybindings.json", "keybindings"),
+    (theme_source, "theme"),
+):
+    if load_json(path.read_text()).get("$schema") != f"https://pi.dev/schemas/{name}.schema.json":
+        raise SystemExit(f"Pi {name} must reference the official schema")
+
 auth_modifier = source_dir / "modify_private_auth.json"
 auth_commands = {
     "deepseek": "!rbw unlocked && rbw get 'pi spiredive api key'",
@@ -162,6 +172,7 @@ common_packages = {
     "npm:@oai404iao/pi-subagent@1.5.0",
 }
 expected_defaults = {
+    "$schema": "https://pi.dev/schemas/settings.schema.json",
     "defaultProvider": "openai",
     "defaultModel": "gpt-6.1-sol",
     "defaultThinkingLevel": "high",
@@ -194,6 +205,7 @@ def modify_settings(script, old):
 
 def check_settings(script, notification_package, home):
     existing = {
+        "$schema": "https://example.invalid/old-settings.schema.json",
         "lastChangelogVersion": "preserve-me",
         "futureState": {"preserve": [True, "unknown"]},
         "defaultTools": ["read"],
@@ -592,6 +604,17 @@ strictDepBuilds: true
         if notify_target.stat().st_mode & 0o777 != 0o600:
             raise SystemExit("Pi notification target must remain mode 0600")
     print("Pi notification profiles and isolated apply checks passed")
+
+    theme_target = agent_dir / "themes/chezmoi-dark.json"
+    subprocess.run(
+        [*command, "apply", "--exclude=scripts,encrypted,externals", str(theme_target.parent)],
+        text=True, capture_output=True, check=True, env=fixture_env,
+    )
+    theme = load_json(theme_target.read_text())
+    if theme != load_json(theme_source.read_text()) or theme.get("name") != theme_target.stem:
+        raise SystemExit("Pi theme must be deployed under its declared name")
+    if theme_target.stat().st_mode & 0o777 != 0o600:
+        raise SystemExit("Pi theme target must have mode 0600")
 
     policy_dir = home / ".config/pi/agent/npm"
     policy_dir.mkdir(parents=True)

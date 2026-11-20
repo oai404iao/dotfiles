@@ -7,6 +7,7 @@ settings = json.loads(raw) if raw.strip() else {}
 
 settings.update(
     {
+        "$schema": "https://pi.dev/schemas/settings.schema.json",
         "defaultProvider": "openai",
         "defaultModel": "gpt-6.1-sol",
         "defaultThinkingLevel": "high",

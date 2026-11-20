@@ -58,6 +58,7 @@ Managed files use mode `0600`; `~/.config/pi` remains mode `0700`.
 | --- | --- |
 | `settings.json` | Modifier replaces declared settings; preserves unknown/runtime keys and other codemode options. |
 | `models.json`, `keybindings.json` | Declarative provider/model metadata and key bindings; no API keys in models. |
+| `themes/chezmoi-dark.json` | Optional dark theme with teal accents. |
 | `auth.json` | Modifier merges [managed command references](pi-authentication.md#credential-ownership); all other credentials and extra fields remain local. |
 | `subagent.json`, `agents/{scout,reviewer,worker}.md` | User-scoped runtime policy and role definitions. |
 | `extensions/jev.ts` | Command Code classifier registration. |
@@ -69,6 +70,12 @@ Managed files use mode `0600`; `~/.config/pi` remains mode `0700`.
 The settings modifier deliberately owns the entire package declaration list.
 A local edit to a declared key can be replaced on the next targeted apply.
 It is not an import mechanism for arbitrary runtime settings.
+
+The managed settings, models, keybindings, and theme JSON files reference
+[Pi's official schemas](https://pi.dev/changelog/releases/1.2.0) for editor
+completion and validation. Preview the optional theme with
+`pi --use-theme chezmoi-dark` after deploying its file. The managed default
+remains `dark`.
 
 ### Defaults and model reference
 
