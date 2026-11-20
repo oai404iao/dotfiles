@@ -297,6 +297,9 @@ post-lock display-off timer. Independent unlocked display-off and automatic
 suspend timers are disabled. Lock-before-suspend and loginctl integration are
 enabled; the pre-lock fade/grace period is disabled.
 
+The [Biri desktop streaming profile](biri-headless.md#stream-the-regular-desktop)
+locks on DMS startup and keeps locked displays available for capture instead.
+
 The lock-and-display-off shortcut calls DMS's `lockAndOutputsOff`, which waits
 for its session lock before powering displays off, rather than chaining
 asynchronous shell commands. Authentication and suspend/resume still require

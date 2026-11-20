@@ -27,6 +27,7 @@ and review that file before any intentional reinitialization.
 | `tether` | boolean; `false` | Optional Tether policy for graphical Niri/DMS machines |
 | `tetherMode` | `notifications`, `wifi-clipboard`; `notifications` | Tether network and clipboard permissions |
 | `niriOutputProfile` | `auto`, `laptop-dual-1080p`, `desktop-single-4k`; `auto` | Output definitions selected at render time |
+| `biriDesktopStream` | boolean; `false` | [Stream the regular DMS desktop](biri-headless.md#stream-the-regular-desktop); requires graphical Niri with Biri and DMS |
 | `biriHeadless` | boolean; `false` | Separate [Biri/Sunshine remote desktop](biri-headless.md); requires `niriCompositor = "biri"` |
 | `work` | boolean; `false` | Work-machine metadata |
 | `paseo` | boolean; `false` | Manage the local Paseo daemon on `0.0.0.0:6767`; missing values leave it unmanaged |

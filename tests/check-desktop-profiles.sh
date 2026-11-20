@@ -375,7 +375,7 @@ for shell in ("custom", "dms"):
             assert color_file.read_text() == '// generated palette\n'
             assert "Mod+D hotkey" not in binds_file.read_text()
             assert "Mod+Space hotkey" in binds_file.read_text()
-            assert 'include "conf.d/60-binds.kdl"' not in (niri_dir / "config.kdl").read_text()
+            assert 'include "conf.d/60-binds.kdl"' not in (niri_dir / "profile.kdl").read_text()
         else:
             assert '"dms"' not in session + binds
             for program in ("waybar", "mako", "awww-daemon", "copyq", "swayidle"):

@@ -31,6 +31,7 @@ unmanaged = (
 
 for relative in ('.chezmoi.toml.tmpl', '.chezmoiignore',
                  'dot_config/biri/headless.kdl.tmpl',
+                 'dot_config/dms/modify_settings.json.tmpl',
                  'dot_config/systemd/user/biri-headless.service'):
     fixture = source / relative
     fixture.parent.mkdir(parents=True, exist_ok=True)
@@ -61,12 +62,14 @@ def init_data():
     return tomllib.loads(run('execute-template', '--init', '--stdinisatty=false',
                              '--file', str(source / '.chezmoi.toml.tmpl')))['data']
 
-def machine(compositor=None, enabled=None, graphical=False, niri=False, shell='custom'):
+def machine(compositor=None, enabled=None, graphical=False, niri=False, shell='custom', stream=None):
     data = {'graphical': graphical, 'niri': niri, 'desktopShell': shell}
     if compositor is not None:
         data['niriCompositor'] = compositor
     if enabled is not None:
         data['biriHeadless'] = enabled
+    if stream is not None:
+        data['biriDesktopStream'] = stream
     config.write_text('[data]\n' + ''.join(
         f'{key} = {json.dumps(value)}\n' for key, value in data.items()
     ))
@@ -75,6 +78,7 @@ list_files = ('managed', '--include=files', '--path-style=relative')
 config.touch()
 defaults = init_data()
 assert defaults['biriHeadless'] is False and defaults['niriCompositor'] == 'niri'
+assert defaults['biriDesktopStream'] is False
 for compositor in (None, 'niri', 'biri'):
     for enabled in (None, False, True):
         machine(compositor, enabled)
@@ -91,6 +95,14 @@ run('execute-template', '--init', '--stdinisatty=false', '--file',
 machine('biri', True)
 selected = init_data()
 assert selected['niriCompositor'] == 'biri' and selected['biriHeadless'] is True
+for compositor, graphical, niri, shell in (
+    ('niri', True, True, 'dms'),
+    ('biri', True, True, 'custom'),
+    ('biri', False, True, 'dms'),
+    ('biri', True, False, 'dms'),
+):
+    machine(compositor, False, graphical, niri, shell, stream=True)
+    run(*list_files, error='biriDesktopStream requires graphical Niri with Biri and DMS')
 
 has_niri = shutil.which('niri')
 for graphical, niri, shell, reuse in (
@@ -105,14 +117,39 @@ for graphical, niri, shell, reuse in (
     assert all((home / path).is_file() for path in targets)
     kdl = home / targets[0]
     content = kdl.read_text()
-    assert content.count('spawn-at-startup "/usr/bin/sunshine"') == 1
+    assert content.count('"/usr/bin/sunshine"') == 1
     assert '"output_name=HEADLESS-1"' in content
-    assert ('include "../niri/config.kdl"' in content) is reuse
+    assert ('include "../niri/profile.kdl"' in content) is reuse
     assert ('spawn "fuzzel"' in content) is not reuse
     if reuse:
         assert '"DMS_SHELL_DIR" "dms" "run"' in (
             home / '.config/niri/conf.d/40-session.kdl').read_text()
     if has_niri:
+        subprocess.run(['niri', 'validate', '--config', str(kdl)], check=True)
+
+desktop = home / '.config/niri/config.kdl'
+assert desktop.read_text().strip() == 'include "profile.kdl"'
+for fallback in (False, True):
+    machine('biri', fallback, True, True, 'dms', stream=True)
+    assert init_data()['biriDesktopStream'] is True
+    managed = set(run(*list_files).splitlines())
+    assert (set(targets) & managed) == (set(targets) if fallback else set())
+    run('apply', '--exclude=scripts,encrypted')
+    content = desktop.read_text()
+    assert 'output "SUNSHINE-1" {' in content and 'create-virtual' in content
+    assert content.index('output "SUNSHINE-1"') < content.index('include "profile.kdl"')
+    assert content.count('"/usr/bin/sunshine"') == 1
+    assert '"--scope"' in content and '"--property=BindsTo=niri.service"' in content
+    assert '"output_name=SUNSHINE-1"' in content
+    profile = desktop.with_name('profile.kdl').read_text()
+    assert 'create-virtual' not in profile and 'sunshine' not in profile
+    assert '"output_name=HEADLESS-1"' in kdl.read_text()
+    settings = json.loads((home / '.config/dms/settings.json').read_text())
+    assert settings['lockAtStartup'] is True
+    assert settings['lockScreenPowerOffMonitorsOnLock'] is False
+    assert settings['acPostLockMonitorTimeout'] == settings['batteryPostLockMonitorTimeout'] == 0
+    if has_niri:
+        # Biri-only syntax stays out of the independent fallback graph.
         subprocess.run(['niri', 'validate', '--config', str(kdl)], check=True)
 
 assert all((home / path).read_text() == 'application-owned fixture\n' for path in unmanaged)

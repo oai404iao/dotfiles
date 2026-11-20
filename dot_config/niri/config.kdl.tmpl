@@ -1,36 +1,14 @@
-// Managed by chezmoi. Included files are ordered by responsibility.
+{{- if get . "biriDesktopStream" -}}
+{{- $output := "SUNSHINE-1" -}}
+// Keep the virtual output ahead of DMS's generated output preferences.
+output {{ $output | quote }} {
+    create-virtual
+    mode "1920x1080@60.000"
+    focus-at-startup
+}
 
-include "conf.d/10-input.kdl"
-{{ if eq (get . "desktopShell" | default "custom") "dms" -}}
-include "dms/outputs.kdl"
-{{ else -}}
-include "conf.d/20-outputs.kdl"
+// Stop the capture process when niri.service ends, even if the user manager stays up.
+spawn-at-startup "/usr/bin/systemd-run" "--user" "--scope" "--collect" "--unit=biri-desktop-sunshine.scope" "--property=BindsTo=niri.service" "--property=After=niri.service" {{ template "biri-sunshine-args" $output }}
+
 {{ end -}}
-include "conf.d/30-layout.kdl"
-include "conf.d/40-session.kdl"
-include "conf.d/50-rules.kdl"
-{{ if eq (get . "desktopShell" | default "custom") "dms" -}}
-include "dms/colors.kdl"
-include "dms/input.kdl"
-include "dms/layout.kdl"
-include "dms/cursor.kdl"
-include "dms/alttab.kdl"
-include "dms/binds.kdl"
-include "dms/windowrules.kdl"
-include "dms/wpblur.kdl"
-
-layout {
-    background-color "transparent"
-}
-
-layer-rule {
-    match namespace="^quickshell$"
-    place-within-backdrop true
-}
-
-{{ else -}}
-include "conf.d/60-binds.kdl"
-include "colors.kdl"
-{{ end }}
-
-prefer-no-csd
+include "profile.kdl"

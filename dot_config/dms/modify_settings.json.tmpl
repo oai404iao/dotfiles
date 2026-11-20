@@ -4,6 +4,7 @@ import sys
 
 raw = sys.stdin.read()
 settings = json.loads(raw) if raw.strip() else {"configVersion": 42}
+desktop_stream = {{ if get . "biriDesktopStream" }}True{{ else }}False{{ end }}
 
 settings.update({
     "currentThemeName": "dynamic",
@@ -16,8 +17,8 @@ settings.update({
     "clipboardEnterToPaste": True,
     "acLockTimeout": 300,
     "batteryLockTimeout": 300,
-    "acPostLockMonitorTimeout": 30,
-    "batteryPostLockMonitorTimeout": 30,
+    "acPostLockMonitorTimeout": 0 if desktop_stream else 30,
+    "batteryPostLockMonitorTimeout": 0 if desktop_stream else 30,
     "lockBeforeSuspend": True,
     "fadeToLockEnabled": False,
     "fadeToDpmsEnabled": False,
@@ -310,6 +311,9 @@ settings.update({
     "radiusStrength": 50,
     "widgetColorMode": "default"
 })
+
+if desktop_stream:
+    settings.update({"lockAtStartup": True, "lockScreenPowerOffMonitorsOnLock": False})
 
 tether_enabled = {{ if and .graphical .niri (eq (get . "desktopShell" | default "custom") "dms") (get . "tether" | default false) }}True{{ else }}False{{ end }}
 if tether_enabled:

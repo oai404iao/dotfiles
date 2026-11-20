@@ -29,6 +29,9 @@
 {{- if and $biriHeadless (ne $niriCompositor "biri") -}}
 {{-   fail "biriHeadless requires niriCompositor = \"biri\"" -}}
 {{- end -}}
+{{- if and (get . "biriDesktopStream" | default false) (not (and .graphical .niri (eq $niriCompositor "biri") (eq $desktopShell "dms"))) -}}
+{{-   fail "biriDesktopStream requires graphical Niri with Biri and DMS" -}}
+{{- end -}}
 README.md
 README.zh-CN.md
 AGENTS.md

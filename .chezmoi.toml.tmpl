@@ -34,6 +34,10 @@
 {{- if and $biriHeadless (ne $niriCompositor "biri") -}}
 {{-   fail "biriHeadless requires niriCompositor = \"biri\"" -}}
 {{- end -}}
+{{- $biriDesktopStream := false -}}
+{{- if and $graphical $niri (eq $niriCompositor "biri") (eq $desktopShell "dms") -}}
+{{-   $biriDesktopStream = promptBoolOnce . "biriDesktopStream" "Stream the Biri DMS desktop with Sunshine" false -}}
+{{- end -}}
 {{- $paseo := promptBoolOnce . "paseo" "Manage local Paseo service" false -}}
 {{- $sshAgent := promptBoolOnce . "sshAgent" "Use rbw SSH agent" (ne $role "server") -}}
 {{- $sshInboundIdentities := list "none" "private" "uni" -}}
@@ -71,6 +75,7 @@ mode = "file"
     tetherMode = {{ $tetherMode | quote }}
     niriOutputProfile = {{ $niriOutputProfile | quote }}
     work = {{ $work }}
+    biriDesktopStream = {{ $biriDesktopStream }}
     biriHeadless = {{ $biriHeadless }}
     paseo = {{ $paseo }}
     sshAgent = {{ $sshAgent }}

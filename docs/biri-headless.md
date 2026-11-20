@@ -1,15 +1,13 @@
-# Biri and Sunshine headless desktop
+# Biri and Sunshine streaming
 
-Stream a separate 1920×1080 at 60 Hz Wayland desktop to Moonlight without a
-monitor, display manager, or automatic login. With `graphical = true`,
-`niri = true` and `desktopShell = "dms"`, the headless config includes the
-existing `niri/config.kdl` and starts Dux Shell through it. This reuses
-bindings, layout, rules, and DMS settings without copying them. Otherwise,
-the headless desktop keeps its standalone Kitty and Fuzzel bindings.
+Use Sunshine and Moonlight to stream either a virtual output of the regular
+desktop or a separate headless desktop. Both use a 1920×1080 at 60 Hz virtual
+output and may be managed on the same machine. Run only one at a time.
 
-The sessions may run as the same Linux user, but use them alternately: they
-share the user manager, DMS state and IPC, and by default seat0 input. Stop
-the headless service before starting a local desktop under the same user.
+With the DMS profile, both entry points include `niri/profile.kdl` for shared
+bindings, layout, rules, and DMS startup. The independent headless session
+otherwise uses its standalone Kitty and Fuzzel bindings. Same-user sessions
+share the user manager, DMS state and IPC, and by default seat0 input.
 
 ## Prepare the host
 
@@ -28,7 +26,61 @@ the headless service before starting a local desktop under the same user.
   Biri launches Sunshine with the correct Wayland socket; a second instance can
   compete for the same ports and state.
 
-## Enable on an initialized machine
+## Stream the regular desktop
+
+1. Prepare the [DMS profile](desktop-shells.md). Back up the machine config,
+   DMS settings and existing KDL privately. Use `chezmoi edit-config` and set
+   these values under `[data]`:
+
+   ```toml
+   graphical = true
+   niri = true
+   niriCompositor = "biri"
+   desktopShell = "dms"
+   biriDesktopStream = true
+   biriHeadless = true # optional: keep the independent fallback managed
+   ```
+
+2. Review and apply `~/.config/niri/profile.kdl`, `~/.config/niri/config.kdl`,
+   and `~/.config/dms/settings.json` before starting the new session. If keeping
+   a fallback, also update and validate its `~/.config/biri/headless.kdl` after
+   applying `profile.kdl`. Validate the regular entry point with
+   `niri validate --config ~/.config/niri/config.kdl` using **Biri**, not upstream
+   Niri. The regular session creates and initially focuses `SUNSHINE-1` and
+   launches Sunshine in a scope tied to `niri.service`. It is an extended
+   display, not a mirror.
+3. For boot-time startup, configure a display manager to run `niri-session`
+   as the desktop user on a local VT. On Arch, one option is
+   [greetd](https://man.archlinux.org/man/greetd.5.en) with an `initial_session`
+   running `/usr/bin/niri-session`. Choose a VT not shared with another login
+   manager; use the packaged PAM stack. greetd runs `initial_session` only
+   once per boot; logging out returns to the greeter. The root-owned login
+   configuration and service enablement are manual, not chezmoi targets.
+4. Stop and disable the fallback before starting the regular session:
+
+   ```sh
+   systemctl --user disable --now biri-headless.service
+   ```
+
+   The DMS profile requests the native lock as DMS starts and keeps the outputs
+   on when locked so Moonlight can connect. Check that no custom DMS lock command
+   or settings override replaces this behavior, and that DMS's lock screen is
+   set to show on all displays or includes `SUNSHINE-1`. Startup lock is not a
+   substitute for login authentication or physical access control during startup.
+   Test Moonlight login with the Linux account password, desktop capture,
+   keyboard, mouse, audio, and a cold boot. Do not change PAM to bypass a failed unlock.
+
+To use the fallback, end the regular session and stop its display manager
+first. Confirm that `biri-desktop-sunshine.scope` and DMS have exited, then
+run `systemctl --user start biri-headless.service`. Leave it
+disabled if it should not start on the next boot. Stop it before returning to
+the regular session. With greetd, log in at the greeter or boot again; restarting
+the service does not repeat automatic login in the same boot. If retiring
+regular streaming, review and reapply the same desktop targets with
+`biriDesktopStream = false`; review DMS's retained startup lock and immediate
+display-off preferences in its settings.
+
+## Enable the independent headless service
 
 1. Back up the machine config and any existing targets privately. Use
    `chezmoi edit-config` to set these values under `[data]`:
@@ -41,7 +93,9 @@ the headless service before starting a local desktop under the same user.
    On an existing Biri headless installation, add `niriCompositor` before
    rendering or applying with the updated source. Without it, an initialized
    machine defaults to upstream Niri. Chezmoi does not switch packages.
-2. Review and apply only the headless files (create missing parent directories):
+2. If also using the DMS profile, ensure the shared `~/.config/niri/profile.kdl`
+   and its includes have been applied. Review and apply only the headless files
+   (create missing parent directories):
 
    ```sh
    chezmoi diff --exclude=scripts,encrypted \

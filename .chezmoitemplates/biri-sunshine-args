@@ -1,0 +1,1 @@
+{{- printf `"/usr/bin/sunshine" "capture=wlr" "output_name=%s" "upnp=off" "origin_web_ui_allowed=pc"` . -}}
