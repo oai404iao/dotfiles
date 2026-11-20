@@ -18,6 +18,17 @@
 {{- if not (has $desktopShell (list "custom" "dms")) -}}
 {{-   fail "desktopShell must be custom or dms" -}}
 {{- end -}}
+{{- $niriCompositor := "niri" -}}
+{{- if hasKey . "niriCompositor" -}}
+{{-   $niriCompositor = .niriCompositor -}}
+{{- end -}}
+{{- if not (has $niriCompositor (list "niri" "biri")) -}}
+{{-   fail "niriCompositor must be niri or biri" -}}
+{{- end -}}
+{{- $biriHeadless := get . "biriHeadless" | default false -}}
+{{- if and $biriHeadless (ne $niriCompositor "biri") -}}
+{{-   fail "biriHeadless requires niriCompositor = \"biri\"" -}}
+{{- end -}}
 README.md
 README.zh-CN.md
 AGENTS.md
@@ -71,7 +82,7 @@ secrets/
 # Sunshine owns its settings, pairing and credential state.
 .config/sunshine/
 .config/systemd/user/default.target.wants/biri-headless.service
-{{- if not (get . "biriHeadless" | default false) }}
+{{- if not $biriHeadless }}
 .config/biri/headless.kdl
 .config/systemd/user/biri-headless.service
 {{- end }}

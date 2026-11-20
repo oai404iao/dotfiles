@@ -27,6 +27,13 @@
 {{- end -}}
 {{- $work := promptBoolOnce . "work" "Work machine" false -}}
 {{- $biriHeadless := promptBoolOnce . "biriHeadless" "Manage a Biri headless desktop with Sunshine" false -}}
+{{- $niriCompositor := "niri" -}}
+{{- if or $niri $biriHeadless -}}
+{{-   $niriCompositor = promptChoiceOnce . "niriCompositor" "Installed Niri compositor: upstream Niri or Biri" (list "niri" "biri") (ternary "biri" "niri" $biriHeadless) -}}
+{{- end -}}
+{{- if and $biriHeadless (ne $niriCompositor "biri") -}}
+{{-   fail "biriHeadless requires niriCompositor = \"biri\"" -}}
+{{- end -}}
 {{- $paseo := promptBoolOnce . "paseo" "Manage local Paseo service" false -}}
 {{- $sshAgent := promptBoolOnce . "sshAgent" "Use rbw SSH agent" (ne $role "server") -}}
 {{- $sshInboundIdentities := list "none" "private" "uni" -}}
@@ -58,6 +65,7 @@ mode = "file"
     shell = {{ $shell | quote }}
     graphical = {{ $graphical }}
     niri = {{ $niri }}
+    niriCompositor = {{ $niriCompositor | quote }}
     desktopShell = {{ $desktopShell | quote }}
     tether = {{ $tether }}
     tetherMode = {{ $tetherMode | quote }}

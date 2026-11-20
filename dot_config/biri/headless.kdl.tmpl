@@ -1,5 +1,11 @@
+{{- $reuseDMS := and .graphical .niri (eq (get . "desktopShell" | default "custom") "dms") -}}
+{{ if $reuseDMS -}}
+include "../niri/config.kdl"
+
+{{ end -}}
 // Sunshine inherits this compositor's Wayland socket and captures its only output.
 spawn-at-startup "/usr/bin/sunshine" "capture=wlr" "output_name=HEADLESS-1" "upnp=off" "origin_web_ui_allowed=pc"
+{{ if not $reuseDMS }}
 
 binds {
     Mod+Return { spawn "kitty"; }
@@ -12,3 +18,4 @@ binds {
     Mod+Up { focus-window-or-workspace-up; }
     Mod+Down { focus-window-or-workspace-down; }
 }
+{{- end }}

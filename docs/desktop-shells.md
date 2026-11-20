@@ -334,6 +334,9 @@ This is a future manual deployment procedure, not part of a source-only update.
 1. Save work and **log out of Niri**, then use a TTY for the transition.
    Niri reloads configuration immediately, but `spawn-at-startup` is not rerun
    on reload. Applying mid-session would mix new bindings with old processes.
+   If Biri headless is active, stop it before switching. After applying the new
+   desktop profile, also review and apply `~/.config/biri/headless.kdl` before
+   starting the remote session again. See [Biri and Sunshine](biri-headless.md).
 2. Review `systemctl --user list-unit-files` and
    `~/.config/autostart/` for independent DMS, Waybar, Mako, CopyQ, awww,
    Waypaper, or swayidle startup. Disable only reviewed conflicting entries.

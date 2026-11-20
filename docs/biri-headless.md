@@ -1,10 +1,15 @@
 # Biri and Sunshine headless desktop
 
 Stream a separate 1920×1080 at 60 Hz Wayland desktop to Moonlight without a
-monitor, display manager, or automatic login. The local custom/DMS profile
-continues to use `niri/config.kdl`. The sessions may run as the same Linux user;
-they share credentials, the user manager and, by default, seat0 input. Use them
-alternately if both sessions receive the same keyboard or mouse events.
+monitor, display manager, or automatic login. With `graphical = true`,
+`niri = true` and `desktopShell = "dms"`, the headless config includes the
+existing `niri/config.kdl` and starts Dux Shell through it. This reuses
+bindings, layout, rules, and DMS settings without copying them. Otherwise,
+the headless desktop keeps its standalone Kitty and Fuzzel bindings.
+
+The sessions may run as the same Linux user, but use them alternately: they
+share the user manager, DMS state and IPC, and by default seat0 input. Stop
+the headless service before starting a local desktop under the same user.
 
 ## Prepare the host
 
@@ -13,7 +18,8 @@ alternately if both sessions receive the same keyboard or mouse events.
   Biri's upstream Arch snapshot is unsigned; review its provenance and verify
   the published SHA-256 before installing. It replaces the `niri` package and
   retains the `niri` and `niri-session` commands. Keep a known-good Niri package
-  for rollback. Install Kitty and Fuzzel for the terminal and launcher binds.
+  for rollback. Install Kitty and Fuzzel for standalone use, or prepare and
+  apply the [DMS profile](desktop-shells.md) before starting the service.
 - The service user needs unattended access to the GPU render node and, for
   remote input, access to `/dev/uinput` and the associated input event devices.
   Active graphical login ACLs alone are not enough. Allow streams only from a
@@ -25,7 +31,16 @@ alternately if both sessions receive the same keyboard or mouse events.
 ## Enable on an initialized machine
 
 1. Back up the machine config and any existing targets privately. Use
-   `chezmoi edit-config` to set `biriHeadless = true` under `[data]`.
+   `chezmoi edit-config` to set these values under `[data]`:
+
+   ```toml
+   niriCompositor = "biri"
+   biriHeadless = true
+   ```
+
+   On an existing Biri headless installation, add `niriCompositor` before
+   rendering or applying with the updated source. Without it, an initialized
+   machine defaults to upstream Niri. Chezmoi does not switch packages.
 2. Review and apply only the headless files (create missing parent directories):
 
    ```sh
@@ -49,7 +64,9 @@ alternately if both sessions receive the same keyboard or mouse events.
    ```
 
    Add the host's LAN or VPN address to Moonlight. Test the Desktop stream,
-   keyboard, mouse, and audio. `Super+Enter` opens Kitty; `Super+D` opens Fuzzel.
+   keyboard, mouse, and audio. In standalone mode, `Super+Enter` opens Kitty
+   and `Super+D` opens Fuzzel. In DMS mode, check the bar, DMS launcher, and
+   reconnect after the [idle lock and display-off timers](desktop-shells.md#idle-and-lock-defaults).
 3. For startup before login, run `sudo loginctl enable-linger "$USER"` if
    needed, then `systemctl --user enable biri-headless.service`. Verify after
    a cold boot without logging into the graphical desktop. Applying the files
@@ -57,10 +74,11 @@ alternately if both sessions receive the same keyboard or mouse events.
 
 ## Restart or retire
 
-After changing Sunshine's launch options or if Sunshine exits on its own,
-restart `biri-headless.service`; this ends any live stream and closes the
-headless desktop. To retire it, run
+Restart `biri-headless.service` after changing the desktop profile or
+Sunshine's launch options, or if Sunshine exits on its own. This ends any live
+stream and closes the headless desktop. To retire it, run
 `systemctl --user disable --now biri-headless.service` before setting
 `biriHeadless = false`. Leave Sunshine's state in place. Do not disable linger
 if another user service relies on it. To return to upstream Niri, stop this
-service before replacing Biri with the known-good Niri package.
+service before replacing Biri with the known-good Niri package, then set
+`niriCompositor = "niri"`.
