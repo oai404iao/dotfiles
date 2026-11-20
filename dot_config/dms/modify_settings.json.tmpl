@@ -4,7 +4,7 @@ import sys
 
 raw = sys.stdin.read()
 settings = json.loads(raw) if raw.strip() else {"configVersion": 42}
-desktop_stream = {{ if get . "biriDesktopStream" }}True{{ else }}False{{ end }}
+desktop_stream = {{ if eq (get . "biri") "desktop" }}True{{ else }}False{{ end }}
 
 settings.update({
     "currentThemeName": "dynamic",

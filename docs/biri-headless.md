@@ -1,8 +1,14 @@
 # Biri and Sunshine streaming
 
-Use Sunshine and Moonlight to stream either a virtual output of the regular
-desktop or a separate headless desktop. Both use a 1920×1080 at 60 Hz virtual
-output and may be managed on the same machine. Run only one at a time.
+Select one `biri` mode in chezmoi machine data:
+
+| Mode | Managed configuration |
+|---|---|
+| `none` (default) | Upstream Niri configuration without Biri or Sunshine integration |
+| `headless` | Independent Biri/Sunshine user service, using `HEADLESS-1` |
+| `desktop` | Sunshine on the regular Biri/DMS desktop's `SUNSHINE-1`; no managed headless service |
+
+Both stream modes use 1920×1080 at 60 Hz. Chezmoi does not switch packages.
 
 With the DMS profile, both entry points include `niri/profile.kdl` for shared
 bindings, layout, rules, and DMS startup. The independent headless session
@@ -35,16 +41,13 @@ share the user manager, DMS state and IPC, and by default seat0 input.
    ```toml
    graphical = true
    niri = true
-   niriCompositor = "biri"
    desktopShell = "dms"
-   biriDesktopStream = true
-   biriHeadless = true # optional: keep the independent fallback managed
+   biri = "desktop"
    ```
 
 2. Review and apply `~/.config/niri/profile.kdl`, `~/.config/niri/config.kdl`,
-   and `~/.config/dms/settings.json` before starting the new session. If keeping
-   a fallback, also update and validate its `~/.config/biri/headless.kdl` after
-   applying `profile.kdl`. Validate the regular entry point with
+   and `~/.config/dms/settings.json` before starting the new session. Validate
+   the regular entry point with
    `niri validate --config ~/.config/niri/config.kdl` using **Biri**, not upstream
    Niri. The regular session creates and initially focuses `SUNSHINE-1` and
    launches Sunshine in a scope tied to `niri.service`. It is an extended
@@ -56,29 +59,15 @@ share the user manager, DMS state and IPC, and by default seat0 input.
    manager; use the packaged PAM stack. greetd runs `initial_session` only
    once per boot; logging out returns to the greeter. The root-owned login
    configuration and service enablement are manual, not chezmoi targets.
-4. Stop and disable the fallback before starting the regular session:
-
-   ```sh
-   systemctl --user disable --now biri-headless.service
-   ```
-
-   The DMS profile requests the native lock as DMS starts and keeps the outputs
-   on when locked so Moonlight can connect. Check that no custom DMS lock command
+4. Before starting the regular session, [retire](#switch-modes) any previously
+   enabled headless service. The DMS profile requests the native lock as DMS
+   starts and keeps the outputs on when locked so Moonlight can connect.
+   Check that no custom DMS lock command
    or settings override replaces this behavior, and that DMS's lock screen is
    set to show on all displays or includes `SUNSHINE-1`. Startup lock is not a
    substitute for login authentication or physical access control during startup.
    Test Moonlight login with the Linux account password, desktop capture,
    keyboard, mouse, audio, and a cold boot. Do not change PAM to bypass a failed unlock.
-
-To use the fallback, end the regular session and stop its display manager
-first. Confirm that `biri-desktop-sunshine.scope` and DMS have exited, then
-run `systemctl --user start biri-headless.service`. Leave it
-disabled if it should not start on the next boot. Stop it before returning to
-the regular session. With greetd, log in at the greeter or boot again; restarting
-the service does not repeat automatic login in the same boot. If retiring
-regular streaming, review and reapply the same desktop targets with
-`biriDesktopStream = false`; review DMS's retained startup lock and immediate
-display-off preferences in its settings.
 
 ## Enable the independent headless service
 
@@ -86,13 +75,11 @@ display-off preferences in its settings.
    `chezmoi edit-config` to set these values under `[data]`:
 
    ```toml
-   niriCompositor = "biri"
-   biriHeadless = true
+   biri = "headless"
    ```
 
-   On an existing Biri headless installation, add `niriCompositor` before
-   rendering or applying with the updated source. Without it, an initialized
-   machine defaults to upstream Niri. Chezmoi does not switch packages.
+   Stop any running regular streaming session before applying; see [Switch
+   modes](#switch-modes).
 2. If also using the DMS profile, ensure the shared `~/.config/niri/profile.kdl`
    and its includes have been applied. Review and apply only the headless files
    (create missing parent directories):
@@ -126,13 +113,33 @@ display-off preferences in its settings.
    a cold boot without logging into the graphical desktop. Applying the files
    alone neither enables nor starts the service.
 
-## Restart or retire
+## Switch modes
 
-Restart `biri-headless.service` after changing the desktop profile or
-Sunshine's launch options, or if Sunshine exits on its own. This ends any live
-stream and closes the headless desktop. To retire it, run
-`systemctl --user disable --now biri-headless.service` before setting
-`biriHeadless = false`. Leave Sunshine's state in place. Do not disable linger
-if another user service relies on it. To return to upstream Niri, stop this
-service before replacing Biri with the known-good Niri package, then set
-`niriCompositor = "niri"`.
+On an initialized machine with the old `niriCompositor`, `biriHeadless`, or
+`biriDesktopStream` keys, replace all three with one `biri` value before applying
+the new source. Choose the mode that should run, not which files used to be
+managed. Missing `biri` means `none`; the old keys are no longer read. Do not
+rerun initialization.
+
+1. If you are about to stop a running session, save work and disconnect any
+   live stream. If `headless` is not the new mode and its service was deployed,
+   run `systemctl --user disable --now biri-headless.service`. Back up and remove
+   its two retired targets (`~/.config/biri/headless.kdl` and
+   `~/.config/systemd/user/biri-headless.service`), then run
+   `systemctl --user daemon-reload`.
+2. Before leaving `desktop`, end the regular session and check that
+   `biri-desktop-sunshine.scope` and DMS exited. When switching to `headless`,
+   disable automatic startup of the regular session so it cannot compete for
+   the same input and Sunshine state. Review DMS's retained startup-lock and
+   immediate display-off preferences in DMS Settings.
+3. Set `biri` and review the new mode's explicit targets above. After leaving
+   `desktop`, also reapply the regular Niri entry point and DMS settings to
+   remove the virtual output, Sunshine startup, and post-lock timer override.
+   Start only the selected mode. With greetd, log in at the greeter or boot
+   again; restarting the service does not repeat automatic login in the same boot.
+
+Apply does not stop, disable, or delete retired service files. Keep Sunshine
+settings and pairings; do not disable linger if other units rely on it. To
+return to upstream Niri, switch to `none` and replace Biri separately after
+stopping the Biri session. If staying in `headless`, restart its service after
+changing startup options or if Sunshine exits; this closes the headless desktop.

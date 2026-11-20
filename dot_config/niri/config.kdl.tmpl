@@ -1,4 +1,4 @@
-{{- if get . "biriDesktopStream" -}}
+{{- if eq (get . "biri") "desktop" -}}
 {{- $output := "SUNSHINE-1" -}}
 // Keep the virtual output ahead of DMS's generated output preferences.
 output {{ $output | quote }} {

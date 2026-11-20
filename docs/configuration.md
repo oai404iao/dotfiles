@@ -22,13 +22,11 @@ and review that file before any intentional reinitialization.
 | `shell` | `zsh`, `bash`; `zsh` | Preference only; both trees deploy and the login shell is not changed |
 | `graphical` | boolean; `true` | Graphical application configuration and local Pi notifications |
 | `niri` | boolean; prompted for graphical machines | Niri session and desktop integration |
-| `niriCompositor` | `niri`, `biri`; `niri` | Installed compositor variant; does not install packages or change the `niri` command |
 | `desktopShell` | `custom`, `dms`; `custom` | Niri desktop owner; missing values retain `custom` |
 | `tether` | boolean; `false` | Optional Tether policy for graphical Niri/DMS machines |
 | `tetherMode` | `notifications`, `wifi-clipboard`; `notifications` | Tether network and clipboard permissions |
 | `niriOutputProfile` | `auto`, `laptop-dual-1080p`, `desktop-single-4k`; `auto` | Output definitions selected at render time |
-| `biriDesktopStream` | boolean; `false` | [Stream the regular DMS desktop](biri-headless.md#stream-the-regular-desktop); requires graphical Niri with Biri and DMS |
-| `biriHeadless` | boolean; `false` | Separate [Biri/Sunshine remote desktop](biri-headless.md); requires `niriCompositor = "biri"` |
+| `biri` | `none`, `headless`, `desktop`; `none` | [Biri/Sunshine streaming mode](biri-headless.md); `desktop` requires graphical Niri with DMS |
 | `work` | boolean; `false` | Work-machine metadata |
 | `paseo` | boolean; `false` | Manage the local Paseo daemon on `0.0.0.0:6767`; missing values leave it unmanaged |
 | `sshAgent` | boolean; defaults true except for `server` | rbw-backed SSH client configuration |

@@ -26,18 +26,11 @@
 {{-   fail "tetherMode must be notifications or wifi-clipboard" -}}
 {{- end -}}
 {{- $work := promptBoolOnce . "work" "Work machine" false -}}
-{{- $biriHeadless := promptBoolOnce . "biriHeadless" "Manage a Biri headless desktop with Sunshine" false -}}
-{{- $niriCompositor := "niri" -}}
-{{- if or $niri $biriHeadless -}}
-{{-   $niriCompositor = promptChoiceOnce . "niriCompositor" "Installed Niri compositor: upstream Niri or Biri" (list "niri" "biri") (ternary "biri" "niri" $biriHeadless) -}}
+{{- $biriModes := list "none" "headless" -}}
+{{- if and $graphical $niri (eq $desktopShell "dms") -}}
+{{-   $biriModes = append $biriModes "desktop" -}}
 {{- end -}}
-{{- if and $biriHeadless (ne $niriCompositor "biri") -}}
-{{-   fail "biriHeadless requires niriCompositor = \"biri\"" -}}
-{{- end -}}
-{{- $biriDesktopStream := false -}}
-{{- if and $graphical $niri (eq $niriCompositor "biri") (eq $desktopShell "dms") -}}
-{{-   $biriDesktopStream = promptBoolOnce . "biriDesktopStream" "Stream the Biri DMS desktop with Sunshine" false -}}
-{{- end -}}
+{{- $biri := promptChoiceOnce . "biri" "Biri streaming mode" $biriModes "none" -}}
 {{- $paseo := promptBoolOnce . "paseo" "Manage local Paseo service" false -}}
 {{- $sshAgent := promptBoolOnce . "sshAgent" "Use rbw SSH agent" (ne $role "server") -}}
 {{- $sshInboundIdentities := list "none" "private" "uni" -}}
@@ -69,14 +62,12 @@ mode = "file"
     shell = {{ $shell | quote }}
     graphical = {{ $graphical }}
     niri = {{ $niri }}
-    niriCompositor = {{ $niriCompositor | quote }}
     desktopShell = {{ $desktopShell | quote }}
     tether = {{ $tether }}
     tetherMode = {{ $tetherMode | quote }}
     niriOutputProfile = {{ $niriOutputProfile | quote }}
     work = {{ $work }}
-    biriDesktopStream = {{ $biriDesktopStream }}
-    biriHeadless = {{ $biriHeadless }}
+    biri = {{ $biri | quote }}
     paseo = {{ $paseo }}
     sshAgent = {{ $sshAgent }}
     sshInboundIdentity = {{ $sshInboundIdentity | quote }}

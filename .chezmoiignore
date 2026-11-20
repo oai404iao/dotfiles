@@ -18,19 +18,15 @@
 {{- if not (has $desktopShell (list "custom" "dms")) -}}
 {{-   fail "desktopShell must be custom or dms" -}}
 {{- end -}}
-{{- $niriCompositor := "niri" -}}
-{{- if hasKey . "niriCompositor" -}}
-{{-   $niriCompositor = .niriCompositor -}}
+{{- $biri := "none" -}}
+{{- if hasKey . "biri" -}}
+{{-   $biri = .biri -}}
 {{- end -}}
-{{- if not (has $niriCompositor (list "niri" "biri")) -}}
-{{-   fail "niriCompositor must be niri or biri" -}}
+{{- if not (has $biri (list "none" "headless" "desktop")) -}}
+{{-   fail "biri must be none, headless, or desktop" -}}
 {{- end -}}
-{{- $biriHeadless := get . "biriHeadless" | default false -}}
-{{- if and $biriHeadless (ne $niriCompositor "biri") -}}
-{{-   fail "biriHeadless requires niriCompositor = \"biri\"" -}}
-{{- end -}}
-{{- if and (get . "biriDesktopStream" | default false) (not (and .graphical .niri (eq $niriCompositor "biri") (eq $desktopShell "dms"))) -}}
-{{-   fail "biriDesktopStream requires graphical Niri with Biri and DMS" -}}
+{{- if and (eq $biri "desktop") (not (and .graphical .niri (eq $desktopShell "dms"))) -}}
+{{-   fail "biri = \"desktop\" requires graphical Niri with DMS" -}}
 {{- end -}}
 README.md
 README.zh-CN.md
@@ -85,8 +81,8 @@ secrets/
 # Sunshine owns its settings, pairing and credential state.
 .config/sunshine/
 .config/systemd/user/default.target.wants/biri-headless.service
-{{- if not $biriHeadless }}
-.config/biri/headless.kdl
+{{- if ne $biri "headless" }}
+.config/biri/
 .config/systemd/user/biri-headless.service
 {{- end }}
 
