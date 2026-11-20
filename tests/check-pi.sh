@@ -155,11 +155,11 @@ for invalid in invalid_auth:
 print("Pi auth command-reference merge and rejection checks passed")
 
 settings_modifier = source_dir / "modify_private_settings.json.tmpl"
-notification_package = "npm:@oai404iao/pi-notify@0.1.0"
+notification_package = "npm:@oai404iao/pi-notify@0.2.0"
 common_packages = {
     "npm:@juicesharp/rpiv-ask-user-question@2.15.0",
-    "npm:@oai404iao/pi-codex-minimal-tools@5.1.3",
-    "npm:@oai404iao/pi-subagent@1.3.1",
+    "npm:@oai404iao/pi-codex-minimal-tools@5.2.0",
+    "npm:@oai404iao/pi-subagent@1.5.0",
 }
 expected_defaults = {
     "defaultProvider": "openai",
@@ -639,16 +639,16 @@ strictDepBuilds: true
         )
         rendered = load_json(result.stdout)
         package = (
-            "pi-subagent@1.3.1"
+            "pi-subagent@1.5.0"
             if relative == "private_subagent.json.tmpl"
-            else "pi-codex-runtime@3.0.2"
+            else "pi-codex-runtime@3.1.0"
         )
         schema = "models" if relative.endswith("private_models.json.tmpl") else "config"
         if rendered.get("$schema") != f"https://unpkg.com/@oai404iao/{package}/{schema}.schema.json":
             raise SystemExit(f"schema version does not match the pinned package: {relative}")
         if relative == "private_subagent.json.tmpl":
             expected_subagent = {
-                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.3.1/config.schema.json",
+                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.5.0/config.schema.json",
                 "agentScope": "user",
                 "maxDepth": 3,
                 "maxConcurrentAgents": 8,

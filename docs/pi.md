@@ -20,7 +20,7 @@ Their default `~/.pi/agent` paths differ from this environment's XDG paths.
 
 ### Before starting Pi
 
-The pinned extensions require **Pi 1.2.0 or newer and Node.js 22.19 or newer**.
+The pinned extensions require **Pi 1.5.2 or newer and Node.js 22.19 or newer**.
 For the system-managed Arch installation, upgrade with `sudo pacman -Syu pi`;
 fully exit and restart Pi afterward. `/reload` cannot upgrade the running host
 SDK. Package versions and transitive dependencies are separate concerns; see

@@ -144,7 +144,7 @@ never derive cleanup operands from rebound HOME/XDG variables.
   and retained agent scratch. Follow the authentication guide. OAuth conflicts
   require explicit user removal, never automatic replacement. Pi caches
   resolved key commands for its process lifetime.
-- Pinned npm declarations require Pi ≥ 1.2.0 and Node.js ≥ 22.19. Restart Pi
+- Pinned npm declarations require Pi ≥ 1.5.2 and Node.js ≥ 22.19. Restart Pi
   after a host upgrade; `/reload` does not update the running SDK. Graphical
   local-notify source symlinks are machine-local, not managed plugin code.
 - Keep Pi's hoisted-pnpm `npmCommand`. Settings apply does not rebuild existing

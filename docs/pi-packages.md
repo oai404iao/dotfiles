@@ -10,9 +10,9 @@ downloads, manifests, lockfiles, and package checkouts remain machine-local.
 | Purpose | Declaration |
 | --- | --- |
 | Structured questions | `npm:@juicesharp/rpiv-ask-user-question@2.15.0` |
-| Codex tools and provider integration | `npm:@oai404iao/pi-codex-minimal-tools@5.1.3` |
-| Asynchronous child agents | `npm:@oai404iao/pi-subagent@1.3.1` |
-| Local or Telegram notifications | `npm:@oai404iao/pi-notify@0.1.0` |
+| Codex tools and provider integration | `npm:@oai404iao/pi-codex-minimal-tools@5.2.0` |
+| Asynchronous child agents | `npm:@oai404iao/pi-subagent@1.5.0` |
+| Local or Telegram notifications | `npm:@oai404iao/pi-notify@0.2.0` |
 
 Chezmoi selects the notification channel from `graphical` machine data, with
 one notification package in both profiles. All npm declarations are pinned;
@@ -21,9 +21,9 @@ retired: applying settings stops
 loading it without deleting its local checkout. Disabled packages and their
 configuration are not managed.
 
-The host must be **Pi 1.2.0+ with Node.js 22.19+**. Updating a nested
-`pi-coding-agent` dependency does not update Pi's running SDK. Upgrade the
-system-managed Arch package with `sudo pacman -Syu pi`, then fully restart Pi.
+Upgrade and restart the host Pi before installing these packages if it does
+not meet the [host requirements](pi.md#before-starting-pi). Updating a nested
+`pi-coding-agent` dependency does not update Pi's running SDK.
 
 ## Install or change packages
 
@@ -38,8 +38,9 @@ system-managed Arch package with `sudo pacman -Syu pi`, then fully restart Pi.
    chezmoi apply --exclude=scripts,encrypted ~/.config/pi/agent/settings.json
    ```
 
-3. Reconcile/install packages deliberately. For example, the subagent upgrade
-   uses `pi install npm:@oai404iao/pi-subagent@1.3.1 --no-approve`.
+3. Reconcile/install packages deliberately. Upgrade Codex tools and subagent
+   together because they share the same Codex runtime. For example, install
+   the subagent pin with `pi install npm:@oai404iao/pi-subagent@1.5.0 --no-approve`.
    Installation may access the registry and execute approved dependency code;
    it is not an offline configuration check. `--no-approve` skips trust-gated
    project resources, not package-code execution.
@@ -65,8 +66,8 @@ does not rebuild an existing installation; use the
 
 ## Codex tools reference
 
-Bundle `5.1.3` composes core `3.0.2` and tools `0.1.2`, sharing runtime `3.0.2`.
-The managed config/model schemas use `pi-codex-runtime@3.0.2`. Do not add
+Bundle `5.2.0` composes core `3.1.0` and tools `0.2.0`, sharing runtime `3.1.0`
+with subagent. The managed config/model schemas use the same runtime. Do not add
 separate core/tools or compatibility declarations: the bundle supplies the
 engine, patch, search, and image implementations.
 
@@ -108,7 +109,7 @@ These are adopted configuration contracts, not proof of live endpoint support.
 
 ## Notifications by machine profile
 
-Both profiles load only `@oai404iao/pi-notify@0.1.0`. Its sole configuration
+Both profiles load only `@oai404iao/pi-notify`. Its sole configuration
 path is `~/.config/pi/agent/extensions/pi-notify/config.json`, managed as mode
 `0600`. `graphical = true` renders `{"channel":"local"}` without accessing
 the vault; `false` renders `channel = "telegram"` with nested Telegram settings.
@@ -133,7 +134,7 @@ dialog-title summary; truncation does not redact sensitive content.
 Privately back up existing settings and both old/new notification configuration
 files outside Git and retained agent scratch. Review and apply only
 `settings.json` using the commands above, then install the pinned notification
-package with `pi install npm:@oai404iao/pi-notify@0.1.0 --no-approve`.
+package with `pi install npm:@oai404iao/pi-notify@0.2.0 --no-approve`.
 Apply the new notification target explicitly, without a credential-bearing
 diff. For headless mode, follow
 [Telegram credential rendering](pi-authentication.md#render-headless-telegram-credentials)

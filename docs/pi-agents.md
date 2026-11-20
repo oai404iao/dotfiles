@@ -86,7 +86,7 @@ unreviewed or unfinished requirements is partial work, not overall success.
 
 ## Runtime and lifecycle reference
 
-Subagent **1.3.1** uses the asynchronous Codex multi-agent v2 runtime.
+Subagent uses the asynchronous Codex multi-agent v2 runtime.
 The managed `subagent.json` sets:
 
 | Setting | Value and meaning |
@@ -98,16 +98,18 @@ The managed `subagent.json` sets:
 | `maxOutputBytes` | `51200` |
 | `openAIIdentity` | `true`, retaining the optional identity lifecycle |
 
-Waiting children still occupy slots. Admission fails immediately at capacity;
-there is no queue. Continue independent work or wait for active work rather
-than repeatedly retrying or interrupting unrelated agents.
+Children waiting within a turn still occupy slots. At capacity, spawning a
+child or explicitly starting an idle child with `followup_task` fails
+immediately. Mail can still wake an idle child once a slot opens; the child
+resumes with its saved settings. Reopening a session does not start a turn
+from old mail.
 
 Call these seven controls **directly**, not from native codemode scripts:
 
 | Tool | Contract |
 | --- | --- |
 | `spawn_agent` | Start a uniquely named direct child; return its canonical path without waiting for completion. |
-| `send_message` | Queue an attributed message; does not start an idle agent or wait for an answer. |
+| `send_message` | Queue an attributed message to a same-tree agent, including the root; wake an idle recipient without waiting for an answer. |
 | `followup_task` | Carry a new task to an existing agent, starting an idle child or delivering at a safe boundary. |
 | `wait_agent` | Wait for activity in the caller's mailbox; answers arrive separately as context messages. |
 | `list_agents` | Paginated registry listing; supports `path_prefix`, `include_closed`, `limit`, and `cursor`. |
@@ -120,10 +122,12 @@ Spawn and follow-up accept explicit `model` and `thinking` selections, added
 in 1.2.0, in addition to role defaults/inheritance. Closing is not cleanup,
 rollback, or a reusable pause; choose interruption when more work may follow.
 
-Mailbox waits default to **120 seconds** in 1.3.1; use **300 seconds** for
+Mailbox waits default to **120 seconds**; use **300 seconds** for
 longer tasks. Incoming activity wakes the caller early. This is a plugin
 default, not a `subagent.json` key. Wait only when no independent work remains
 and progress depends on incoming work; a timeout is not task failure.
+Messages and completion notices can also wake idle recipients. A running
+recipient receives them at safe conversation boundaries.
 
 Control stores and child JSONL files remain under
 `~/.local/state/pi/agent/sessions/`, including
@@ -336,7 +340,7 @@ then deliberately install the pinned package:
 ```sh
 chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/subagent.json
 chezmoi apply --exclude=scripts,encrypted ~/.config/pi/agent/subagent.json
-pi install npm:@oai404iao/pi-subagent@1.3.1 --no-approve
+pi install npm:@oai404iao/pi-subagent@1.5.0 --no-approve
 ```
 
 The install updates that package declaration without resetting other local
@@ -348,10 +352,10 @@ paid model calls or Telegram delivery.
 
 ### `createCodemodeExtension is not a function`
 
-This error occurs before a child can execute its task. Subagent 1.3.1 needs
-Pi 1.2.0+ and its SDK factories. A newer dependency under
-`agent/npm/node_modules` does not upgrade the running host: Pi maps extension
-SDK imports to its own implementation.
+This error occurs before a child can execute its task. Subagent needs the SDK
+factories from a [supported Pi host](pi.md#before-starting-pi). A newer
+dependency under `agent/npm/node_modules` does not upgrade the running host:
+Pi maps extension SDK imports to its own implementation.
 
 For the system-managed Arch installation:
 
