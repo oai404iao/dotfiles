@@ -28,6 +28,9 @@
 {{- if and (eq $biri "desktop") (not (and .graphical .niri (eq $desktopShell "dms"))) -}}
 {{-   fail "biri = \"desktop\" requires graphical Niri with DMS" -}}
 {{- end -}}
+{{- if and (hasKey . "biriSeparateInput") (not (kindIs "bool" .biriSeparateInput)) -}}
+{{-   fail "biriSeparateInput must be a boolean" -}}
+{{- end -}}
 README.md
 README.zh-CN.md
 AGENTS.md
@@ -84,6 +87,9 @@ secrets/
 {{- if ne $biri "headless" }}
 .config/biri/
 .config/systemd/user/biri-headless.service
+{{- end }}
+{{- if not (and (eq $biri "headless") (get . "biriSeparateInput")) }}
+.config/systemd/user/biri-headless.service.d/90-seat-stream.conf
 {{- end }}
 
 # Retained agent scratch work is machine-local mutable state.

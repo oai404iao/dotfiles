@@ -27,6 +27,7 @@ and review that file before any intentional reinitialization.
 | `tetherMode` | `notifications`, `wifi-clipboard`; `notifications` | Tether network and clipboard permissions |
 | `niriOutputProfile` | `auto`, `laptop-dual-1080p`, `desktop-single-4k`; `auto` | Output definitions selected at render time |
 | `biri` | `none`, `headless`, `desktop`; `none` | [Biri/Sunshine streaming mode](biri-headless.md); `desktop` requires graphical Niri with DMS |
+| `biriSeparateInput` | boolean; `false` | [Separate Sunshine input](biri-headless.md#separate-headless-input-from-the-local-desktop) in `headless` mode; requires manual udev setup |
 | `work` | boolean; `false` | Work-machine metadata |
 | `paseo` | boolean; `false` | Manage the local Paseo daemon on `0.0.0.0:6767`; missing values leave it unmanaged |
 | `sshAgent` | boolean; defaults true except for `server` | rbw-backed SSH client configuration |

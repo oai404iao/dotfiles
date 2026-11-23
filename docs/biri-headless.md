@@ -13,7 +13,8 @@ Both stream modes use 1920×1080 at 60 Hz. Chezmoi does not switch packages.
 With the DMS profile, both entry points include `niri/profile.kdl` for shared
 bindings, layout, rules, and DMS startup. The independent headless session
 otherwise uses its standalone Kitty and Fuzzel bindings. Same-user sessions
-share the user manager, DMS state and IPC, and by default seat0 input.
+share the user manager, DMS state and IPC, and by default `seat0` input. To run
+both sessions with separate input, follow [the dual-seat setup](#separate-headless-input-from-the-local-desktop).
 
 ## Prepare the host
 
@@ -71,6 +72,9 @@ share the user manager, DMS state and IPC, and by default seat0 input.
 
 ## Enable the independent headless service
 
+Use the [dual-seat setup](#separate-headless-input-from-the-local-desktop)
+instead if the local desktop will stay active.
+
 1. Back up the machine config and any existing targets privately. Use
    `chezmoi edit-config` to set these values under `[data]`:
 
@@ -112,6 +116,73 @@ share the user manager, DMS state and IPC, and by default seat0 input.
    needed. The helper enables the unit in the user manager. Verify after
    a cold boot without logging into the graphical desktop. Applying the files
    alone neither enables nor starts the service.
+
+## Separate headless input from the local desktop
+
+With both compositors on `seat0`, Moonlight input can reach the local desktop
+and physical input can reach the stream. The opt-in assigns Sunshine's virtual
+keyboard, mice, touchscreen, and pen to `seat-stream` and starts headless Biri
+on that seat. It does not route gamepads or isolate processes running as the
+same user.
+
+If the rule and drop-in are already installed and match the sources, opt in
+with the machine data in step 2 and review the target diff. There is no need
+to reinstall the rule or restart a working service just to adopt the drop-in.
+
+1. Review [`scripts/udev/72-sunshine-seat-stream.rules`](../scripts/udev/72-sunshine-seat-stream.rules)
+   against the installed Sunshine devices. The rule matches only the listed
+   `libvirtualhid` event devices from vendor `1209`. Back up any existing rule
+   or service override before replacing it. Stop the headless service; this
+   disconnects Moonlight but leaves the local desktop running. From the source
+   root, install the rule manually and reload udev:
+
+   ```sh
+   systemctl --user stop biri-headless.service
+   udevadm verify scripts/udev/72-sunshine-seat-stream.rules
+   sudo install -m 0644 scripts/udev/72-sunshine-seat-stream.rules \
+     /etc/udev/rules.d/72-sunshine-seat-stream.rules
+   sudo udevadm control --reload-rules
+   ```
+
+   Chezmoi does not write `/etc`. Reloading rules does not retag devices that
+   are already open; Sunshine recreates its virtual devices on startup. Do not
+   retrigger all input devices on the live desktop.
+2. On an initialized machine, use `chezmoi edit-config` and set these keys
+   under the existing `[data]` section:
+
+   ```toml
+   biri = "headless"
+   biriSeparateInput = true
+   ```
+
+   A missing or false `biriSeparateInput` leaves the drop-in unmanaged.
+3. Review and apply the three headless targets. Create missing parent
+   directories before targeting files explicitly. With DMS, apply the shared
+   Niri profile and its includes as for the independent service.
+
+   ```sh
+   chezmoi diff --skip-secrets --exclude=scripts,encrypted \
+     ~/.config/biri/headless.kdl ~/.config/systemd/user/biri-headless.service \
+     ~/.config/systemd/user/biri-headless.service.d/90-seat-stream.conf
+   chezmoi apply --exclude=scripts,encrypted \
+     ~/.config/biri/headless.kdl ~/.config/systemd/user/biri-headless.service \
+     ~/.config/systemd/user/biri-headless.service.d/90-seat-stream.conf
+   systemctl --user daemon-reload
+   systemctl --user start biri-headless.service
+   ```
+
+   Manage activation manually: `scripts/biri --apply` is for exclusive
+   sessions without drop-ins. Enable the unit separately if it should start at
+   boot. Verify the headless unit's `Environment` contains `XDG_SEAT=seat-stream`,
+   and check the Sunshine event nodes with `udevadm info --query=property
+   --name=/dev/input/eventN` for `ID_SEAT=seat-stream`. Reconnect Moonlight and
+   verify that input in each session leaves the other unaffected.
+
+To retire the dual-seat setup, stop the headless service and set
+`biriSeparateInput = false`. Archive the installed `90-seat-stream.conf` and
+the `/etc` rule, then reload the user service manager and udev rules. Chezmoi
+does not delete the now-ignored drop-in. If switching Biri modes, complete this
+cleanup before using `scripts/biri --apply`.
 
 ## Switch modes
 

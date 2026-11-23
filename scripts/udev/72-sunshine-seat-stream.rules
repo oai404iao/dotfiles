@@ -1,0 +1,1 @@
+SUBSYSTEM=="input", KERNEL=="event[0-9]*", DEVPATH=="/devices/virtual/input/input*/event*", ATTRS{id/vendor}=="1209", ATTRS{name}=="libvirtualhid Keyboard|libvirtualhid Mouse|libvirtualhid Mouse (Absolute)|libvirtualhid Touchscreen|libvirtualhid Pen Tablet", TAG+="seat", ENV{ID_SEAT}="seat-stream"

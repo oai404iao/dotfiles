@@ -31,6 +31,10 @@
 {{-   $biriModes = append $biriModes "desktop" -}}
 {{- end -}}
 {{- $biri := promptChoiceOnce . "biri" "Biri streaming mode" $biriModes "none" -}}
+{{- $biriSeparateInput := false -}}
+{{- if eq $biri "headless" -}}
+{{-   $biriSeparateInput = promptBoolOnce . "biriSeparateInput" "Separate Sunshine input (requires the seat-stream udev rule)" false -}}
+{{- end -}}
 {{- $paseo := promptBoolOnce . "paseo" "Manage local Paseo service" false -}}
 {{- $sshAgent := promptBoolOnce . "sshAgent" "Use rbw SSH agent" (ne $role "server") -}}
 {{- $sshInboundIdentities := list "none" "private" "uni" -}}
@@ -68,6 +72,7 @@ mode = "file"
     niriOutputProfile = {{ $niriOutputProfile | quote }}
     work = {{ $work }}
     biri = {{ $biri | quote }}
+    biriSeparateInput = {{ $biriSeparateInput }}
     paseo = {{ $paseo }}
     sshAgent = {{ $sshAgent }}
     sshInboundIdentity = {{ $sshInboundIdentity | quote }}

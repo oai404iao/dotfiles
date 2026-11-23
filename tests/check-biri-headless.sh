@@ -23,6 +23,8 @@ source = task / 'source'
 home = task / 'home'
 config = task / 'chezmoi.toml'
 targets = ('.config/biri/headless.kdl', '.config/systemd/user/biri-headless.service')
+seat_dropin = '.config/systemd/user/biri-headless.service.d/90-seat-stream.conf'
+seat_rule = 'scripts/udev/72-sunshine-seat-stream.rules'
 unmanaged = (
     '.config/sunshine/sunshine.conf', '.config/sunshine/sunshine_state.json',
     '.config/sunshine/credentials/cakey.pem',
@@ -32,7 +34,8 @@ unmanaged = (
 for relative in ('.chezmoi.toml.tmpl', '.chezmoiignore',
                  'dot_config/biri/headless.kdl.tmpl',
                  'dot_config/dms/modify_settings.json.tmpl',
-                 'dot_config/systemd/user/biri-headless.service'):
+                 'dot_config/systemd/user/biri-headless.service',
+                 seat_dropin.replace('.config/', 'dot_config/', 1), seat_rule):
     fixture = source / relative
     fixture.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(repo / relative, fixture)
@@ -62,10 +65,12 @@ def init_data():
     return tomllib.loads(run('execute-template', '--init', '--stdinisatty=false',
                              '--file', str(source / '.chezmoi.toml.tmpl')))['data']
 
-def machine(mode=None, graphical=False, niri=False, shell='custom'):
+def machine(mode=None, graphical=False, niri=False, shell='custom', separate_input=None):
     data = {'graphical': graphical, 'niri': niri, 'desktopShell': shell}
     if mode is not None:
         data['biri'] = mode
+    if separate_input is not None:
+        data['biriSeparateInput'] = separate_input
     config.write_text('[data]\n' + ''.join(
         f'{key} = {json.dumps(value)}\n' for key, value in data.items()
     ))
@@ -74,8 +79,28 @@ list_files = ('managed', '--include=files', '--path-style=relative')
 for mode in (None, 'none', 'headless'):
     machine(mode)
     assert init_data()['biri'] == (mode or 'none')
+    assert init_data()['biriSeparateInput'] is False
     actual = set(run(*list_files).splitlines())
     assert actual == (set(targets) if mode == 'headless' else set()), actual
+for mode, separate_input, manage_dropin in (
+    (None, True, False),
+    ('none', True, False),
+    ('desktop', True, False),
+    ('headless', False, False),
+    ('headless', True, True),
+):
+    machine(mode, True, True, 'dms', separate_input)
+    assert init_data()['biriSeparateInput'] is manage_dropin
+    files = set(run(*list_files).splitlines())
+    assert (seat_dropin in files) is manage_dropin
+    assert seat_rule not in files
+machine('headless', separate_input='false')
+run(*list_files, error='biriSeparateInput must be a boolean')
+
+if shutil.which('udevadm'):
+    subprocess.run(['udevadm', 'verify', str(source / seat_rule)], check=True)
+else:
+    print('Sunshine udev rule validation skipped: udevadm unavailable')
 for mode in ('', 'invalid', True):
     machine(mode)
     run(*list_files, error='biri must be none, headless, or desktop')
@@ -112,6 +137,15 @@ for graphical, niri, shell, reuse in (
 
 desktop = home / '.config/niri/config.kdl'
 assert desktop.read_text().strip() == 'include "profile.kdl"'
+assert not (home / seat_dropin).exists()
+machine('headless', True, True, 'dms', separate_input=True)
+run('apply', '--exclude=scripts,encrypted')
+assert (home / seat_dropin).read_text().splitlines() == ['[Service]', 'Environment=XDG_SEAT=seat-stream']
+assert not (home / seat_rule).exists()
+machine('headless', True, True, 'dms', separate_input=False)
+assert seat_dropin not in run(*list_files).splitlines()
+run('apply', '--exclude=scripts,encrypted')
+assert (home / seat_dropin).is_file()
 installed_headless = {path: (home / path).read_bytes() for path in targets}
 machine('desktop', True, True, 'dms')
 assert init_data()['biri'] == 'desktop'
