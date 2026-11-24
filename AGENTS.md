@@ -178,8 +178,8 @@ never derive cleanup operands from rebound HOME/XDG variables.
   Exact Host blocks precede `Host *`; do not add a global IdentityFile.
   Local fragments may add aliases but must not overlap managed ones or use
   `Host *`, because IdentityFile is additive.
-- `sshAgent` controls client deployment; `sshInboundIdentity` selects complete
-  `authorized_keys` ownership for `private`/`uni`, while `none` is unmanaged.
+- `sshAgent` controls client deployment; `sshInboundIdentity` selects inbound
+  keys to ensure are present without rewriting existing entries; `none` is unmanaged.
   Host trust, local fragments, host keys, and server config remain local.
 - Register a replacement key remotely before changing its client selector or
   inbound ownership. Keep the encrypted authorized-keys template consistent

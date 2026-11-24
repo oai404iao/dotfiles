@@ -15,7 +15,7 @@ not offline tests.
 |---|---|
 | Git | Generic SSH policy and age-encrypted public selectors/host inventory |
 | Bitwarden | Native SSH items and private key material |
-| Machine | Host trust, local fragments, and legacy migration copies |
+| Machine | Host trust, local fragments, manually authorized keys, and legacy migration copies |
 
 OpenSSH private keys, host keys, `sshd_config`, and `known_hosts*` are never
 managed here. Public keys are not credentials, but their fingerprints and
@@ -57,20 +57,25 @@ Set these non-secret values in `[data]` during initialization, or use
 |---|---|
 | `sshAgent = true` | Client config, public selectors, SSH socket environment |
 | `sshAgent = false` | No client-side SSH management |
-| `sshInboundIdentity = "private"` | Entire `authorized_keys` replaced with the `private` public key |
-| `sshInboundIdentity = "uni"` | Entire `authorized_keys` replaced with the `uni` public key |
+| `sshInboundIdentity = "private"` | Ensure the `private` public key and any encrypted mobile keys for this hostname are present |
+| `sshInboundIdentity = "uni"` | Ensure the `uni` public key is present |
 | `sshInboundIdentity = "none"` | Existing `authorized_keys` left unmanaged |
 
-Disabling a capability does not remove previously rendered files. Switching
-inbound ownership to `none` does not revoke access: remove or replace the old
-file explicitly if that is intended. Likewise, review old client config,
-selectors, and socket environment when retiring `sshAgent`.
+The modifier only appends missing keys. An existing entry counts even if its
+options restrict how the key can be used. Existing entries and manually added
+keys are preserved as written. Switching profiles,
+removing a key from the encrypted inventory, or setting `none` does not revoke
+access. To revoke a managed key, stop selecting it in the source/profile and
+remove its entry from the destination explicitly. Review old client config,
+selectors, and socket environment separately when retiring `sshAgent`.
 
 ## Encrypted source
 
-The six selectors, real Host blocks, and conditional authorized-keys template
-use native `encrypted_` sources. Git identity profiles and account routing
-use the same mechanism; see [Git](git.md).
+The six selectors, real Host blocks, and inbound key inventory use native
+`encrypted_` sources. The encrypted inbound template selects data for the
+shared `authorized_keys` modifier; the mobile keys are scoped to the enrolled
+hostname and the `private` profile. Git identity profiles and account routing
+use the same encryption mechanism; see [Git](git.md).
 
 Exact Host blocks precede `90-defaults.conf`'s catch-all. The `20-uni.conf`
 fragment groups remote hosts using the `uni` selector. Every managed host
@@ -85,9 +90,9 @@ CHECK_PRIVATE_CONFIG=1 ./tests/check-ssh.sh
 ```
 
 The trusted check decrypts into a protected temporary directory, validates
-six distinct Ed25519 keys, allowlists Host directives, and ensures both
-inbound keys match their selectors without printing values. Default fixture
-tests also work without the real identity. Before publishing changed encrypted
+six distinct Ed25519 selectors, allowlists Host directives, and checks both
+inbound selectors and the encrypted mobile key set without printing values.
+Default fixture tests also work without the real identity. Before publishing changed encrypted
 data, run the complete trusted [publication gates](publication.md).
 
 The public age recipient lets anyone create replacement ciphertext. A valid

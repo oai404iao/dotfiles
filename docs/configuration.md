@@ -31,7 +31,7 @@ and review that file before any intentional reinitialization.
 | `work` | boolean; `false` | Work-machine metadata |
 | `paseo` | boolean; `false` | Manage the local Paseo daemon on `0.0.0.0:6767`; missing values leave it unmanaged |
 | `sshAgent` | boolean; defaults true except for `server` | rbw-backed SSH client configuration |
-| `sshInboundIdentity` | `none`, `private`, `uni`; `none` | Complete `authorized_keys` ownership, or no ownership |
+| `sshInboundIdentity` | `none`, `private`, `uni`; `none` | Ensure selected inbound keys are present, or leave `authorized_keys` unmanaged |
 | `secretBackend` | `rbw` | Secret-backend marker written by initialization |
 
 These are non-secret values. Never store credentials in machine data. Prefer

@@ -28,7 +28,7 @@ EOF
 )
 
 expected_source_inventory=$(cat <<'EOF'
-encrypted_private_authorized_keys.tmpl.age
+modify_encrypted_private_authorized_keys.tmpl.age
 private_config
 private_config.d/encrypted_private_10-private.conf.age
 private_config.d/encrypted_private_20-uni.conf.age
@@ -78,6 +78,7 @@ fixture_home_root="$tmp_dir/homes"
 fixture_plain="$tmp_dir/plain"
 fixture_keys="$fixture_plain/keys"
 mkdir -p \
+    "$fixture_source/.chezmoitemplates" \
     "$fixture_source/private_dot_ssh/private_config.d" \
     "$fixture_source/private_dot_ssh/private_identities" \
     "$fixture_source/dot_config/environment.d" \
@@ -85,6 +86,7 @@ mkdir -p \
     "$fixture_home_root" \
     "$fixture_keys"
 cp "$repo_dir/.chezmoiignore" "$fixture_source/.chezmoiignore"
+cp "$repo_dir/.chezmoitemplates/ssh-authorized-keys.py" "$fixture_source/.chezmoitemplates/"
 cp "$ssh_source_dir/private_config" \
     "$fixture_source/private_dot_ssh/private_config"
 cp "$ssh_source_dir/private_config.d/private_90-defaults.conf" \
@@ -168,31 +170,34 @@ for fragment in 10-private.conf 20-uni.conf 30-company.conf 40-github.conf; do
         "$fixture_plain/$fragment"
 done
 
-python3 - "$fixture_keys" "$fixture_plain/authorized_keys.tmpl" <<'PY'
+for mobile in mobile-1 mobile-2 mobile-3; do
+    ssh-keygen -q -t ed25519 -N '' -C "$mobile" -f "$fixture_keys/$mobile"
+done
+cat "$fixture_keys/private.pub" "$fixture_keys"/mobile-*.pub >"$fixture_plain/private-authorized"
+fixture_hostname=$(chezmoi --config /dev/null --config-format toml execute-template '{{ .chezmoi.hostname }}')
+
+encrypt_fixture_authorized() {
+    python3 - "$fixture_keys" "$1" <<'PY' | age -a -r "$fixture_recipient" \
+        >"$fixture_source/private_dot_ssh/modify_encrypted_private_authorized_keys.tmpl.age"
+import json
 import pathlib
 import sys
 
 key_dir = pathlib.Path(sys.argv[1])
-output = pathlib.Path(sys.argv[2])
-private_key = (key_dir / "private.pub").read_text().strip()
-uni_key = (key_dir / "uni.pub").read_text().strip()
-output.write_text(
-    '{{- $sshInboundIdentity := "none" -}}\n'
-    '{{- if hasKey . "sshInboundIdentity" -}}\n'
-    '{{-   $sshInboundIdentity = .sshInboundIdentity -}}\n'
-    '{{- end -}}\n'
-    '{{- if eq $sshInboundIdentity "private" -}}\n'
-    f"{private_key}\n"
-    '{{- else if eq $sshInboundIdentity "uni" -}}\n'
-    f"{uni_key}\n"
-    '{{- else -}}\n'
-    '{{ fail "authorized_keys requires sshInboundIdentity private or uni" }}\n'
-    '{{- end -}}{{ "\\n" }}'
+inventory = {
+    "private": (key_dir / "private.pub").read_text().strip(),
+    "uni": (key_dir / "uni.pub").read_text().strip(),
+    "mobileHost": sys.argv[2],
+    "mobile": [p.read_text().strip() for p in sorted(key_dir.glob("mobile-*.pub"))],
+}
+print(
+    '{{- template "ssh-authorized-keys.py" (dict "identity" (get . "sshInboundIdentity") '
+    '"hostname" .chezmoi.hostname "keys" (mustFromJson `\n'
+    + json.dumps(inventory, indent=2) + '\n`)) -}}'
 )
 PY
-age -a -r "$fixture_recipient" \
-    -o "$fixture_source/private_dot_ssh/encrypted_private_authorized_keys.tmpl.age" \
-    "$fixture_plain/authorized_keys.tmpl"
+}
+encrypt_fixture_authorized "$fixture_hostname"
 
 validate_key_set() {
     key_dir=$1
@@ -294,7 +299,11 @@ verify_profile() {
     fi
 
     case "$inbound_identity" in
-        private | uni)
+        private)
+            cmp -s "$home_dir/.ssh/authorized_keys" \
+                "$fixture_plain/private-authorized"
+            ;;
+        uni)
             cmp -s "$home_dir/.ssh/authorized_keys" \
                 "$fixture_keys/$inbound_identity.pub"
             ;;
@@ -321,6 +330,27 @@ agent_home="$fixture_home_root/true-private"
 [ "$(stat -c %a "$agent_home/.ssh/identities")" = "700" ]
 [ "$(stat -c %a "$agent_home/.ssh/identities/private.pub")" = "644" ]
 [ "$(stat -c %a "$agent_home/.ssh/authorized_keys")" = "600" ]
+
+{
+    printf '%s\n\n' '# keep this comment'
+    printf '%s ' 'command="echo \"quoted\" text",restrict'
+    awk '{ print $1, $2, "local-comment" }' "$fixture_keys/private.pub"
+    printf '# '
+    cat "$fixture_keys/mobile-2.pub"
+    printf '%s ' cert-authority
+    cat "$fixture_keys/mobile-1.pub"
+    printf '%s' "$(cat "$fixture_keys/company_dev.pub")"
+} >"$fixture_plain/existing-authorized"
+cp "$fixture_plain/existing-authorized" "$agent_home/.ssh/authorized_keys"
+{
+    cat "$fixture_plain/existing-authorized"
+    printf '\n'
+    cat "$fixture_keys/mobile-2.pub" "$fixture_keys/mobile-3.pub"
+} >"$fixture_plain/merged-authorized"
+for attempt in 1 2; do
+    apply_profile true-private true private
+    cmp -s "$agent_home/.ssh/authorized_keys" "$fixture_plain/merged-authorized"
+done
 
 assembled_config="$tmp_dir/fixture-ssh-config"
 for config_fragment in "$agent_home"/.ssh/config.d/*; do
@@ -437,6 +467,10 @@ chezmoi --cache "$tmp_dir/legacy-cache" \
 [ ! -e "$legacy_home/.config/environment.d/20-rbw-ssh-agent.conf" ]
 [ ! -e "$legacy_home/.config/shell/ssh-agent.sh" ]
 
+encrypt_fixture_authorized "other-$fixture_hostname"
+apply_profile other-host false private
+cmp -s "$fixture_home_root/other-host/.ssh/authorized_keys" "$fixture_keys/private.pub"
+
 (
     unset SSH_AUTH_SOCK
     XDG_RUNTIME_DIR="/run/user/4242"
@@ -481,10 +515,12 @@ validate_real_sources() {
             >"$real_dir/config/$fragment"
     done
     age -d -i "$identity_file" \
-        "$ssh_source_dir/encrypted_private_authorized_keys.tmpl.age" \
+        "$ssh_source_dir/modify_encrypted_private_authorized_keys.tmpl.age" \
         >"$real_dir/authorized_keys.tmpl"
 
     python3 - "$real_dir" <<'PY'
+import base64
+import json
 import pathlib
 import re
 import sys
@@ -577,24 +613,48 @@ for hosts, proxy_jump in proxy_jumps:
     if proxy_jump in hosts:
         raise SystemExit("encrypted Host cannot jump through itself")
 
-key_dir = root / "keys"
-private_key = (key_dir / "private.pub").read_text().strip()
-uni_key = (key_dir / "uni.pub").read_text().strip()
-expected_authorized = (
-    '{{- $sshInboundIdentity := "none" -}}\n'
-    '{{- if hasKey . "sshInboundIdentity" -}}\n'
-    '{{-   $sshInboundIdentity = .sshInboundIdentity -}}\n'
-    '{{- end -}}\n'
-    '{{- if eq $sshInboundIdentity "private" -}}\n'
-    f"{private_key}\n"
-    '{{- else if eq $sshInboundIdentity "uni" -}}\n'
-    f"{uni_key}\n"
-    '{{- else -}}\n'
-    '{{ fail "authorized_keys requires sshInboundIdentity private or uni" }}\n'
-    '{{- end -}}{{ "\\n" }}'
+source = (root / "authorized_keys.tmpl").read_text()
+prefix = (
+    '{{- template "ssh-authorized-keys.py" (dict "identity" (get . "sshInboundIdentity") '
+    '"hostname" .chezmoi.hostname "keys" (mustFromJson `\n'
 )
-if (root / "authorized_keys.tmpl").read_text() != expected_authorized:
+suffix = '\n`)) -}}\n'
+payload = source.removeprefix(prefix).removesuffix(suffix)
+if source != prefix + payload + suffix or "`" in payload:
     raise SystemExit("encrypted authorized_keys template is inconsistent")
+
+def unique_object(pairs):
+    result = dict(pairs)
+    if len(result) != len(pairs):
+        raise ValueError
+    return result
+
+try:
+    inbound = json.loads(payload, object_pairs_hook=unique_object)
+except ValueError:
+    raise SystemExit("invalid encrypted inbound inventory") from None
+if not isinstance(inbound, dict) or set(inbound) != {"private", "uni", "mobileHost", "mobile"}:
+    raise SystemExit("unexpected encrypted inbound inventory")
+key_dir = root / "keys"
+for selector in ("private", "uni"):
+    if inbound[selector] != (key_dir / f"{selector}.pub").read_text().strip():
+        raise SystemExit("encrypted inbound keys do not match their selectors")
+host = inbound["mobileHost"]
+if not isinstance(host, str) or not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9.-]*", host):
+    raise SystemExit("invalid host for the encrypted mobile keys")
+mobile = inbound["mobile"]
+if not isinstance(mobile, list) or len(mobile) != 3:
+    raise SystemExit("expected three encrypted mobile keys")
+seen = {(key_dir / f"{name}.pub").read_text().split()[1] for name in identities}
+for key in mobile:
+    fields = re.fullmatch(r"ssh-ed25519 ([A-Za-z0-9+/]{68}) herdr-mobile[^\r\n]*", key) if isinstance(key, str) else None
+    if not fields:
+        raise SystemExit("invalid encrypted mobile key line")
+    material = fields[1]
+    blob = base64.b64decode(material, validate=True)
+    if blob[:19] != b"\0\0\0\x0bssh-ed25519\0\0\0\x20" or material in seen:
+        raise SystemExit("invalid or duplicate encrypted mobile key material")
+    seen.add(material)
 PY
 }
 
