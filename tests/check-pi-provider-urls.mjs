@@ -17,7 +17,7 @@ const originalFetch = globalThis.fetch;
 try {
 	for (const [id, base, modelId, api, expectedUrl, keyHeader] of [
 		["anthropic", anthropicProvider(), "claude-opus-5-5", "anthropic-messages",
-			"https://www.zzshu.cc/v1/messages?beta=true", "x-api-key"],
+			"https://api.commandcode.ai/provider/v1/messages?beta=true", "x-api-key"],
 		["google", googleProvider(), "gemini-4-argon", "google-generative-ai",
 			"https://www.zzshu.cc/v1beta/models/gemini-4-argon:streamGenerateContent?alt=sse", "x-goog-api-key"],
 	]) {

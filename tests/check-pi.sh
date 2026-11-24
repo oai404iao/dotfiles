@@ -190,6 +190,7 @@ expected_defaults = {
         "deepseek/deepseek-flash",
         "openai/gpt-6.2-sol",
         "openai/gpt-6.2-astra",
+        "anthropic/claude-haiku-5-5",
     ],
     "npmCommand": ["pnpm", "--config.node-linker=hoisted"],
     "theme": "dark",
@@ -288,13 +289,21 @@ if any(
 ):
     raise SystemExit("Pi providers must not override User-Agent")
 if providers["anthropic"] != {
-    "baseUrl": "https://www.zzshu.cc",
+    "baseUrl": "https://api.commandcode.ai/provider",
     "modelOverrides": {
         "claude-sonnet-5-5": {"contextWindow": 300000},
         "claude-opus-5-5": {"contextWindow": 300000},
+        "claude-haiku-5-5": {
+            "contextWindow": 100000,
+            "compat": {
+                "supportsMidConvoSystemMessages": False,
+                "supportsMidConvoToolAdditions": False,
+                "supportsMidConvoEffort": False,
+            },
+        },
     },
 }:
-    raise SystemExit("unexpected Anthropic route or context overrides")
+    raise SystemExit("unexpected Anthropic route or model overrides")
 if providers["google"] != {"baseUrl": "https://www.zzshu.cc/v1beta"}:
     raise SystemExit("Google must use its native API and catalog at the configured endpoint")
 if providers["typesafe"] != {"baseUrl": "https://api.commandcode.ai/provider/v1"}:

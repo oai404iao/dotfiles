@@ -91,12 +91,12 @@ remains `dark`.
 
 The enabled-model list includes `openai/gpt-5.6-sol`, `openai/gpt-6-astra`,
 `openai/gpt-6-luna`, `openai/gpt-6.1-sol`, `openai/gpt-6.1-terra`,
-`openai/gpt-6.2-sol`, `openai/gpt-6.2-astra`, and `deepseek/deepseek-flash`.
-It is a selection scope, not the full provider catalog. Claude and Gemini
-remain configured but are not in this list.
+`openai/gpt-6.2-sol`, `openai/gpt-6.2-astra`, `deepseek/deepseek-flash`, and
+`anthropic/claude-haiku-5-5`. It is a selection scope, not the full provider
+catalog. Other Claude models and Gemini remain configured but are not in this list.
 
 Provider metadata routes `openai`, `deepseek`, and `xai` through
-`https://api.spiredive.com/v1`, `anthropic` through `https://www.zzshu.cc`,
+`https://api.spiredive.com/v1`, `anthropic` through `https://api.commandcode.ai/provider`,
 `google` through `https://www.zzshu.cc/v1beta`, and `typesafe` through
 `https://api.commandcode.ai/provider/v1`. Anthropic and Google use their native
 Pi adapters and catalogs. DeepSeek disables the developer role. Providers do
@@ -107,6 +107,8 @@ mocked fetch.
 Model overrides retain built-in metadata while setting a 350,000-token context
 for GPT-5.6 Luna/Sol/Terra, GPT-6 Astra/Luna/Sol, GPT-6.1 Sol, GPT-6.2 Sol/Astra,
 and DeepSeek Flash, and a 300,000-token context for Claude Opus/Sonnet 5.5.
+Claude Haiku 5.5 uses a 100,000-token context and disables mid-conversation
+system messages, tool additions, and effort changes.
 The GPT-6.2 overrides do not register models; the provider catalog must supply them.
 The additional `openai/gpt-5.6-sol-cyber` model uses Responses, text/image input,
 reasoning, a 350,000-token context and 128,000-token output limit, tool-search
