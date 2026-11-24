@@ -55,6 +55,7 @@ expected_ignored = {
     ".config/pi/agent/extensions/pi-telegram-notify/",
     ".config/pi/agent/pi-codex-minimal-tools/",
     ".config/pi/agent/.pi-subagent/",
+    ".config/pi/agent/pi-rsi/",
     ".config/pi/agent/sessions/",
     ".local/state/pi/agent/sessions/",
     ".local/state/agents/tmp/",
@@ -170,6 +171,7 @@ common_packages = {
     "npm:@juicesharp/rpiv-ask-user-question@2.15.0",
     "npm:@oai404iao/pi-codex-minimal-tools@5.2.0",
     "npm:@oai404iao/pi-subagent@1.5.0",
+    "npm:@oai404iao/pi-rsi@0.1.0",
 }
 expected_defaults = {
     "$schema": "https://pi.dev/schemas/settings.schema.json",

@@ -13,6 +13,7 @@ downloads, manifests, lockfiles, and package checkouts remain machine-local.
 | Codex tools and provider integration | `npm:@oai404iao/pi-codex-minimal-tools@5.2.0` |
 | Asynchronous child agents | `npm:@oai404iao/pi-subagent@1.5.0` |
 | Local or Telegram notifications | `npm:@oai404iao/pi-notify@0.2.0` |
+| Local feedback on user turns (`/rsi`) | `npm:@oai404iao/pi-rsi@0.1.0` |
 
 Chezmoi selects the notification channel from `graphical` machine data, with
 one notification package in both profiles. All npm declarations are pinned;
@@ -20,6 +21,9 @@ this does not pin every transitive dependency. The tree-continue package is
 retired: applying settings stops
 loading it without deleting its local checkout. Disabled packages and their
 configuration are not managed.
+
+`/rsi` feedback is written locally to `~/.config/pi/agent/pi-rsi/` by default.
+Chezmoi does not manage these records.
 
 Upgrade and restart the host Pi before installing these packages if it does
 not meet the [host requirements](pi.md#before-starting-pi). Updating a nested
