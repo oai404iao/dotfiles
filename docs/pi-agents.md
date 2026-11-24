@@ -104,7 +104,9 @@ immediately. Mail can still wake an idle child once a slot opens; the child
 resumes with its saved settings. Reopening a session does not start a turn
 from old mail.
 
-Call these seven controls **directly**, not from native codemode scripts:
+These controls are all available as direct model calls. The
+[codemode exposure rules](#extension-and-child-limits) also allow some of
+them in scripts:
 
 | Tool | Contract |
 | --- | --- |
@@ -225,9 +227,11 @@ can resolve successfully as a promise while reporting a nonzero `exit_code`.
 ### Extension and child limits
 
 - Codex tools preserves codemode while reconciling active tools.
-- All seven subagent controls are `model-only`; use direct `spawn_agent`,
-  not `tools.spawn_agent()`. Runtime collaboration controls remain available
-  within ordinary-tool ceilings and need no role allowlist entries.
+- Subagent exposes `list_agents`, `spawn_agent`, `send_message`,
+  `followup_task`, and `interrupt_agent` to codemode. `wait_agent` and
+  `close_agent` remain `model-only`. Runtime collaboration controls need no
+  role allowlist entries. A script failure does not undo accepted tasks or
+  messages.
 - Scout/reviewer allowlists explicitly include codemode without adding editing
   tools. Child scripts stay within their fixed ceilings and have no `models`
   API. Bash remains subject to read-only instructions, not filesystem isolation
@@ -334,17 +338,15 @@ historical sessions and start new agents.
 | Child `report` | `send_message(target, message)` to the parent. |
 | Answer returned by `wait_agent` | Mailbox activity signal; answers arrive separately as attributed context. |
 
-Privately back up existing files. Review/apply only the safe subagent target,
-then deliberately install the pinned package:
+Privately back up existing files. Review/apply only the safe subagent target:
 
 ```sh
 chezmoi diff --skip-secrets --exclude=encrypted ~/.config/pi/agent/subagent.json
 chezmoi apply --exclude=scripts,encrypted ~/.config/pi/agent/subagent.json
-pi install npm:@oai404iao/pi-subagent@1.5.0 --no-approve
 ```
 
-The install updates that package declaration without resetting other local
-settings. If applying managed `settings.json` too, review its wider ownership
+Then [install the pinned packages](pi-packages.md#install-or-change-packages).
+If applying managed `settings.json` too, review its wider ownership
 first. Do not apply the whole Pi directory: it can replace local agent
 overrides or retrieve Telegram credentials. Restart after package replacement,
 or `/reload` once no child work needs preserving. Do not test migration with

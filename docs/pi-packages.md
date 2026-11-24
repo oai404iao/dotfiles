@@ -10,8 +10,8 @@ downloads, manifests, lockfiles, and package checkouts remain machine-local.
 | Purpose | Declaration |
 | --- | --- |
 | Structured questions | `npm:@juicesharp/rpiv-ask-user-question@2.15.0` |
-| Codex tools and provider integration | `npm:@oai404iao/pi-codex-minimal-tools@5.2.0` |
-| Asynchronous child agents | `npm:@oai404iao/pi-subagent@1.5.0` |
+| Codex tools and provider integration | `npm:@oai404iao/pi-codex-minimal-tools@5.2.2` |
+| Asynchronous child agents | `npm:@oai404iao/pi-subagent@1.5.3` |
 | Local or Telegram notifications | `npm:@oai404iao/pi-notify@0.2.0` |
 | Local feedback on user turns (`/rsi`) | `npm:@oai404iao/pi-rsi@0.1.0` |
 
@@ -43,8 +43,8 @@ not meet the [host requirements](pi.md#before-starting-pi). Updating a nested
    ```
 
 3. Reconcile/install packages deliberately. Upgrade Codex tools and subagent
-   together because they share the same Codex runtime. For example, install
-   the subagent pin with `pi install npm:@oai404iao/pi-subagent@1.5.0 --no-approve`.
+   together because they share the same Codex runtime. Use the package
+   declarations above with `pi install <declaration> --no-approve`.
    Installation may access the registry and execute approved dependency code;
    it is not an offline configuration check. `--no-approve` skips trust-gated
    project resources, not package-code execution.
@@ -70,8 +70,9 @@ does not rebuild an existing installation; use the
 
 ## Codex tools reference
 
-Bundle `5.2.0` composes core `3.1.0` and tools `0.2.0`, sharing runtime `3.1.0`
-with subagent. The managed config/model schemas use the same runtime. Do not add
+The bundle depends on core `^3.1.2` and tools `^0.2.2`. Both share the
+runtime `^3.1.2` dependency range with subagent. The managed config/model
+schemas target runtime `3.1.2`, the minimum of that range. Do not add
 separate core/tools or compatibility declarations: the bundle supplies the
 engine, patch, search, and image implementations.
 

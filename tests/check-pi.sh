@@ -169,8 +169,8 @@ settings_modifier = source_dir / "modify_private_settings.json.tmpl"
 notification_package = "npm:@oai404iao/pi-notify@0.2.0"
 common_packages = {
     "npm:@juicesharp/rpiv-ask-user-question@2.15.0",
-    "npm:@oai404iao/pi-codex-minimal-tools@5.2.0",
-    "npm:@oai404iao/pi-subagent@1.5.0",
+    "npm:@oai404iao/pi-codex-minimal-tools@5.2.2",
+    "npm:@oai404iao/pi-subagent@1.5.3",
     "npm:@oai404iao/pi-rsi@0.1.0",
 }
 expected_defaults = {
@@ -673,16 +673,17 @@ strictDepBuilds: true
         )
         rendered = load_json(result.stdout)
         package = (
-            "pi-subagent@1.5.0"
+            "pi-subagent@1.5.3"
             if relative == "private_subagent.json.tmpl"
-            else "pi-codex-runtime@3.1.0"
+            else "pi-codex-runtime@3.1.2"
         )
         schema = "models" if relative.endswith("private_models.json.tmpl") else "config"
-        if rendered.get("$schema") != f"https://unpkg.com/@oai404iao/{package}/{schema}.schema.json":
+        schema_url = f"https://unpkg.com/@oai404iao/{package}/{schema}.schema.json"
+        if rendered.get("$schema") != schema_url:
             raise SystemExit(f"schema version does not match the pinned package: {relative}")
         if relative == "private_subagent.json.tmpl":
             expected_subagent = {
-                "$schema": "https://unpkg.com/@oai404iao/pi-subagent@1.5.0/config.schema.json",
+                "$schema": schema_url,
                 "agentScope": "user",
                 "maxDepth": 3,
                 "maxConcurrentAgents": 8,
