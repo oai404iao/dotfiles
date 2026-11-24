@@ -146,7 +146,7 @@ keybindings. Applying the file does not restart or reload a running session.
 `~/.config/herdr-app/keys.json`; settings, layouts, mods, generated guides,
 and runtime data remain application-owned. The old Herdr config is independent.
 
-The managed keymap retains the Linux defaults and adds these sequences:
+The managed keymap unbinds `Alt+Up` and adds these sequences to the Linux defaults:
 
 | Sequence | Action |
 |---|---|
