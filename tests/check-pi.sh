@@ -294,7 +294,7 @@ if providers["anthropic"] != {
         "claude-sonnet-5-5": {"contextWindow": 300000},
         "claude-opus-5-5": {"contextWindow": 300000},
         "claude-haiku-5-5": {
-            "contextWindow": 100000,
+            "contextWindow": 160000,
             "compat": {
                 "supportsMidConvoSystemMessages": False,
                 "supportsMidConvoToolAdditions": False,

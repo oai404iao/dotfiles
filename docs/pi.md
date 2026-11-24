@@ -107,7 +107,7 @@ mocked fetch.
 Model overrides retain built-in metadata while setting a 350,000-token context
 for GPT-5.6 Luna/Sol/Terra, GPT-6 Astra/Luna/Sol, GPT-6.1 Sol, GPT-6.2 Sol/Astra,
 and DeepSeek Flash, and a 300,000-token context for Claude Opus/Sonnet 5.5.
-Claude Haiku 5.5 uses a 100,000-token context and disables mid-conversation
+Claude Haiku 5.5 uses a 160,000-token context and disables mid-conversation
 system messages, tool additions, and effort changes.
 The GPT-6.2 overrides do not register models; the provider catalog must supply them.
 The additional `openai/gpt-5.6-sol-cyber` model uses Responses, text/image input,

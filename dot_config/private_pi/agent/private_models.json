@@ -11,7 +11,7 @@
           "contextWindow": 300000
         },
         "claude-haiku-5-5": {
-          "contextWindow": 100000,
+          "contextWindow": 160000,
           "compat": {
             "supportsMidConvoSystemMessages": false,
             "supportsMidConvoToolAdditions": false,
