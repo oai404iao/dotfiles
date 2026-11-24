@@ -60,8 +60,7 @@ expected_ignored = {
     ".local/state/pi/agent/sessions/",
     ".local/state/agents/tmp/",
     ".config/pi/agent/recovery-fragments/",
-    ".config/pi/agent/extensions/pi-permission-system/config.json",
-    ".config/pi/agent/extensions/pi-permission-system/logs/",
+    ".config/pi/agent/extensions/pi-permission-system/",
     ".config/pi/agent/workflows/model-tiers.json",
     ".config/pi/agent/workflows/projects/",
 }
