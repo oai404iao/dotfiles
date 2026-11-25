@@ -18,7 +18,7 @@ try:
     settings.update({
         "altScreenMode": "always",
         "enableTerminalSandbox": False,
-        "model": "Gemini 4 Hydrogen (Low)",
+        "model": "Gemini 4 Hydrogen (Medium)",
         "notifications": True,
         "statusLine": {
             "type": "command",
