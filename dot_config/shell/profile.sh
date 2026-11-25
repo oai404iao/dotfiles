@@ -17,6 +17,8 @@ export DSH_HOME
 : "${PASEO_HOME:=$XDG_DATA_HOME/paseo}"
 export PASEO_HOME
 
+export AGY_CLI_AUTO_COMPACT_OVERRIDE=200K
+
 toolchains_profile="$XDG_CONFIG_HOME/shell/toolchains.sh"
 if [ -r "$toolchains_profile" ]; then
     . "$toolchains_profile"

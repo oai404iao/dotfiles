@@ -58,6 +58,11 @@ secrets/
 
 # Unmanaged CLI credentials and session state.
 .tavily/
+.gemini/*
+!.gemini/antigravity-cli/
+.gemini/antigravity-cli/*
+!.gemini/antigravity-cli/settings.json
+!.gemini/antigravity-cli/statusline.sh
 
 # Herdr owns sessions, sockets, plugins, and worktrees; only config is declarative.
 .config/herdr/*

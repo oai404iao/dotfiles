@@ -161,6 +161,7 @@ for interpreter in sh bash zsh; do
                 . "$ENTRYPOINT"
                 [ "$DSH_HOME" = "$expected" ] || exit 1
                 [ "$PASEO_HOME" = "$expected_paseo" ] || exit 1
+                sh -c '"'"'[ "$AGY_CLI_AUTO_COMPACT_OVERRIDE" = 200K ]'"'"' || exit 1
                 sh -c '"'"'[ "$DSH_HOME" = "$1" ]'"'"' sh "$expected" || exit 1
                 sh -c '"'"'[ "$PASEO_HOME" = "$1" ]'"'"' sh "$expected_paseo" || exit 1
                 . "$ENTRYPOINT"
@@ -373,6 +374,9 @@ PY
         "$repo_dir/dot_config/shell" "$repo_dir/dot_config/pnpm" \
         "$repo_dir/dot_config/herdr" "$repo_dir/dot_config/herdr-app" \
         "$fixture_source/dot_config/"
+    cp -R "$repo_dir/dot_gemini" "$fixture_source/"
+    printf '%s\n' '{}' >"$fixture_source/dot_gemini/oauth_creds.json"
+    printf '%s\n' 'unmanaged fixture' >"$fixture_source/dot_gemini/antigravity-cli/history.jsonl"
     mkdir -p "$fixture_source/dot_config/herdr-app/mods/test"
     printf '%s\n' 'unmanaged fixture' >"$fixture_source/dot_config/herdr-app/settings.json"
     printf '%s\n' 'unmanaged fixture' >"$fixture_source/dot_config/herdr-app/mods/test/main.js"
@@ -387,7 +391,9 @@ PY
             mkdir -p "$shell_home/.config/shell" "$shell_home/.local" \
                 "$shell_home/.config/bash/rc.d" "$shell_home/.config/zsh/rc.d" \
                 "$shell_home/.config/pnpm" "$shell_home/.config/herdr/sessions/test" \
-                "$shell_home/.config/herdr-app/mods/test"
+                "$shell_home/.config/herdr-app/mods/test" "$shell_home/.gemini/antigravity-cli"
+            printf '%s\n' '{"trustedWorkspaces":["/local"],"toolPermission":"review"}' \
+                >"$shell_home/.gemini/antigravity-cli/settings.json"
             printf '%s\n' 'retained settings' >"$shell_home/.config/herdr-app/settings.json"
             printf '%s\n' 'retained mod' >"$shell_home/.config/herdr-app/mods/test/main.js"
             printf '%s\n' 'retained session' >"$shell_home/.config/herdr/session.json"
@@ -413,6 +419,7 @@ EOF
                 "$shell_home/.config/pnpm/config.yaml" \
                 "$shell_home/.config/herdr" \
                 "$shell_home/.config/herdr-app" \
+                "$shell_home/.gemini" \
                 "$shell_home/.local/bin"
             for target in .bash_profile .bashrc .zshenv \
                 .config/bash/rc.d/10-options.bash .config/zsh/.zshrc; do
@@ -441,6 +448,22 @@ EOF
                 --persistent-state "$test_root/$fixture_name-state.boltdb" \
                 managed --include=files "$shell_home/.config/herdr-app")
             [ "$app_managed" = '.config/herdr-app/keys.json' ]
+            agy_home="$shell_home/.gemini/antigravity-cli"
+            [ "$(stat -c %a "$agy_home/settings.json")" = 600 ]
+            [ "$(stat -c %a "$agy_home/statusline.sh")" = 755 ]
+            [ ! -e "$shell_home/.gemini/oauth_creds.json" ]
+            [ ! -e "$agy_home/history.jsonl" ]
+            python3 - "$agy_home/settings.json" <<'PY'
+import json
+import sys
+from pathlib import Path
+
+settings = json.loads(Path(sys.argv[1]).read_text())
+assert settings["trustedWorkspaces"] == ["/local"]
+assert settings["toolPermission"] == "review"
+assert settings["statusLine"]["enabled"] is True
+assert settings["statusLine"]["command"] == "~/.gemini/antigravity-cli/statusline.sh"
+PY
             if [ "$graphical" = true ]; then
                 [ -f "$shell_home/.local/bin/sudo-askpass" ]
                 [ "$(stat -c %a "$shell_home/.local/bin/sudo-askpass")" = 755 ]
@@ -451,6 +474,18 @@ EOF
             fi
         done
     done
+fi
+
+agy_statusline="$repo_dir/dot_gemini/antigravity-cli/executable_statusline.sh"
+bash -n "$agy_statusline"
+if command -v jq >/dev/null 2>&1; then
+    usage='{"context_window":{"context_window_size":1048576,"used_percentage":12.5}}'
+    baseline=$(printf '%s\n' "$usage" | env -u AGY_CLI_AUTO_COMPACT_OVERRIDE "$agy_statusline")
+    overridden=$(printf '%s\n' "$usage" | AGY_CLI_AUTO_COMPACT_OVERRIDE=200K "$agy_statusline")
+    [ "$baseline" = '↑0 ↓0 12.5%/1M' ]
+    [ "$overridden" = "$baseline" ]
+else
+    printf '%s\n' 'skipping Antigravity statusline execution: jq not installed'
 fi
 
 for old_loader in bash/rc.d/50-node.bash zsh/rc.d/50-node.zsh shell/nvm.sh; do

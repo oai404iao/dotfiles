@@ -1,0 +1,31 @@
+#!/usr/bin/env python3
+import json
+import sys
+
+
+def unique_keys(pairs):
+    result = dict(pairs)
+    if len(result) != len(pairs):
+        raise ValueError("duplicate key")
+    return result
+
+
+try:
+    existing = sys.stdin.read()
+    settings = json.loads(existing, object_pairs_hook=unique_keys) if existing else {}
+    if not isinstance(settings, dict):
+        raise ValueError("expected a JSON object")
+    settings.update({
+        "altScreenMode": "always",
+        "model": "Gemini 4 Hydrogen (Low)",
+        "notifications": True,
+        "statusLine": {
+            "type": "command",
+            "command": "~/.gemini/antigravity-cli/statusline.sh",
+            "enabled": True,
+            "stack_with_default": True,
+        },
+    })
+    print(json.dumps(settings, indent=2, ensure_ascii=False, allow_nan=False))
+except ValueError:
+    sys.exit("Invalid Antigravity CLI settings JSON")
