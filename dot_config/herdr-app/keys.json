@@ -41,7 +41,6 @@
     "ctrl-shift-pagedown": "space.next",
     "ctrl-shift-pageup": "space.prev",
     "alt-down": "agent.next",
-    "alt-up": "",
     "ctrl-shift-/": "app.help",
     "ctrl-shift-?": "app.help",
     "ctrl-shift-b": "layout.toggle:sidebar",

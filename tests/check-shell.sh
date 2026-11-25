@@ -302,8 +302,9 @@ def unique_keys(pairs):
 app_keys = json.loads((root / "dot_config/herdr-app/keys.json").read_text(),
                       object_pairs_hook=unique_keys)
 assert set(app_keys) == {"global", "terminal"}
-assert all(isinstance(key, str) and isinstance(action, str)
-           for bindings in app_keys.values() for key, action in bindings.items())
+for scope, bindings in app_keys.items():
+    for key, action in bindings.items():
+        assert isinstance(action, str) and action.strip(), f"invalid action: {scope}.{key}"
 for key, action in {"|": "pane.split:right", "-": "pane.split:down",
                     "h": "pane.go:left", "j": "pane.go:down",
                     "k": "pane.go:up", "l": "pane.go:right"}.items():
