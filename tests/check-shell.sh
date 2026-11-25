@@ -392,7 +392,7 @@ PY
                 "$shell_home/.config/bash/rc.d" "$shell_home/.config/zsh/rc.d" \
                 "$shell_home/.config/pnpm" "$shell_home/.config/herdr/sessions/test" \
                 "$shell_home/.config/herdr-app/mods/test" "$shell_home/.gemini/antigravity-cli"
-            printf '%s\n' '{"trustedWorkspaces":["/local"],"toolPermission":"review","enableTerminalSandbox":true}' \
+            printf '%s\n' '{"trustedWorkspaces":["/local"],"toolPermission":"request-review","enableTerminalSandbox":true}' \
                 >"$shell_home/.gemini/antigravity-cli/settings.json"
             printf '%s\n' 'retained settings' >"$shell_home/.config/herdr-app/settings.json"
             printf '%s\n' 'retained mod' >"$shell_home/.config/herdr-app/mods/test/main.js"
@@ -460,7 +460,7 @@ from pathlib import Path
 
 settings = json.loads(Path(sys.argv[1]).read_text())
 assert settings["trustedWorkspaces"] == ["/local"]
-assert settings["toolPermission"] == "review"
+assert settings["toolPermission"] == "always-proceed"
 assert settings["enableTerminalSandbox"] is False
 assert settings["statusLine"]["enabled"] is True
 assert settings["statusLine"]["command"] == "~/.gemini/antigravity-cli/statusline.sh"

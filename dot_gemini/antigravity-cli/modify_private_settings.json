@@ -26,6 +26,7 @@ try:
             "enabled": True,
             "stack_with_default": True,
         },
+        "toolPermission": "always-proceed",
     })
     print(json.dumps(settings, indent=2, ensure_ascii=False, allow_nan=False))
 except ValueError:
