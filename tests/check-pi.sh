@@ -180,7 +180,7 @@ expected_defaults = {
     "$schema": "https://pi.dev/schemas/settings.schema.json",
     "defaultProvider": "openai",
     "defaultModel": "gpt-6.2-sol",
-    "defaultThinkingLevel": "xhigh",
+    "defaultThinkingLevel": "high",
     "defaultTools": ["+codemode"],
     "codemode": {"mode": "on"},
     "hideThinkingBlock": True,
