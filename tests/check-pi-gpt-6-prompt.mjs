@@ -1,5 +1,5 @@
 import assert from "node:assert/strict";
-import { existsSync, mkdirSync, readFileSync, realpathSync, unlinkSync, writeFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, realpathSync, rmdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { dirname, join } from "node:path";
 import { pathToFileURL } from "node:url";
@@ -20,7 +20,7 @@ globalThis.fetch = () => { throw new Error("GPT-6 prompt check must stay offline
 const piUrl = pathToFileURL(resolvePiEntry(process.argv[2])).href;
 const { createAgentSession, DefaultResourceLoader, ModelRuntime, SessionManager, SettingsManager } =
 	await import(import.meta.resolve("@earendil-works/pi-coding-agent", piUrl));
-const { getCurrentSystemPrompt, getCurrentTools } =
+const { getCurrentSystemMessage, getCurrentSystemPrompt, getCurrentTools } =
 	await import(import.meta.resolve("@earendil-works/pi-ai", piUrl));
 const { fauxProvider, fauxAssistantMessage, fauxToolCall } =
 	await import(import.meta.resolve("@earendil-works/pi-ai/providers/faux", piUrl));
@@ -45,9 +45,11 @@ modelRuntime.registerNativeProvider(openai.provider);
 modelRuntime.registerNativeProvider(other.provider);
 
 let turnSection = "Original companion instructions.";
+const cliAddendum = "Existing command-line instructions.";
 const settingsManager = SettingsManager.inMemory({ cacheWarming: "off", compaction: { enabled: false } });
 const resourceLoader = new DefaultResourceLoader({
 	cwd, agentDir, settingsManager,
+	appendSystemPrompt: [cliAddendum],
 	extensionFactories: [(pi) => {
 		pi.on("before_agent_start", ({ systemPromptOptions }) => {
 			systemPromptOptions.sections.companion = turnSection;
@@ -60,7 +62,7 @@ const { session } = await createAgentSession({
 	settingsManager, sessionManager: SessionManager.inMemory(cwd), tools: ["read"],
 });
 
-async function checkRequest(provider, userMessage, suffix, toolTurn = false) {
+async function checkRequest(provider, userMessage, prompt = "", toolTurn = false) {
 	const requests = [];
 	const capture = (reply) => (context) => {
 		requests.push({ context, turnPrompt: session.systemPrompt });
@@ -74,29 +76,39 @@ async function checkRequest(provider, userMessage, suffix, toolTurn = false) {
 	await session.prompt(userMessage);
 	assert.equal(requests.length, toolTurn ? 2 : 1);
 	assert.equal(session.getLastAssistantText(), "Offline response");
+	const expectedAddendum = `<addendum>\n${cliAddendum}${prompt ? `\n\n${prompt}` : ""}\n</addendum>`;
 	for (const { context, turnPrompt } of requests) {
 		assert.ok(turnPrompt.includes(turnSection));
-		assert.equal(getCurrentSystemPrompt(context.messages), turnPrompt + suffix);
+		assert.equal(getCurrentSystemMessage(context.messages).sections.addendum, expectedAddendum);
+		assert.equal(getCurrentSystemPrompt(context.messages), turnPrompt);
 		assert.deepEqual(getCurrentTools(context.messages).map((tool) => tool.name), ["read"]);
 	}
 }
 
 try {
-	await session.bindExtensions({});
-	await checkRequest(openai, "First request and tool follow-up", `\n\n${syncedPrompt}`, true);
+	const errors = [];
+	await session.bindExtensions({ onError: (error) => errors.push(error) });
+	await checkRequest(openai, "First request and tool follow-up", syncedPrompt, true);
 	turnSection = "Changed companion instructions.";
 	writeFileSync(promptPath, "Updated while Pi stays open.\n");
-	await checkRequest(openai, "Read the updated file", "\n\nUpdated while Pi stays open.\n");
+	await checkRequest(openai, "Read the updated file", "Updated while Pi stays open.\n");
 	await session.setModel(openai.getModel("gpt-5.6-sol"));
-	await checkRequest(openai, "Same provider, different model family", "");
+	await checkRequest(openai, "Same provider, different model family");
 	await session.setModel(other.getModel());
-	await checkRequest(other, "Same model prefix, different provider", "");
+	await checkRequest(other, "Same model prefix, different provider");
 	await session.setModel(openai.getModel("gpt-6-luna"));
-	await checkRequest(openai, "Switch back to the GPT-6 family", "\n\nUpdated while Pi stays open.\n");
+	await checkRequest(openai, "Switch back to the GPT-6 family", "Updated while Pi stays open.\n");
 	writeFileSync(promptPath, " \n");
-	await checkRequest(openai, "Ignore a blank file", "");
+	await checkRequest(openai, "Ignore a blank file");
 	unlinkSync(promptPath);
-	await checkRequest(openai, "Ignore a missing file", "");
+	await checkRequest(openai, "Ignore a missing file");
+	assert.deepEqual(errors, []);
+	mkdirSync(promptPath);
+	await checkRequest(openai, "Report a prompt read error");
+	rmdirSync(promptPath);
+	assert.equal(errors.length, 1);
+	assert.equal(errors[0].extensionPath, join(agentDir, "extensions/gpt-6-prompt.ts"));
+	assert.match(errors[0].error, /EISDIR/);
 } finally {
 	session.dispose();
 }

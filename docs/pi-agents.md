@@ -322,14 +322,14 @@ children. Use `/reload` or a new Pi session for updated context files.
 
 ## GPT-6 prompt
 
-On each chat model request, `gpt-6-prompt.ts` appends
-`~/.agents/prompts/gpt-6.2.md` to the current system prompt when the selected
-provider is `openai` and the model ID starts with `gpt-6`. Model switches and
-file edits take effect on the next request. A missing or blank file adds
-nothing. The addition is request-local and preserves Pi's prompt sections
-and tool declarations. The extension uses `context_with_system` (verified
-with Pi 1.6.0). A complete prompt forced by another extension in
-`before_agent_start` takes precedence in Pi's request pipeline.
+At the start of each run, `gpt-6-prompt.ts` reads `~/.agents/prompts/gpt-6.2.md`
+when the selected provider is `openai` and the model ID starts with `gpt-6`.
+It adds the file to Pi's `--append-system-prompt` input in `before_agent_start`,
+after any existing append text. Tool follow-up requests reuse that run's
+addendum. Model switches and file edits take effect at the start of the next
+run. Pi reports read errors other than a missing file. A blank or missing file
+leaves the addendum as it was. A complete prompt forced by another extension
+in `before_agent_start` takes precedence.
 
 Chezmoi creates the prompt only if it is missing. After reviewing the
 published `prompts/gpt-6.2.md` on `my_skills/main`, run from the source root:
