@@ -8,7 +8,7 @@ output {{ $output | quote }} {
 }
 
 // Stop the capture process when niri.service ends, even if the user manager stays up.
-spawn-at-startup "/usr/bin/systemd-run" "--user" "--scope" "--collect" "--unit=biri-desktop-sunshine.scope" "--property=BindsTo=niri.service" "--property=After=niri.service" {{ template "biri-sunshine-args" $output }}
+spawn-at-startup "/usr/bin/systemd-run" "--user" "--scope" "--collect" "--unit=biri-desktop-sunshine.scope" "--property=BindsTo=niri.service" "--property=After=niri.service" {{ template "biri-sunshine-args" $output }}{{ if ne .chezmoi.hostname "macos" }} "origin_web_ui_allowed=pc"{{ end }}
 
 {{ end -}}
 include "profile.kdl"

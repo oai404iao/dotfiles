@@ -4,7 +4,7 @@ include "../niri/profile.kdl"
 
 {{ end -}}
 // Sunshine inherits this compositor's Wayland socket.
-spawn-at-startup {{ template "biri-sunshine-args" "HEADLESS-1" }}
+spawn-at-startup {{ template "biri-sunshine-args" "HEADLESS-1" }} "origin_web_ui_allowed=pc"
 {{ if not $reuseDMS -}}
 
 binds {
