@@ -463,6 +463,7 @@ strictDepBuilds: true
     (sync_bin / "curl").chmod(0o700)
     sync_payload = scratch / "global-instructions.md"
     sync_target = home / ".config/pi/agent/AGENTS.md"
+    gemini_target = home / ".gemini/GEMINI.md"
     sync_env = {
         **fixture_env, "PI_TEST_AGENTS_PAYLOAD": str(sync_payload),
         "PI_CODING_AGENT_DIR": str(sync_target.parent),
@@ -476,23 +477,30 @@ strictDepBuilds: true
         ).stdout
 
     sync_payload.write_text("Synthetic reviewed instructions.\n")
-    if "+Synthetic reviewed" not in run_sync("--dry-run") or sync_target.exists():
+    dry_diff = run_sync("--dry-run")
+    if "+Synthetic reviewed" not in dry_diff or sync_target.exists() or gemini_target.exists():
         raise SystemExit("Pi instructions dry-run must show the diff without writing")
     run_sync()
     run_sync()
-    if sync_target.read_text() != sync_payload.read_text():
-        raise SystemExit("Pi instructions sync did not install the fetched file")
-    if sync_target.stat().st_mode & 0o777 != 0o600:
-        raise SystemExit("Pi instructions must remain mode 0600")
+    for target, expected_name in ((sync_target, "AGENTS.md"), (gemini_target, "GEMINI.md")):
+        if target.read_text() != sync_payload.read_text():
+            raise SystemExit(f"Global instructions sync did not install {target}")
+        if target.stat().st_mode & 0o777 != 0o600:
+            raise SystemExit(f"Global instructions {target} must remain mode 0600")
+        if sorted(p.name for p in target.parent.iterdir()) != [expected_name]:
+            raise SystemExit(f"Global instructions sync left temporary files beside {target}")
     sync_payload.write_text("")
-    if subprocess.run(
-        ["sh", str(repo_dir / "scripts/sync-pi-agents.sh")],
-        capture_output=True, env=sync_env,
-    ).returncode == 0 or sync_target.read_text() != "Synthetic reviewed instructions.\n":
+    if (
+        subprocess.run(
+            ["sh", str(repo_dir / "scripts/sync-pi-agents.sh")],
+            capture_output=True, env=sync_env,
+        ).returncode == 0
+        or sync_target.read_text() != "Synthetic reviewed instructions.\n"
+        or gemini_target.read_text() != "Synthetic reviewed instructions.\n"
+    ):
         raise SystemExit("Pi instructions sync must reject an empty download")
-    if sorted(p.name for p in sync_target.parent.iterdir()) != ["AGENTS.md"]:
-        raise SystemExit("Pi instructions sync left temporary files")
     sync_target.unlink()
+    gemini_target.unlink()
     if rbw_log.exists():
         raise SystemExit("Pi instructions sync unexpectedly accessed rbw")
     print("Pi global instructions offline sync checks passed")

@@ -251,13 +251,13 @@ model requests, and notification delivery are outside the offline checks.
 
 ## Global agent instructions
 
-The sole source of truth for `~/.config/pi/agent/AGENTS.md` is
+The sole source of truth for `~/.config/pi/agent/AGENTS.md` and
+`~/.gemini/GEMINI.md` is
 [`my_skills/prompts/pi-global-agents.md`](https://github.com/oai404iao/my_skills/blob/main/prompts/pi-global-agents.md).
-Edit it in that repository, not the installed copy or a second local source
-here. `scripts/sync-pi-agents.sh` fetches remote `main` into the installed file
-(mode `0600`); no local checkout path is required. Chezmoi does not manage the
-target, so `chezmoi apply` never fetches or changes it. Support currently
-targets Pi only.
+Edit it in that repository, not the installed copies or a second local source
+here. `scripts/sync-pi-agents.sh` fetches remote `main` into both installed
+files (mode `0600`); no local checkout path is required. Chezmoi does not manage
+either target, so `chezmoi apply` never fetches or changes them.
 
 Pi loads global instructions from `PI_CODING_AGENT_DIR` alongside project
 context, not instead of repository `AGENTS.md`. A same-directory

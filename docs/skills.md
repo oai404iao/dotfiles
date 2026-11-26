@@ -29,8 +29,9 @@ and selects explicit names from each source. Current selections cover:
 - `agent-browser` from `vercel-labs/agent-browser`
 - `shadcn` from `shadcn/ui`
 - `linear-cli` from `schpet/linear-cli`
-- `agents-md`, `frontend-design`, `development-workflow`, `api-design`,
-  `deployment-standards`, and `llm-prompt-design` from `oai404iao/my_skills`
+- `agents-md`, `clean-defensive-wording`, `frontend-design`, `development-workflow`,
+  `api-design`, `deployment-standards`, `global-memory`, and `llm-prompt-design`
+  from `oai404iao/my_skills`
 
 Edit the manifest to change installation intent. For example, one source entry
 looks like:

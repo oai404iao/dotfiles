@@ -17,10 +17,12 @@
       "source": "oai404iao/my_skills",
       "skills": [
         "agents-md",
+        "clean-defensive-wording",
         "frontend-design",
         "development-workflow",
         "api-design",
         "deployment-standards",
+        "global-memory",
         "llm-prompt-design"
       ]
     }
