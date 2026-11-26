@@ -30,6 +30,7 @@ expected = {
     "extensions/pi-codex-minimal-tools/private_config.json.tmpl",
     "extensions/pi-codex-minimal-tools/private_models.json.tmpl",
     "extensions/pi-notify/private_config.json.tmpl",
+    "extensions/private_gpt-6-prompt.ts",
     "extensions/private_jev.ts",
 }
 actual = {
@@ -459,6 +460,7 @@ strictDepBuilds: true
         '#!/bin/sh\nset -eu\n'
         'while [ "$1" != --output ]; do shift; done\n'
         'cp -- "$PI_TEST_AGENTS_PAYLOAD" "$2"\n'
+        'exit "${PI_TEST_CURL_STATUS:-0}"\n'
     )
     (sync_bin / "curl").chmod(0o700)
     sync_payload = scratch / "global-instructions.md"
@@ -510,6 +512,31 @@ strictDepBuilds: true
         "--source", str(fixture_source), "--destination", str(home),
         "--persistent-state", str(scratch / "chezmoi-state.boltdb"),
     ]
+    prompt_seed = repo_dir / "dot_agents/prompts/create_private_gpt-6.2.md"
+    prompt_target = home / ".agents/prompts/gpt-6.2.md"
+    prompt_target.parent.mkdir(parents=True)
+    apply_seed = [*chezmoi, "--override-data", '{"graphical":false,"niri":false}',
+                  "apply", "--force", "--exclude=scripts,encrypted,externals", str(prompt_target)]
+    subprocess.run(apply_seed, check=True, env=fixture_env)
+    if prompt_target.read_bytes() != prompt_seed.read_bytes() or prompt_target.stat().st_mode & 0o777 != 0o600:
+        raise SystemExit("Pi GPT-6 prompt seed must deploy the original bytes in mode 0600")
+    sync_prompt = ["sh", str(repo_dir / "scripts/sync-gpt-6.2-prompt.sh")]
+    updated_prompt = b"# Synthetic updated prompt\n\nKeep trailing spaces.  \n"
+    sync_payload.write_bytes(updated_prompt)
+    subprocess.run(sync_prompt, check=True, env=sync_env)
+    subprocess.run(apply_seed, check=True, env=fixture_env)
+    if prompt_target.read_bytes() != updated_prompt or prompt_target.stat().st_mode & 0o777 != 0o600:
+        raise SystemExit("Pi GPT-6 prompt sync or create-only ownership failed")
+    for payload, status in ((b"partial download", "18"), (b"", "0")):
+        sync_payload.write_bytes(payload)
+        failed = subprocess.run(sync_prompt, capture_output=True,
+                                env={**sync_env, "PI_TEST_CURL_STATUS": status})
+        if failed.returncode == 0 or prompt_target.read_bytes() != updated_prompt:
+            raise SystemExit("Pi GPT-6 prompt sync replaced the target after a failed download")
+    if sorted(p.name for p in prompt_target.parent.iterdir()) != [prompt_target.name]:
+        raise SystemExit("Pi GPT-6 prompt sync left temporary files")
+    print("Pi GPT-6 prompt offline sync and create-only seed checks passed")
+
     agent_dir = home / ".config/pi/agent"
     auth_target = agent_dir / "auth.json"
     settings_target = agent_dir / "settings.json"
@@ -545,6 +572,8 @@ strictDepBuilds: true
             raise SystemExit("Pi auth command references must be managed in every profile")
         if ".config/pi/agent/extensions/jev.ts" not in inventory:
             raise SystemExit("Pi Jev classifier extension must be managed in every profile")
+        if ".config/pi/agent/extensions/gpt-6-prompt.ts" not in inventory:
+            raise SystemExit("Pi GPT-6 prompt extension must be managed in every profile")
 
         rbw_log.write_text("")
         fresh_auth = None if profile == (False, False) else "{}"
@@ -622,6 +651,15 @@ strictDepBuilds: true
         if notify_target.stat().st_mode & 0o777 != 0o600:
             raise SystemExit("Pi notification target must remain mode 0600")
     print("Pi notification profiles and isolated apply checks passed")
+
+    node, pi = shutil.which("node"), shutil.which("pi")
+    if node and pi:
+        subprocess.run(
+            [node, "--experimental-import-meta-resolve", str(repo_dir / "tests/check-pi-gpt-6-prompt.mjs"),
+             pi, str(scratch)], check=True, env={**fixture_env, "PI_CODING_AGENT_DIR": str(agent_dir)},
+        )
+    else:
+        print("Pi GPT-6 prompt runtime checks skipped: node or pi unavailable")
 
     theme_target = agent_dir / "themes/chezmoi-dark.json"
     subprocess.run(

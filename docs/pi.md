@@ -62,6 +62,7 @@ Managed files use mode `0600`; `~/.config/pi` remains mode `0700`.
 | `auth.json` | Modifier merges [managed command references](pi-authentication.md#credential-ownership); all other credentials and extra fields remain local. |
 | `subagent.json`, `agents/{scout,reviewer,worker}.md` | User-scoped runtime policy and role definitions. |
 | `extensions/jev.ts` | Command Code classifier registration. |
+| `extensions/gpt-6-prompt.ts` | Appends the [GPT-6 prompt](pi-agents.md#gpt-6-prompt) for the selected OpenAI GPT-6 family. |
 | `extensions/pi-codex-minimal-tools/{config,models}.json` | Codex capabilities and model profiles. |
 | `extensions/pi-notify/config.json` | Notification channel template; headless mode contains plaintext Telegram credentials. |
 | `npm/pnpm-workspace.yaml` | Modifier merges exact reviewed build approvals, not installation state. |
@@ -142,7 +143,8 @@ filter for existing destination credentials. Use the authentication workflow
 for `auth.json`, Telegram, and a legacy `models.json` containing a literal key.
 
 Run `./tests/check-pi.sh` for fake-secret rendering, managed inventory, merge
-behavior, profiles, isolated deployment, and mocked Jev/provider URL transport checks.
+behavior, profiles, isolated deployment, and offline GPT-6 prompt, Jev, and
+provider URL runtime checks.
 Run `./tests/check-skills.sh` for skill installer changes, and
 `./tests/check-source.sh` plus `git diff --check` before publishing source
 changes. These checks do not call paid models, access the real vault, send

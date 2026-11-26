@@ -11,6 +11,7 @@ For package installation, see [Pi packages](pi-packages.md); for keys, see
 | Need | Mechanism |
 | --- | --- |
 | Persistent rules across projects | [Global `AGENTS.md`](#global-agent-instructions) plus repository context files |
+| Model-specific writing and coding guidance | [GPT-6 prompt](#gpt-6-prompt) |
 | Task-specific reusable instructions | [Shared skills](skills.md) |
 | Batch tools or filter their output | [Native codemode](#codemode) |
 | Advisory workflow/review triage | [Jev](#jev-task-triage), optional and at most once per task |
@@ -318,6 +319,28 @@ children. Use `/reload` or a new Pi session for updated context files.
 
 `tests/check-pi.sh` runs the sync script in an isolated HOME with a fake
 `curl`. It neither downloads nor validates the live upstream instructions.
+
+## GPT-6 prompt
+
+On each chat model request, `gpt-6-prompt.ts` appends
+`~/.agents/prompts/gpt-6.2.md` to the current system prompt when the selected
+provider is `openai` and the model ID starts with `gpt-6`. Model switches and
+file edits take effect on the next request. A missing or blank file adds
+nothing. The addition is request-local and preserves Pi's prompt sections
+and tool declarations. The extension uses `context_with_system` (verified
+with Pi 1.6.0). A complete prompt forced by another extension in
+`before_agent_start` takes precedence in Pi's request pipeline.
+
+Chezmoi creates the prompt only if it is missing. After reviewing the
+published `prompts/gpt-6.2.md` on `my_skills/main`, run from the source root:
+
+```sh
+sh scripts/sync-gpt-6.2-prompt.sh
+```
+
+The script uses the network and atomically replaces the local prompt. A
+failed or empty download leaves the existing file intact. Subsequent
+applies preserve the synced file.
 
 ## Subagent 1.0.0 migration
 
