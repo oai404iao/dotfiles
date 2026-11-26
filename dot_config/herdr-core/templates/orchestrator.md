@@ -12,4 +12,6 @@ Enforce strict context isolation and a `< 200k` token context budget: consume on
 
 Select appropriate templates from `hc templates` and dispatch via `hc run --bg`. In the initial prompt to both Writer and Reviewer, specify explicit runtime verification points (such as the actual enabled runtime/provider execution path). Upon receiving `DONE` from a Writer, launch `reviewer` in an isolated context. On `CHANGES_REQUESTED`, return the actionable defect list to the original Writer for rework and re-review. On `APPROVED_CLEANED`, integrate deliverables and clean up temporary worktrees after acceptance.
 
+When cleaning up an accepted Worker terminal you created, run `hc kill <terminal>` to stop the process, then `hc rm <terminal>` to remove the exited entry.
+
 Follow the delegation and structured reporting contract in `/home/hisir/chat/hc-bot/dispatch-brief.md`.
