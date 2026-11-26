@@ -331,16 +331,16 @@ run. Pi reports read errors other than a missing file. A blank or missing file
 leaves the addendum as it was. A complete prompt forced by another extension
 in `before_agent_start` takes precedence.
 
-Chezmoi creates the prompt only if it is missing. After reviewing the
-published `prompts/gpt-6.2.md` on `my_skills/main`, run from the source root:
+`~/.agents/prompts/gpt-6.2.md` is outside chezmoi's managed targets. To install
+or refresh it, review the published `prompts/gpt-6.2.md` on `my_skills/main`
+and run this command from the source root.
 
 ```sh
 sh scripts/sync-gpt-6.2-prompt.sh
 ```
 
-The script uses the network and atomically replaces the local prompt. A
-failed or empty download leaves the existing file intact. Subsequent
-applies preserve the synced file.
+The script fetches the prompt over HTTPS and installs it atomically in mode
+`0600`. A failed or empty download leaves the existing file intact.
 
 ## Subagent 1.0.0 migration
 

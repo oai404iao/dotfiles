@@ -75,8 +75,11 @@ if ".config/pi/agent/npm/" in ignore_lines:
 if ".config/pi/agent/auth.json" in ignore_lines:
     raise SystemExit("Pi auth command-reference modifier is hidden by an ignore")
 
-if (repo_dir / ".chezmoiexternal.toml").read_text().count(".config/pi/"):
+externals = (repo_dir / ".chezmoiexternal.toml").read_text()
+if ".config/pi/" in externals:
     raise SystemExit("Pi global instructions are synced by scripts/sync-pi-agents.sh, not externals")
+if ".agents/prompts/gpt-6.2.md" in externals:
+    raise SystemExit("Pi GPT-6 prompt must be synced by scripts/sync-gpt-6.2-prompt.sh")
 
 def unique_object(pairs):
     result = {}
@@ -512,31 +515,6 @@ strictDepBuilds: true
         "--source", str(fixture_source), "--destination", str(home),
         "--persistent-state", str(scratch / "chezmoi-state.boltdb"),
     ]
-    prompt_seed = repo_dir / "dot_agents/prompts/create_private_gpt-6.2.md"
-    prompt_target = home / ".agents/prompts/gpt-6.2.md"
-    prompt_target.parent.mkdir(parents=True)
-    apply_seed = [*chezmoi, "--override-data", '{"graphical":false,"niri":false}',
-                  "apply", "--force", "--exclude=scripts,encrypted,externals", str(prompt_target)]
-    subprocess.run(apply_seed, check=True, env=fixture_env)
-    if prompt_target.read_bytes() != prompt_seed.read_bytes() or prompt_target.stat().st_mode & 0o777 != 0o600:
-        raise SystemExit("Pi GPT-6 prompt seed must deploy the original bytes in mode 0600")
-    sync_prompt = ["sh", str(repo_dir / "scripts/sync-gpt-6.2-prompt.sh")]
-    updated_prompt = b"# Synthetic updated prompt\n\nKeep trailing spaces.  \n"
-    sync_payload.write_bytes(updated_prompt)
-    subprocess.run(sync_prompt, check=True, env=sync_env)
-    subprocess.run(apply_seed, check=True, env=fixture_env)
-    if prompt_target.read_bytes() != updated_prompt or prompt_target.stat().st_mode & 0o777 != 0o600:
-        raise SystemExit("Pi GPT-6 prompt sync or create-only ownership failed")
-    for payload, status in ((b"partial download", "18"), (b"", "0")):
-        sync_payload.write_bytes(payload)
-        failed = subprocess.run(sync_prompt, capture_output=True,
-                                env={**sync_env, "PI_TEST_CURL_STATUS": status})
-        if failed.returncode == 0 or prompt_target.read_bytes() != updated_prompt:
-            raise SystemExit("Pi GPT-6 prompt sync replaced the target after a failed download")
-    if sorted(p.name for p in prompt_target.parent.iterdir()) != [prompt_target.name]:
-        raise SystemExit("Pi GPT-6 prompt sync left temporary files")
-    print("Pi GPT-6 prompt offline sync and create-only seed checks passed")
-
     agent_dir = home / ".config/pi/agent"
     auth_target = agent_dir / "auth.json"
     settings_target = agent_dir / "settings.json"
@@ -652,15 +630,6 @@ strictDepBuilds: true
             raise SystemExit("Pi notification target must remain mode 0600")
     print("Pi notification profiles and isolated apply checks passed")
 
-    node, pi = shutil.which("node"), shutil.which("pi")
-    if node and pi:
-        subprocess.run(
-            [node, "--experimental-import-meta-resolve", str(repo_dir / "tests/check-pi-gpt-6-prompt.mjs"),
-             pi, str(scratch)], check=True, env={**fixture_env, "PI_CODING_AGENT_DIR": str(agent_dir)},
-        )
-    else:
-        print("Pi GPT-6 prompt runtime checks skipped: node or pi unavailable")
-
     theme_target = agent_dir / "themes/chezmoi-dark.json"
     subprocess.run(
         [*command, "apply", "--exclude=scripts,encrypted,externals", str(theme_target.parent)],
@@ -703,6 +672,47 @@ strictDepBuilds: true
     if inventory.stdout.splitlines() != [".config/pi/agent/npm/pnpm-workspace.yaml"]:
         raise SystemExit("Only the Pi npm build policy may be managed")
     print(f"Pi pnpm policy checks passed (retained fixtures: {scratch})")
+
+    prompt_target = home / ".agents/prompts/gpt-6.2.md"
+    # Apply the complete isolated source so this also catches a reintroduced seed.
+    apply_fixture = [
+        *command, "apply", "--force", "--skip-secrets", "--exclude=scripts,encrypted,externals",
+    ]
+    subprocess.run(apply_fixture, check=True, env=fixture_env)
+    if prompt_target.exists():
+        raise SystemExit("Chezmoi apply must leave a missing Pi GPT-6 prompt absent")
+    prompt_target.parent.mkdir(parents=True, exist_ok=True)
+    old_prompt = b"# Previously installed prompt\n"
+    prompt_target.write_bytes(old_prompt)
+    prompt_target.chmod(0o640)
+    subprocess.run(apply_fixture, check=True, env=fixture_env)
+    if prompt_target.read_bytes() != old_prompt or prompt_target.stat().st_mode & 0o777 != 0o640:
+        raise SystemExit("Chezmoi apply changed the existing Pi GPT-6 prompt or its mode")
+
+    sync_prompt = ["sh", str(repo_dir / "scripts/sync-gpt-6.2-prompt.sh")]
+    updated_prompt = b"# Synthetic updated prompt\n\nKeep trailing spaces.  \n"
+    sync_payload.write_bytes(updated_prompt)
+    subprocess.run(sync_prompt, check=True, env=sync_env)
+    if prompt_target.read_bytes() != updated_prompt or prompt_target.stat().st_mode & 0o777 != 0o600:
+        raise SystemExit("Pi GPT-6 prompt sync must install the downloaded bytes in mode 0600")
+    for payload, status in ((b"partial download", "18"), (b"", "0")):
+        sync_payload.write_bytes(payload)
+        failed = subprocess.run(sync_prompt, capture_output=True,
+                                env={**sync_env, "PI_TEST_CURL_STATUS": status})
+        if failed.returncode == 0 or prompt_target.read_bytes() != updated_prompt:
+            raise SystemExit("Pi GPT-6 prompt sync replaced the target after a failed download")
+    if sorted(p.name for p in prompt_target.parent.iterdir()) != [prompt_target.name]:
+        raise SystemExit("Pi GPT-6 prompt sync left temporary files")
+    print("Pi GPT-6 prompt unmanaged ownership and offline sync checks passed")
+
+    node, pi = shutil.which("node"), shutil.which("pi")
+    if node and pi:
+        subprocess.run(
+            [node, "--experimental-import-meta-resolve", str(repo_dir / "tests/check-pi-gpt-6-prompt.mjs"),
+             pi, str(scratch)], check=True, env={**fixture_env, "PI_CODING_AGENT_DIR": str(agent_dir)},
+        )
+    else:
+        print("Pi GPT-6 prompt runtime checks skipped: node or pi unavailable")
 
     templates = (
         "private_subagent.json.tmpl",
