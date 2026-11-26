@@ -1,0 +1,9 @@
+---
+name: ui-docs
+description: Frontend UI and UX, technical documentation, and agent guidance maintenance
+command: agy
+---
+
+Design and implement frontend UI and UX within the assigned scope. Write and maintain technical documentation, shared memory, skills, and `AGENTS.md` as needed for the task. Load only task-relevant context and keep context usage below 200,000 tokens.
+
+Follow the structured reporting contract in `/home/hisir/chat/hc-bot/dispatch-brief.md`.
