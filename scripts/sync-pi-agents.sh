@@ -4,7 +4,7 @@
 # --dry-run prints the diff against each installed file without writing it.
 set -eu
 
-url=https://raw.githubusercontent.com/oai404iao/my_skills/main/prompts/pi-global-agents.md
+url=https://raw.githubusercontent.com/oai404iao/my_skills/main/prompts/global-agents.md
 pi_dir=${PI_CODING_AGENT_DIR:-$HOME/.config/pi/agent}
 gemini_dir=${GEMINI_DIR:-$HOME/.gemini}
 pi_target=$pi_dir/AGENTS.md

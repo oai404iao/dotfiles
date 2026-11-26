@@ -253,7 +253,7 @@ model requests, and notification delivery are outside the offline checks.
 
 The sole source of truth for `~/.config/pi/agent/AGENTS.md` and
 `~/.gemini/GEMINI.md` is
-[`my_skills/prompts/pi-global-agents.md`](https://github.com/oai404iao/my_skills/blob/main/prompts/pi-global-agents.md).
+[`my_skills/prompts/global-agents.md`](https://github.com/oai404iao/my_skills/blob/main/prompts/global-agents.md).
 Edit it in that repository, not the installed copies or a second local source
 here. `scripts/sync-pi-agents.sh` fetches remote `main` into both installed
 files (mode `0600`); no local checkout path is required. Chezmoi does not manage
