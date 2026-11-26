@@ -130,8 +130,10 @@ for graphical, niri, shell, reuse in (
     assert ('include "../niri/profile.kdl"' in content) is reuse
     assert ('spawn "fuzzel"' in content) is not reuse
     if reuse:
-        assert '"DMS_SHELL_DIR" "dms" "run"' in (
-            home / '.config/niri/conf.d/40-session.kdl').read_text()
+        assert 'Environment=NIRI_BACKEND=headless' in (home / targets[1]).read_text().splitlines()
+        session = (home / '.config/niri/conf.d/40-session.kdl').read_text()
+        assert sum(line.startswith('spawn-at-startup ') and line.endswith(' dms run"')
+                   for line in session.splitlines()) == 1
     if has_niri:
         subprocess.run(['niri', 'validate', '--config', str(kdl)], check=True)
 

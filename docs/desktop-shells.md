@@ -76,10 +76,11 @@ and sound feedback. See [custom dependencies](desktop.md#runtime-dependencies)
 for the other profile. Keeping both package sets installed is supported.
 
 Do not run DankInstall or `dms setup --force` over this configuration. Chezmoi
-already supplies the compositor integration. DMS starts **only** through
-`spawn-at-startup "env" "-u" "DMS_SHELL_DIR" "dms" "run"`; do not also enable
-`dms.service`. Clearing the inherited overlay selector ensures native startup
-even if an older session exported it. No external launcher is required.
+already supplies the compositor integration. Niri starts DMS with `dms run`
+and clears `DMS_SHELL_DIR`; do not also enable `dms.service`. For the Biri
+headless backend, the DMS launch uses a `biri` subdirectory of the XDG cache
+root so it does not share the local desktop's clipboard database. Other
+compositors keep their inherited cache root. No external launcher is required.
 Chezmoi does not install or enable plugins or lyrics providers.
 
 ### Review existing Dux configuration

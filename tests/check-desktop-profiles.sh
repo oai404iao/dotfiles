@@ -140,14 +140,28 @@ assert all(value for path, value in seeded.items() if path.name != "windowrules.
 bin_dir = home / "bin"
 bin_dir.mkdir()
 fake_dms = bin_dir / "dms"
-fake_dms.write_text('#!/bin/sh\nprintf "%s\\n" "$*" "${DMS_SHELL_DIR-unset}"\n')
+fake_dms.write_text('#!/bin/sh\nprintf "%s\\n" "$*" "${DMS_SHELL_DIR-unset}" "${XDG_CACHE_HOME-unset}"\n')
 fake_dms.chmod(0o700)
 startup = next(line for line in (niri_dir / "conf.d/40-session.kdl").read_text().splitlines()
                if line.startswith("spawn-at-startup "))
-assert run(shlex.split(startup)[1:], {
+startup_env = {
     **env, "PATH": str(bin_dir) + os.pathsep + env["PATH"],
     "DMS_SHELL_DIR": str(home / "obsolete-overlay"),
-}) == "run\nunset\n"
+}
+startup_env.pop("NIRI_BACKEND", None)
+startup_env.pop("XDG_CACHE_HOME", None)
+for backend, cache, expected in (
+    (None, None, "unset"),
+    ("headless", None, str(home / ".cache/biri")),
+    ("headless", str(home / "custom cache"), str(home / "custom cache/biri")),
+    (None, str(home / "custom cache"), str(home / "custom cache")),
+):
+    case_env = dict(startup_env)
+    if backend is not None:
+        case_env["NIRI_BACKEND"] = backend
+    if cache is not None:
+        case_env["XDG_CACHE_HOME"] = cache
+    assert run(shlex.split(startup)[1:], case_env) == f"run\nunset\n{expected}\n"
 
 def apply_fragments(paths):
     output = run(
@@ -231,7 +245,7 @@ for shell in ("custom", "dms"):
         kitty = (home / ".config/kitty/kitty.conf").read_text()
         classicui = (home / ".config/fcitx5/conf/classicui.conf").read_text()
         if shell == "dms":
-            assert session.count('spawn-at-startup "env" "-u" "DMS_SHELL_DIR" "dms" "run"') == 1
+            assert re.findall(r'^spawn-at-startup .*\bdms run"$', session, re.M) == [startup]
             assert "dms-with-lyrics" not in session
             assert '"dash" "toggle" "wallpaper"' in binds
             assert '"dankdash" "wallpaper"' not in binds
