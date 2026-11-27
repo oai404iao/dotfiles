@@ -5,26 +5,11 @@ spawn-at-startup "swayidle" "-C" "/dev/null" "timeout" "300" {{ $lock | quote }}
 // Sunshine inherits this compositor's Wayland socket.
 spawn-at-startup {{ template "biri-sunshine-args" "HEADLESS-1" }}
 
-binds {
-    Mod+Return { spawn "kitty"; }
-    Mod+D { spawn-sh "exec fuzzel --config \"${XDG_CONFIG_HOME:-$HOME/.config}/biri/fuzzel.ini\""; }
-    Super+Alt+L { spawn-sh {{ $lock | quote }}; }
-    Mod+Shift+Slash { show-hotkey-overlay; }
-    Mod+Q repeat=false { close-window; }
-    Mod+O repeat=false { toggle-overview; }
-    Mod+F { maximize-column; }
-    Mod+Shift+F { fullscreen-window; }
-    Mod+V { toggle-window-floating; }
-    Mod+Left { focus-column-left; }
-    Mod+Right { focus-column-right; }
-    Mod+Up { focus-window-or-workspace-up; }
-    Mod+Down { focus-window-or-workspace-down; }
-    Mod+Ctrl+Left { move-column-left; }
-    Mod+Ctrl+Right { move-column-right; }
-    Mod+Ctrl+Up { move-window-up; }
-    Mod+Ctrl+Down { move-window-down; }
-    Mod+Page_Up { focus-workspace-up; }
-    Mod+Page_Down { focus-workspace-down; }
-    Mod+Ctrl+Page_Up { move-column-to-workspace-up; }
-    Mod+Ctrl+Page_Down { move-column-to-workspace-down; }
-}
+{{ include "dot_config/niri/conf.d/10-input.kdl" }}
+{{ include "dot_config/niri/conf.d/30-layout.kdl" }}
+{{ include "dot_config/niri/conf.d/50-rules.kdl" }}
+prefer-no-csd
+hotkey-overlay {}
+screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"
+
+{{ template "niri-binds.kdl" (dict "desktopShell" "headless" "lock" $lock) -}}

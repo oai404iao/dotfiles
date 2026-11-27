@@ -1,4 +1,6 @@
-{{- $dms := eq (get . "desktopShell" | default "custom") "dms" -}}
+{{- $shell := get . "desktopShell" | default "custom" -}}
+{{- $dms := eq $shell "dms" -}}
+{{- $headless := eq $shell "headless" -}}
 binds {
     Mod+Shift+Slash { show-hotkey-overlay; }
 
@@ -29,7 +31,7 @@ binds {
 {{ if $dms }}
     XF86MonBrightnessUp allow-when-locked=true { spawn "dms" "ipc" "call" "brightness" "increment" "10" ""; }
     XF86MonBrightnessDown allow-when-locked=true { spawn "dms" "ipc" "call" "brightness" "decrement" "10" ""; }
-{{ else }}
+{{ else if not $headless }}
     XF86MonBrightnessUp allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "+10%"; }
     XF86MonBrightnessDown allow-when-locked=true { spawn "brightnessctl" "--class=backlight" "set" "10%-"; }
 {{ end }}
@@ -38,8 +40,13 @@ binds {
     Mod+Q repeat=false { close-window; }
 
     Mod+Left { focus-column-left; }
+{{- if $headless }}
+    Mod+Down { focus-window-or-workspace-down; }
+    Mod+Up { focus-window-or-workspace-up; }
+{{- else }}
     Mod+Down { focus-window-down; }
     Mod+Up { focus-window-up; }
+{{- end }}
     Mod+Right { focus-column-right; }
     Mod+H hotkey-overlay-title="<b>Vim focus</b> · column left" { focus-column-left; }
     Mod+J hotkey-overlay-title="<b>Vim focus</b> · window below" { focus-window-down; }
@@ -145,6 +152,13 @@ binds {
     Mod+Y hotkey-overlay-title="Wallpapers" { spawn "dms" "ipc" "call" "dash" "toggle" "wallpaper"; }
     Mod+Alt+N hotkey-overlay-title="Night Mode" { spawn "dms" "ipc" "call" "night" "toggle"; }
     Mod+Alt+M hotkey-overlay-title="Task Manager" { spawn "dms" "ipc" "call" "processlist" "focusOrToggle"; }
+{{ else if $headless }}
+{{- $launcher := `exec fuzzel --config "${XDG_CONFIG_HOME:-$HOME/.config}/biri/fuzzel.ini"` }}
+    Mod+Return { spawn "kitty"; }
+    Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn-sh {{ $launcher | quote }}; }
+    Alt+Space hotkey-overlay-title="Run an Application: fuzzel" { spawn-sh {{ $launcher | quote }}; }
+    Super+Alt+L hotkey-overlay-title="Lock Session" { spawn-sh {{ .lock | quote }}; }
+    Mod+Alt+M hotkey-overlay-title="Task Manager: btop" { spawn "kitty" "btop"; }
 {{ else }}
     Mod+D hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
     Alt+Space hotkey-overlay-title="Run an Application: fuzzel" { spawn "fuzzel"; }
@@ -179,7 +193,11 @@ binds {
     Ctrl+Print { spawn "dms" "screenshot" "full"; }
     Alt+Print { spawn "dms" "screenshot" "window"; }
 {{ else }}
+{{- if $headless }}
+    Print { screenshot; }
+{{- else }}
     Print { spawn-sh "${XDG_CONFIG_HOME:-$HOME/.config}/niri/scripts/edit-screenshot.sh"; }
+{{- end }}
     Ctrl+Print { screenshot-screen; }
     Alt+Print { screenshot-window; }
 {{ end }}
@@ -188,9 +206,11 @@ binds {
 {{ if $dms }}
     Mod+Shift+E { spawn "dms" "ipc" "call" "powermenu" "toggle"; }
     Ctrl+Alt+Delete { spawn "dms" "ipc" "call" "powermenu" "toggle"; }
-{{ else }}
+{{ else if not $headless }}
     Mod+Shift+E { quit; }
     Ctrl+Alt+Delete { quit; }
 {{ end }}
+{{- if not $headless }}
     Mod+Shift+P { power-off-monitors; }
+{{- end }}
 }

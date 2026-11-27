@@ -129,12 +129,43 @@ assert [line for line in lines if line.startswith('spawn')] == [
     '"upnp=off" "origin_web_ui_allowed=pc"',
 ]
 assert not any(line.lstrip().startswith('include ') for line in lines)
+assert 'input {\n    keyboard {\n        xkb {}\n        numlock' in headless
+assert 'layout {\n    gaps 16\n    center-focused-column "never"' in headless
+assert '    block-out-from "screen-capture"' in lines
+assert 'prefer-no-csd' in lines
+assert 'hotkey-overlay {}' in lines
+assert 'screenshot-path "~/Pictures/Screenshots/Screenshot from %Y-%m-%d %H-%M-%S.png"' in lines
 launcher = f'exec fuzzel --config "{config_root}/fuzzel.ini"'
 assert [line.strip() for line in lines if ' { spawn' in line] == [
+    'XF86AudioRaiseVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1+ -l 1.0"; }',
+    'XF86AudioLowerVolume allow-when-locked=true { spawn-sh "wpctl set-volume @DEFAULT_AUDIO_SINK@ 0.1-"; }',
+    'XF86AudioMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SINK@ toggle"; }',
+    'XF86AudioMicMute allow-when-locked=true { spawn-sh "wpctl set-mute @DEFAULT_AUDIO_SOURCE@ toggle"; }',
+    'XF86AudioPlay allow-when-locked=true { spawn "playerctl" "play-pause"; }',
+    'XF86AudioStop allow-when-locked=true { spawn "playerctl" "stop"; }',
+    'XF86AudioPrev allow-when-locked=true { spawn "playerctl" "previous"; }',
+    'XF86AudioNext allow-when-locked=true { spawn "playerctl" "next"; }',
+    'Mod+T hotkey-overlay-title="Open a Terminal: kitty" { spawn "kitty"; }',
     'Mod+Return { spawn "kitty"; }',
-    f'Mod+D {{ spawn-sh {json.dumps(launcher)}; }}',
-    f'Super+Alt+L {{ spawn-sh {json.dumps(lock)}; }}',
+    f'Mod+D hotkey-overlay-title="Run an Application: fuzzel" {{ spawn-sh {json.dumps(launcher)}; }}',
+    f'Alt+Space hotkey-overlay-title="Run an Application: fuzzel" {{ spawn-sh {json.dumps(launcher)}; }}',
+    f'Super+Alt+L hotkey-overlay-title="Lock Session" {{ spawn-sh {json.dumps(lock)}; }}',
+    'Mod+Alt+M hotkey-overlay-title="Task Manager: btop" { spawn "kitty" "btop"; }',
 ]
+assert {
+    'Mod+H hotkey-overlay-title="<b>Vim focus</b> · column left" { focus-column-left; }',
+    'Mod+Ctrl+J hotkey-overlay-title="<b>Vim move</b> · window down in column" { move-window-down; }',
+    'Mod+Down { focus-window-or-workspace-down; }',
+    'Mod+1 { focus-workspace 1; }',
+    'Mod+Ctrl+9 { move-column-to-workspace 9; }',
+    'Mod+U { focus-workspace-down; }',
+    'Mod+R { switch-preset-column-width; }',
+    'Mod+W { toggle-column-tabbed-display; }',
+    'Mod+Shift+V { switch-focus-between-floating-and-tiling; }',
+    'Print { screenshot; }',
+    'Ctrl+Print { screenshot-screen; }',
+    'Alt+Print { screenshot-window; }',
+} <= {line.strip() for line in lines}
 assert 'power-off-monitors' not in headless
 bar_config = json.loads(kdl.with_name('waybar.json').read_text())
 assert bar_config['output'] == 'HEADLESS-1'

@@ -116,10 +116,12 @@ instead if the local desktop will stay active.
    ```
 
    Add the host's LAN or VPN address to Moonlight. Test the Desktop stream,
-   keyboard, mouse, and audio. `Super+Enter` opens Kitty, `Super+D` opens
-   Fuzzel, and `Super+Alt+L` locks with swaylock. Test unlock with the Linux
-   account password, then reconnect after five minutes idle and confirm that
-   the lock screen remains visible in Moonlight.
+   keyboard, mouse, and audio. `Super+T` or `Super+Enter` opens Kitty,
+   `Super+D` or `Alt+Space` opens Fuzzel, and `Super+Alt+L` locks with swaylock.
+   `Super+Shift+/` lists shortcuts. `Super+Alt+M` opens `btop` in Kitty when
+   `btop` is installed. Test unlock with the Linux account password, then
+   reconnect after five minutes idle and confirm that the lock screen remains
+   visible in Moonlight.
 3. For startup before login, run `sudo loginctl enable-linger "$USER"` if
    needed. The helper enables the unit in the user manager. Verify after
    a cold boot without logging into the graphical desktop. Applying the files
