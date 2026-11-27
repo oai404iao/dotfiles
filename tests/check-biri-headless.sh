@@ -122,9 +122,15 @@ lines = headless.splitlines()
 config_root = '${XDG_CONFIG_HOME:-$HOME/.config}/biri'
 lock = f'exec /usr/bin/swaylock -f -C "{config_root}/swaylock.conf"'
 bar = f'exec waybar -c "{config_root}/waybar.json" -s "{config_root}/waybar.css"'
+fcitx = (
+    'gdbus wait --session org.fcitx.Fcitx5 &&\n'
+    '    exec busctl --user --auto-start=no --timeout=5s call org.fcitx.Fcitx5 /controller \\\n'
+    '        org.fcitx.Fcitx.Controller1 OpenWaylandConnection s "$WAYLAND_DISPLAY"'
+)
 assert [line for line in lines if line.startswith('spawn')] == [
     f'spawn-sh-at-startup {json.dumps(bar)}',
     f'spawn-at-startup "swayidle" "-C" "/dev/null" "timeout" "1200" {json.dumps(lock)}',
+    f'spawn-sh-at-startup {json.dumps(fcitx)}',
     'spawn-at-startup "/usr/bin/sunshine" "capture=wlr" "output_name=HEADLESS-1" '
     '"upnp=off" "origin_web_ui_allowed=pc"',
 ]

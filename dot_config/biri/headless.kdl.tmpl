@@ -1,6 +1,10 @@
 {{- $lock := `exec /usr/bin/swaylock -f -C "${XDG_CONFIG_HOME:-$HOME/.config}/biri/swaylock.conf"` -}}
+{{- $fcitx := `gdbus wait --session org.fcitx.Fcitx5 &&
+    exec busctl --user --auto-start=no --timeout=5s call org.fcitx.Fcitx5 /controller \
+        org.fcitx.Fcitx.Controller1 OpenWaylandConnection s "$WAYLAND_DISPLAY"` -}}
 spawn-sh-at-startup "exec waybar -c \"${XDG_CONFIG_HOME:-$HOME/.config}/biri/waybar.json\" -s \"${XDG_CONFIG_HOME:-$HOME/.config}/biri/waybar.css\""
 spawn-at-startup "swayidle" "-C" "/dev/null" "timeout" "1200" {{ $lock | quote }}
+spawn-sh-at-startup {{ $fcitx | quote }}
 
 // Sunshine inherits this compositor's Wayland socket.
 spawn-at-startup {{ template "biri-sunshine-args" "HEADLESS-1" }}

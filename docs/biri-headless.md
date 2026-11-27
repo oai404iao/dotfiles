@@ -127,6 +127,34 @@ instead if the local desktop will stay active.
    a cold boot without logging into the graphical desktop. Applying the files
    alone neither enables nor starts the service.
 
+### Use the desktop's Fcitx5 in the headless session
+
+The headless startup command runs in the background and waits for
+`org.fcitx.Fcitx5` on the shared user bus without activating it. When the
+desktop's Fcitx5 appears, `busctl` calls `OpenWaylandConnection` on
+`/controller` (`org.fcitx.Fcitx.Controller1`) with the headless compositor's
+`WAYLAND_DISPLAY` as a string (`s`). This needs `gdbus` from `glib2` and `busctl`
+from `systemd`. If Fcitx5 is restarted while Biri is running, reconnect manually.
+
+Wayland-native applications with `text-input-v3` use Biri's `input-method-v2`
+connection to Fcitx5. Leave `GTK_IM_MODULE` and `QT_IM_MODULE` unset for native
+clients that support this path. `XMODIFIERS=@im=fcitx` is for XWayland clients.
+Older Qt applications can select `QT_IM_MODULE=fcitx` per application.
+
+To connect a running session after applying the new KDL, run the following
+from a terminal opened **inside the headless session** so it uses the correct
+`WAYLAND_DISPLAY`:
+
+```sh
+busctl --user --auto-start=no --timeout=5s call org.fcitx.Fcitx5 /controller \
+  org.fcitx.Fcitx.Controller1 OpenWaylandConnection s "$WAYLAND_DISPLAY"
+busctl --user --auto-start=no call org.fcitx.Fcitx5 /controller \
+  org.fcitx.Fcitx.Controller1 DebugInfo
+```
+
+Look for `Group [wayland:<headless-display>]` in `DebugInfo`, then try
+composing text in a Wayland-native app in Moonlight.
+
 ## Separate headless input from the local desktop
 
 With both compositors on `seat0`, Moonlight input can reach the local desktop
