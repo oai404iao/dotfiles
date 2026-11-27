@@ -31,7 +31,7 @@ Already using this repository?
 | Pinned Oh My Zsh and Powerlevel10k | [Zsh dependencies](docs/zsh.md) |
 | Fonts, applications, locale, and keyring | [Desktop](docs/desktop.md) |
 | Niri custom/DMS selection and migration | [Desktop shells](docs/desktop-shells.md) |
-| Unattended remote desktop with Moonlight | [Biri and Sunshine](docs/biri-headless.md) |
+| Unattended Moonlight streaming from an independent lightweight session or the regular DMS desktop | [Biri and Sunshine](docs/biri-headless.md) |
 | Optional iPhone notifications and clipboard | [Tether](docs/tether.md) |
 | Models, notifications, extensions, and agents | [Pi](docs/pi.md) |
 | Optional local agent daemon without web UI | [Paseo](docs/paseo.md) |

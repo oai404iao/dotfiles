@@ -1,0 +1,16 @@
+window#waybar {
+    background-color: #20242b;
+    color: #f0f2f4;
+}
+
+#workspaces button {
+    color: inherit;
+}
+
+#workspaces button.active {
+    background-color: #46546a;
+}
+
+#clock {
+    padding: 0 10px;
+}

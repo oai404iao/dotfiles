@@ -1,0 +1,14 @@
+{
+  "output": "HEADLESS-1",
+  "layer": "top",
+  "position": "top",
+  "modules-left": ["niri/workspaces"],
+  "modules-center": ["niri/window"],
+  "modules-right": ["clock"],
+  "niri/window": {
+    "max-length": 60
+  },
+  "clock": {
+    "format": "{:%H:%M}"
+  }
+}

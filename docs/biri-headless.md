@@ -10,11 +10,16 @@ Select one `biri` mode in chezmoi machine data:
 
 Both stream modes use 1920×1080 at 60 Hz. Chezmoi does not switch packages.
 
-With the DMS profile, both entry points include `niri/profile.kdl` for shared
-bindings, layout, rules, and DMS startup. The independent headless session
-otherwise uses its standalone Kitty and Fuzzel bindings. Same-user sessions
-share the user manager, DMS state and IPC, and by default `seat0` input. To run
-both sessions with separate input, follow [the dual-seat setup](#separate-headless-input-from-the-local-desktop).
+The regular desktop owns DMS. The independent headless service uses its own
+KDL, Waybar configuration and stylesheet, Fuzzel configuration, and swaylock
+configuration under `~/.config/biri/`. Waybar shows workspaces, the focused
+window title, and a clock on `HEADLESS-1`. The session starts Waybar, swayidle,
+and Sunshine. swayidle locks after five minutes and keeps the virtual output
+available for capture.
+
+Same-user sessions share the user manager and use `seat0` by default. To run
+both sessions with separate input, follow the
+[dual-seat setup](#separate-headless-input-from-the-local-desktop).
 
 ## Prepare the host
 
@@ -23,8 +28,11 @@ both sessions with separate input, follow [the dual-seat setup](#separate-headle
   Biri's upstream Arch snapshot is unsigned; review its provenance and verify
   the published SHA-256 before installing. It replaces the `niri` package and
   retains the `niri` and `niri-session` commands. Keep a known-good Niri package
-  for rollback. Install Kitty and Fuzzel for standalone use, or prepare and
-  apply the [DMS profile](desktop-shells.md) before starting the service.
+  for rollback. For `headless`, install `kitty`, `fuzzel`, `waybar`, `swayidle`,
+  and stock `swaylock`. Arch's `swaylock` and AUR `swaylock-effects` provide the
+  same command and are alternative packages. The custom desktop's lock styling
+  requires `swaylock-effects`. For `desktop`, prepare the
+  [DMS profile](desktop-shells.md).
 - The service user needs unattended access to the GPU render node and, for
   remote input, access to `/dev/uinput` and the associated input event devices.
   Active graphical login ACLs alone are not enough. Allow streams only from a
@@ -84,15 +92,14 @@ instead if the local desktop will stay active.
 
    Stop any running regular streaming session before applying; see [Switch
    modes](#switch-modes).
-2. If also using the DMS profile, ensure the shared `~/.config/niri/profile.kdl`
-   and its includes have been applied. Review and apply only the headless files
-   (create missing parent directories):
+2. Review and apply the dedicated headless configuration and user unit.
+   Create missing parent directories before targeting files explicitly.
 
    ```sh
-   chezmoi diff --exclude=scripts,encrypted \
-     ~/.config/biri/headless.kdl ~/.config/systemd/user/biri-headless.service
+   chezmoi diff --recursive --skip-secrets --exclude=scripts,encrypted \
+     ~/.config/biri ~/.config/systemd/user/biri-headless.service
    chezmoi apply --exclude=scripts,encrypted \
-     ~/.config/biri/headless.kdl ~/.config/systemd/user/biri-headless.service
+     ~/.config/biri ~/.config/systemd/user/biri-headless.service
    # From the chezmoi source root:
    scripts/biri --apply
    journalctl --user -u biri-headless.service -b
@@ -109,9 +116,10 @@ instead if the local desktop will stay active.
    ```
 
    Add the host's LAN or VPN address to Moonlight. Test the Desktop stream,
-   keyboard, mouse, and audio. In standalone mode, `Super+Enter` opens Kitty
-   and `Super+D` opens Fuzzel. In DMS mode, check the bar, DMS launcher, and
-   reconnect after the [idle lock and display-off timers](desktop-shells.md#idle-and-lock-defaults).
+   keyboard, mouse, and audio. `Super+Enter` opens Kitty, `Super+D` opens
+   Fuzzel, and `Super+Alt+L` locks with swaylock. Test unlock with the Linux
+   account password, then reconnect after five minutes idle and confirm that
+   the lock screen remains visible in Moonlight.
 3. For startup before login, run `sudo loginctl enable-linger "$USER"` if
    needed. The helper enables the unit in the user manager. Verify after
    a cold boot without logging into the graphical desktop. Applying the files
@@ -156,16 +164,16 @@ to reinstall the rule or restart a working service just to adopt the drop-in.
    ```
 
    A missing or false `biriSeparateInput` leaves the drop-in unmanaged.
-3. Review and apply the three headless targets. Create missing parent
-   directories before targeting files explicitly. With DMS, apply the shared
-   Niri profile and its includes as for the independent service.
+3. Review and apply the dedicated headless configuration, user unit, and
+   seat drop-in. Create missing parent directories before targeting files
+   explicitly.
 
    ```sh
-   chezmoi diff --skip-secrets --exclude=scripts,encrypted \
-     ~/.config/biri/headless.kdl ~/.config/systemd/user/biri-headless.service \
+   chezmoi diff --recursive --skip-secrets --exclude=scripts,encrypted \
+     ~/.config/biri ~/.config/systemd/user/biri-headless.service \
      ~/.config/systemd/user/biri-headless.service.d/90-seat-stream.conf
    chezmoi apply --exclude=scripts,encrypted \
-     ~/.config/biri/headless.kdl ~/.config/systemd/user/biri-headless.service \
+     ~/.config/biri ~/.config/systemd/user/biri-headless.service \
      ~/.config/systemd/user/biri-headless.service.d/90-seat-stream.conf
    systemctl --user daemon-reload
    systemctl --user start biri-headless.service
@@ -207,7 +215,8 @@ rerun initialization.
      regular Niri session.
    - `desktop`: disable and stop the headless service, if present, and archive
      its unit and KDL under `$XDG_STATE_HOME/deployment-backups/biri` (default
-     `~/.local/state/deployment-backups/biri`). Start the regular session through
+     `~/.local/state/deployment-backups/biri`). Chezmoi leaves the remaining
+     headless UI files unmanaged. Start the regular session through
      its login manager. With greetd, log in at the greeter or boot again;
      restarting greetd does not repeat automatic login in the same boot.
    - `none`: retire the headless service as above and stop the regular Sunshine
@@ -218,5 +227,7 @@ never runs `chezmoi apply`, changes system services or linger, or touches
 Sunshine settings and pairings. If you customized the headless unit or added
 drop-ins, handle its service changes manually.
 To return to upstream Niri, replace Biri separately after stopping its session.
-If staying in `headless`, restart its service after changing startup options or
-if Sunshine exits; this closes the headless desktop.
+To migrate a running `headless` service to the lightweight UI, review and
+apply `~/.config/biri` as above, then restart `biri-headless.service` when the
+stream can be disconnected. This closes the headless desktop and launches
+the new startup commands. Restart the service also if Sunshine exits.

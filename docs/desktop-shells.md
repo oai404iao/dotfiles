@@ -76,12 +76,11 @@ and sound feedback. See [custom dependencies](desktop.md#runtime-dependencies)
 for the other profile. Keeping both package sets installed is supported.
 
 Do not run DankInstall or `dms setup --force` over this configuration. Chezmoi
-already supplies the compositor integration. Niri starts DMS with `dms run`
-and clears `DMS_SHELL_DIR`; do not also enable `dms.service`. For the Biri
-headless backend, the DMS launch uses a `biri` subdirectory of the XDG cache
-root so it does not share the local desktop's clipboard database. Other
-compositors keep their inherited cache root. No external launcher is required.
-Chezmoi does not install or enable plugins or lyrics providers.
+already supplies the compositor integration. The regular Niri desktop starts
+DMS with `dms run` and clears `DMS_SHELL_DIR`. Keep `dms.service` disabled.
+The [independent Biri session](biri-headless.md#enable-the-independent-headless-service)
+has its own lightweight UI. Chezmoi does not install or enable plugins or
+lyrics providers.
 
 ### Review existing Dux configuration
 
@@ -338,10 +337,8 @@ This is a future manual deployment procedure, not part of a source-only update.
 1. Save work and **log out of Niri**, then use a TTY for the transition.
    Niri reloads configuration immediately, but `spawn-at-startup` is not rerun
    on reload. Applying mid-session would mix new bindings with old processes.
-   If Biri headless is active, stop it before switching. After applying the new
-   desktop profile, also review and apply `~/.config/biri/headless.kdl` before
-   starting the remote session again. Before leaving DMS with `biri = "desktop"`,
-   follow [Biri mode switching](biri-headless.md#switch-modes).
+   Before leaving DMS with `biri = "desktop"`, follow
+   [Biri mode switching](biri-headless.md#switch-modes).
 2. Review `systemctl --user list-unit-files` and
    `~/.config/autostart/` for independent DMS, Waybar, Mako, CopyQ, awww,
    Waypaper, or swayidle startup. Disable only reviewed conflicting entries.

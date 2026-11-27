@@ -22,7 +22,10 @@ repo, task = map(Path, sys.argv[1:])
 source = task / 'source'
 home = task / 'home'
 config = task / 'chezmoi.toml'
-targets = ('.config/biri/headless.kdl', '.config/systemd/user/biri-headless.service')
+entry = '.config/biri/headless.kdl'
+unit = '.config/systemd/user/biri-headless.service'
+targets = {entry, unit, '.config/biri/fuzzel.ini', '.config/biri/swaylock.conf',
+           '.config/biri/waybar.json', '.config/biri/waybar.css'}
 seat_dropin = '.config/systemd/user/biri-headless.service.d/90-seat-stream.conf'
 seat_rule = 'scripts/udev/72-sunshine-seat-stream.rules'
 unmanaged = (
@@ -32,14 +35,13 @@ unmanaged = (
 )
 
 for relative in ('.chezmoi.toml.tmpl', '.chezmoiignore',
-                 'dot_config/biri/headless.kdl.tmpl',
                  'dot_config/dms/modify_settings.json.tmpl',
-                 'dot_config/systemd/user/biri-headless.service',
+                 unit.replace('.config/', 'dot_config/', 1),
                  seat_dropin.replace('.config/', 'dot_config/', 1), seat_rule):
     fixture = source / relative
     fixture.parent.mkdir(parents=True, exist_ok=True)
     shutil.copyfile(repo / relative, fixture)
-for name in ('dot_config/niri', '.chezmoitemplates'):
+for name in ('dot_config/biri', 'dot_config/niri', '.chezmoitemplates'):
     shutil.copytree(repo / name, source / name)
 for name in unmanaged:
     fixture = source / name.replace('.config/', 'dot_config/', 1)
@@ -81,7 +83,7 @@ for mode in (None, 'none', 'headless'):
     assert init_data()['biri'] == (mode or 'none')
     assert init_data()['biriSeparateInput'] is False
     actual = set(run(*list_files).splitlines())
-    assert actual == (set(targets) if mode == 'headless' else set()), actual
+    assert actual == (targets if mode == 'headless' else set()), actual
 for mode, separate_input, manage_dropin in (
     (None, True, False),
     ('none', True, False),
@@ -112,30 +114,53 @@ for graphical, niri, shell in (
     machine('desktop', graphical, niri, shell)
     run(*list_files, error='requires graphical Niri with DMS')
 
+machine('headless')
+run('apply', '--exclude=scripts,encrypted')
+kdl = home / entry
+headless = kdl.read_text()
+lines = headless.splitlines()
+config_root = '${XDG_CONFIG_HOME:-$HOME/.config}/biri'
+lock = f'exec /usr/bin/swaylock -f -C "{config_root}/swaylock.conf"'
+bar = f'exec waybar -c "{config_root}/waybar.json" -s "{config_root}/waybar.css"'
+assert [line for line in lines if line.startswith('spawn')] == [
+    f'spawn-sh-at-startup {json.dumps(bar)}',
+    f'spawn-at-startup "swayidle" "-C" "/dev/null" "timeout" "300" {json.dumps(lock)}',
+    'spawn-at-startup "/usr/bin/sunshine" "capture=wlr" "output_name=HEADLESS-1" '
+    '"upnp=off" "origin_web_ui_allowed=pc"',
+]
+assert not any(line.lstrip().startswith('include ') for line in lines)
+launcher = f'exec fuzzel --config "{config_root}/fuzzel.ini"'
+assert [line.strip() for line in lines if ' { spawn' in line] == [
+    'Mod+Return { spawn "kitty"; }',
+    f'Mod+D {{ spawn-sh {json.dumps(launcher)}; }}',
+    f'Super+Alt+L {{ spawn-sh {json.dumps(lock)}; }}',
+]
+assert 'power-off-monitors' not in headless
+bar_config = json.loads(kdl.with_name('waybar.json').read_text())
+assert bar_config['output'] == 'HEADLESS-1'
+assert 'include' not in bar_config
+assert [bar_config[f'modules-{side}'] for side in ('left', 'center', 'right')] == [
+    ['niri/workspaces'], ['niri/window'], ['clock'],
+]
+service = (home / unit).read_text().splitlines()
+assert 'Environment=NIRI_BACKEND=headless' in service
+assert 'ExecStartPre=/usr/bin/niri validate --config %E/biri/headless.kdl' in service
+assert 'ExecStart=/usr/bin/niri --config %E/biri/headless.kdl' in service
+
 has_niri = shutil.which('niri')
-for graphical, niri, shell, reuse in (
-    (False, False, 'custom', False),
-    (False, True, 'dms', False),
-    (True, False, 'dms', False),
-    (True, True, 'custom', False),
-    (True, True, 'dms', True),
-):
-    machine('headless', graphical, niri, shell)
-    run('apply', '--exclude=scripts,encrypted')
-    assert all((home / path).is_file() for path in targets)
-    kdl = home / targets[0]
-    content = kdl.read_text()
-    assert content.count('"/usr/bin/sunshine"') == 1
-    assert '"output_name=HEADLESS-1"' in content
-    assert ('include "../niri/profile.kdl"' in content) is reuse
-    assert ('spawn "fuzzel"' in content) is not reuse
-    if reuse:
-        assert 'Environment=NIRI_BACKEND=headless' in (home / targets[1]).read_text().splitlines()
-        session = (home / '.config/niri/conf.d/40-session.kdl').read_text()
-        assert sum(line.startswith('spawn-at-startup ') and line.endswith(' dms run"')
-                   for line in session.splitlines()) == 1
-    if has_niri:
-        subprocess.run(['niri', 'validate', '--config', str(kdl)], check=True)
+if has_niri:
+    subprocess.run(['niri', 'validate', '--config', str(kdl)], check=True)
+
+machine('headless', True, True, 'custom')
+run('apply', '--exclude=scripts,encrypted')
+assert kdl.read_text() == headless
+
+machine('headless', True, True, 'dms')
+run('apply', '--exclude=scripts,encrypted')
+assert kdl.read_text() == headless
+session = (home / '.config/niri/conf.d/40-session.kdl').read_text()
+assert sum(line.startswith('spawn-at-startup ') and line.endswith(' dms run"')
+           for line in session.splitlines()) == 1
 
 desktop = home / '.config/niri/config.kdl'
 assert desktop.read_text().strip() == 'include "profile.kdl"'
@@ -151,7 +176,7 @@ assert (home / seat_dropin).is_file()
 installed_headless = {path: (home / path).read_bytes() for path in targets}
 machine('desktop', True, True, 'dms')
 assert init_data()['biri'] == 'desktop'
-assert not (set(targets) & set(run(*list_files).splitlines()))
+assert not (targets & set(run(*list_files).splitlines()))
 run('apply', '--exclude=scripts,encrypted')
 assert {path: (home / path).read_bytes() for path in targets} == installed_headless
 content = desktop.read_text()
@@ -170,7 +195,7 @@ assert settings['acPostLockMonitorTimeout'] == settings['batteryPostLockMonitorT
 machine('none', True, True, 'dms')
 run('apply', '--exclude=scripts,encrypted')
 assert desktop.read_text().strip() == 'include "profile.kdl"'
-assert not (set(targets) & set(run(*list_files).splitlines()))
+assert not (targets & set(run(*list_files).splitlines()))
 
 assert all((home / path).read_text() == 'application-owned fixture\n' for path in unmanaged)
 home = task / 'fresh-desktop'
@@ -178,7 +203,7 @@ home.mkdir()
 machine('desktop', True, True, 'dms')
 run('apply', '--exclude=scripts,encrypted')
 assert not (home / '.config/biri').exists()
-assert not (home / targets[1]).exists()
+assert not (home / unit).exists()
 if not has_niri:
     print('Biri headless KDL validation skipped: niri unavailable')
 print('Biri mode checks passed')

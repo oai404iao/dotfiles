@@ -85,11 +85,16 @@ qt6-multimedia         # Optional DMS sound feedback.
 # Optional Niri/DMS Tether integration; see docs/tether.md before enabling.
 bluez-obex             # Tether Bluetooth prerequisites; tether-bin is in aur.txt.
 
-# Niri + custom: Waybar/Fuzzel/Mako, screenshot, recording, and helpers.
+# Shared by Niri custom and Biri headless. Kitty is listed above.
 fuzzel                 # Application launcher and script menus.
-waybar                 # Bar and its active widgets.
+waybar                 # Desktop bar or the minimal HEADLESS-1 bar.
+swayidle               # Idle/lock scheduling.
+
+# Biri headless only; see docs/biri-headless.md for compositor and streaming packages.
+swaylock               # Stock locker; alternative to custom's AUR swaylock-effects.
+
+# Niri + custom: notifications, screenshot, recording, and helpers.
 mako                   # Notifications.
-swayidle               # Idle/lock scheduling with swaylock-effects in aur.txt.
 copyq                  # Clipboard history.
 awww                   # Wallpaper daemon for Waypaper.
 playerctl              # Niri media-key actions.
