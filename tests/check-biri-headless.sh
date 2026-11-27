@@ -124,7 +124,7 @@ lock = f'exec /usr/bin/swaylock -f -C "{config_root}/swaylock.conf"'
 bar = f'exec waybar -c "{config_root}/waybar.json" -s "{config_root}/waybar.css"'
 assert [line for line in lines if line.startswith('spawn')] == [
     f'spawn-sh-at-startup {json.dumps(bar)}',
-    f'spawn-at-startup "swayidle" "-C" "/dev/null" "timeout" "300" {json.dumps(lock)}',
+    f'spawn-at-startup "swayidle" "-C" "/dev/null" "timeout" "1200" {json.dumps(lock)}',
     'spawn-at-startup "/usr/bin/sunshine" "capture=wlr" "output_name=HEADLESS-1" '
     '"upnp=off" "origin_web_ui_allowed=pc"',
 ]

@@ -1,6 +1,6 @@
 {{- $lock := `exec /usr/bin/swaylock -f -C "${XDG_CONFIG_HOME:-$HOME/.config}/biri/swaylock.conf"` -}}
 spawn-sh-at-startup "exec waybar -c \"${XDG_CONFIG_HOME:-$HOME/.config}/biri/waybar.json\" -s \"${XDG_CONFIG_HOME:-$HOME/.config}/biri/waybar.css\""
-spawn-at-startup "swayidle" "-C" "/dev/null" "timeout" "300" {{ $lock | quote }}
+spawn-at-startup "swayidle" "-C" "/dev/null" "timeout" "1200" {{ $lock | quote }}
 
 // Sunshine inherits this compositor's Wayland socket.
 spawn-at-startup {{ template "biri-sunshine-args" "HEADLESS-1" }}

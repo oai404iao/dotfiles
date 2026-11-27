@@ -14,7 +14,7 @@ The regular desktop owns DMS. The independent headless service uses its own
 KDL, Waybar configuration and stylesheet, Fuzzel configuration, and swaylock
 configuration under `~/.config/biri/`. Waybar shows workspaces, the focused
 window title, and a clock on `HEADLESS-1`. The session starts Waybar, swayidle,
-and Sunshine. swayidle locks after five minutes and keeps the virtual output
+and Sunshine. swayidle locks after 20 minutes and keeps the virtual output
 available for capture.
 
 Same-user sessions share the user manager and use `seat0` by default. To run
@@ -120,7 +120,7 @@ instead if the local desktop will stay active.
    `Super+D` or `Alt+Space` opens Fuzzel, and `Super+Alt+L` locks with swaylock.
    `Super+Shift+/` lists shortcuts. `Super+Alt+M` opens `btop` in Kitty when
    `btop` is installed. Test unlock with the Linux account password, then
-   reconnect after five minutes idle and confirm that the lock screen remains
+   reconnect after 20 minutes idle and confirm that the lock screen remains
    visible in Moonlight.
 3. For startup before login, run `sudo loginctl enable-linger "$USER"` if
    needed. The helper enables the unit in the user manager. Verify after
