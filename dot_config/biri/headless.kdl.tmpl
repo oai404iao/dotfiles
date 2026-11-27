@@ -7,7 +7,7 @@ spawn-at-startup "swayidle" "-C" "/dev/null" "timeout" "1200" {{ $lock | quote }
 spawn-sh-at-startup {{ $fcitx | quote }}
 
 // Sunshine inherits this compositor's Wayland socket.
-spawn-at-startup {{ template "biri-sunshine-args" "HEADLESS-1" }}
+spawn-at-startup {{ template "biri-sunshine-args" "HEADLESS-1" }} "origin_web_ui_allowed=pc"
 
 {{ include "dot_config/niri/conf.d/10-input.kdl" }}
 {{ include "dot_config/niri/conf.d/30-layout.kdl" }}
